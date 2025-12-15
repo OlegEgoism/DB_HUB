@@ -13,7 +13,7 @@
 ````bash
 python3 backend/collect_app_code.py 
 ````
-
+ 
 ---------
 
 - В папке backend создайте файл .env
