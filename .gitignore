@@ -1,7 +1,6 @@
 # .gitignore
 
-venv/
-../.env
 .venv/
 .idea/
-/info.txt
+/all_code.txt
+/.env
