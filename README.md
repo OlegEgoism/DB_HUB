@@ -8,6 +8,14 @@
 
 ---------
 
+# Получение всего backend кода в один файл - all_code.txt
+
+````bash
+python3 backend/collect_app_code.py 
+````
+
+---------
+
 - В папке backend создайте файл .env
 
 ````
@@ -72,11 +80,4 @@ python backend/main.py
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ````
 
----------
-
-# Получение всего backend кода в один файл - all_code.txt
-
-````bash
-python3 backend/collect_app_code.py 
-````
 
