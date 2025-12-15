@@ -1,24 +1,35 @@
 # HUB DB
 
----------
+```
+Версия: Python 3.13 / PostgreSQL 13+ / Greenplum 6+
+При первом запуске приложения все таблицы будут созданы автоматически/
+API документация: 
+        http://127.0.0.1:8000/docs 
+        http://127.0.0.1:8000/redoc
+```
 
-- Версия: Python 3.13 / PostgreSQL 13+ / Greenplum 6+
-- При первом запуске приложения все таблицы будут созданы автоматически/
-- API документация: - http://127.0.0.1:8000/docs - http://127.0.0.1:8000/redoc
+<h3 style="color: #2486b5; text-align: center">
+Структура backend приложения DB_HUB
+</h3>
 
----------
+```
+DB_HUB/
+└── backend/
+    ├── api/
+    │   └── v1/
+    ├── core/
+    ├── database/
+    ├── models/
+    ├── schemas/
+    └── services/
+```
 
-# Получение всего backend кода в один файл - all_code.txt
+<h3 style="color: #2486b5; text-align: center">
+Установка зависимостей
+</h3>
+- В папке проекта DB_HUB создайте файл .env
 
-````bash
-python3 backend/collect_app_code.py 
-````
- 
----------
-
-- В папке backend создайте файл .env
-
-````
+```
 # PostgreSQL
 DB_HOST=localhost
 DB_PORT=5432
@@ -38,46 +49,44 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 # FastAPI
 HOST=127.0.0.1
 PORT=8000
-````
+```
 
-- Ключ шифрования для backend приложения
+- Создайте свой ключ (ENCRYPTION_KEY) для backend приложения
 
-````bash
+```bash
 python3 backend/generate_app_key.py 
-````
+```
 
 - Установите зависимости requirements.txt
 
-````bash
+```bash
 pip install -r requirements.txt
-````
+```
 
 - Создание requirements.txt из текущего окружения
 
-````bash
+```bash
 pip freeze > requirements.txt
-````
+```
 
 - Проверить устаревшие пакеты
 
-````bash
+```bash
 pip list --outdated
-````
+```
 
----------
+- Получение всего backend кода в один файл - all_code.txt
 
-# Запуск бэкенд приложения
+```bash
+python3 backend/collect_app_code.py 
+```
 
-- Запуск напрямую
+<h3 style="color: #2486b5; text-align: center">
+Запуск backend приложения DB_HUB
+</h3>
 
-````bash
-python backend/main.py
-````
-
-- Запуск через uvicorn (рекомендуется для разработки)
-
-````bash
+```bash
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
-````
+```
 
 
