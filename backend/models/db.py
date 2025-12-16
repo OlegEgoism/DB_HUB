@@ -35,13 +35,13 @@ class DB_Connection(Base, DateTimeMixin):
     environment = Column(Enum(*[e[0] for e in ENVIRONMENT_CHOICES], name="environment_enum"), nullable=False, comment="Окружение")
     is_favorite = Column(Boolean, default=False, nullable=False, comment="Избранное")
 
-    # Связь с владельцем
+    # Связь
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, comment="ID владельца (пользователя)")
+    groups = relationship("DB_Group", back_populates="connection", cascade="all, delete-orphan", lazy="selectin")
     owner = relationship("User", back_populates="db_connection")
 
     # Ограничения и индексы
     __table_args__ = (
-        # Ограничение уникальности
         UniqueConstraint("host", "port", "database_name", "username", "name", "owner_id", name="uq_connection_unique_fields"),
 
         Index('idx_connection_database_name_search', 'database_name'),
@@ -59,6 +59,51 @@ class DB_Connection(Base, DateTimeMixin):
 
     def __repr__(self):
         return f"<DB_Connection(id={self.id}, name='{self.name}', type='{self.database_type}', owner_id={self.owner_id})>"
+
+
+class DB_Group(Base, DateTimeMixin):
+    __tablename__ = "db_group"
+
+    id = Column(Integer, primary_key=True, index=True, comment="PK группы")
+
+    # Основные поля
+    name = Column(String(255), nullable=False, index=True, comment="Название группы")
+    description = Column(Text, nullable=True, comment="Описание группы")
+    user_count = Column(Integer, default=0, nullable=False, comment="Количество пользователей в группе")
+
+    # Связь
+    connection_id = Column(Integer, ForeignKey("db_connection.id", ondelete="CASCADE"), nullable=False, comment="ID подключения к БД")
+    connection = relationship("DB_Connection", back_populates="groups")
+
+    # Ограничения и индексы
+    __table_args__ = (
+        UniqueConstraint("connection_id", "name", name="uq_db_group_connection_name"),
+
+        Index("idx_db_group_name", "name"),
+        Index("idx_db_group_connection_id", "connection_id"),
+        Index("idx_db_group_user_count", "user_count"),
+        Index("idx_db_group_created_at", "created_at"),
+    )
+
+    def __repr__(self):
+        return f"<DB_Group(id={self.id}, name='{self.name}', connection_id={self.connection_id}, user_count={self.user_count})>"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # class Group(Base, DateTimeMixin):
