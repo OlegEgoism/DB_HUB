@@ -13,6 +13,8 @@ from backend.schemas.db_connection_schemas import (
     ConnectionUpdate
 )
 from backend.core.security import encrypt_password, decrypt_password
+from backend.schemas.db_connection_schemas import PaginatedConnectionResponse
+from sqlalchemy import func
 
 router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
@@ -36,15 +38,36 @@ async def get_db_status_and_size(connection: Connection) -> tuple[str, float | N
         return "error", None
 
 
-@router.get("/", response_model=List[ConnectionOut])
-async def list_connections(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Connection))
-    connections = result.scalars().all()
-    response = []
-    for c in connections:
-        status, size = await get_db_status_and_size(c)
-        response.append(ConnectionOut(**c.__dict__, status=status, db_size_mb=size))
-    return response
+@router.get("/", response_model=PaginatedConnectionResponse)
+async def list_connections(
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)")
+):
+    try:
+        total_result = await db.execute(select(func.count(Connection.id)))
+        total = total_result.scalar_one()
+        pages = (total + size - 1) // size
+        has_next = page < pages
+        has_prev = page > 1
+        skip = (page - 1) * size
+        result = await db.execute(select(Connection).order_by(Connection.name).offset(skip).limit(size))
+        connections = result.scalars().all()
+        items = []
+        for c in connections:
+            status, db_size = await get_db_status_and_size(c)
+            items.append(ConnectionOut(**c.__dict__, status=status, db_size_mb=db_size))
+        return PaginatedConnectionResponse(
+            items=items,
+            total=total,
+            page=page,
+            size=size,
+            pages=pages,
+            has_next=has_next,
+            has_prev=has_prev
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении списка подключений: {str(e)}")
 
 
 @router.get("/search/", response_model=List[ConnectionOut])

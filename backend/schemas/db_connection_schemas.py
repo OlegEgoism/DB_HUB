@@ -1,6 +1,6 @@
 # backend/schemas/db_connection_schemas.py
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, validator, ConfigDict
 
 Environment = Literal['production', 'development', 'staging', 'analytics']
@@ -51,4 +51,15 @@ class ConnectionOut(ConnectionBase):
     updated_at: datetime
     status: str
     db_size_mb: Optional[float]
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedConnectionResponse(BaseModel):
+    items: List[ConnectionOut]
+    total: int
+    page: int
+    size: int
+    pages: int
+    has_next: bool
+    has_prev: bool
     model_config = ConfigDict(from_attributes=True)
