@@ -7,14 +7,14 @@ import asyncpg
 from backend.database.session import get_db
 from backend.models.db import Connection
 from backend.models.user import User
+from backend.core.security import encrypt_password, decrypt_password
+from backend.schemas.db_connection_schemas import PaginatedConnectionResponse
+from sqlalchemy import func
 from backend.schemas.db_connection_schemas import (
     ConnectionCreate,
     ConnectionOut,
     ConnectionUpdate
 )
-from backend.core.security import encrypt_password, decrypt_password
-from backend.schemas.db_connection_schemas import PaginatedConnectionResponse
-from sqlalchemy import func
 
 router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
