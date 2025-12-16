@@ -45,7 +45,8 @@ app.add_middleware(
 
 """Подключаем роутеры"""
 app.include_router(agreement.router, prefix="/api/v1")
-app.include_router(users.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+
+app.include_router(users.router, prefix="/api/v1")
 app.include_router(db_connection.router, prefix="/api/v1")
 app.include_router(db_metrics.router, prefix="/api/v1")
