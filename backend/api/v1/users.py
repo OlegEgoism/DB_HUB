@@ -1,8 +1,10 @@
 # backend/api/v1/users.py
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from backend.database.session import get_db
+from backend.models.user import User
 from backend.schemas.user_schemas import UserResponse, UserCreate, UserUpdate, PaginatedResponse
 from backend.services.user_service import UserService
 
@@ -32,16 +34,69 @@ async def list_users(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении пользователей: {str(e)}")
 
 
-@router.get("/all", response_model=List[UserResponse])
-async def list_users_no_pagination(db: AsyncSession = Depends(get_db)):
-    """Получить всех пользователей без пагинации"""
-    user_service = UserService(db)
+@router.get("/search/", response_model=PaginatedResponse)
+async def search_users(
+        username: Optional[str] = Query(None, description="Поиск по username"),
+        email: Optional[str] = Query(None, description="Поиск по email"),
+        fio: Optional[str] = Query(None, description="Поиск по ФИО"),
+        is_active: Optional[bool] = Query(None, description="Фильтр по активности"),
+        is_superuser: Optional[bool] = Query(None, description="Фильтр по правам суперпользователя"),
+        role: Optional[str] = Query(None, description="Фильтр по роли"),
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1),
+        size: int = Query(20, ge=1, le=200)
+):
+    """Поиск пользователей с фильтрацией по различным полям"""
     try:
-        users = await user_service.get_all_users(skip=0, limit=1000)
-        return users
+        skip = (page - 1) * size
+        query = select(User)
+        if username:
+            query = query.where(User.username.ilike(f"%{username}%"))
+        if email:
+            query = query.where(User.email.ilike(f"%{email}%"))
+        if fio:
+            query = query.where(User.fio.ilike(f"%{fio}%"))
+        if is_active is not None:
+            query = query.where(User.is_active == is_active)
+        if is_superuser is not None:
+            query = query.where(User.is_superuser == is_superuser)
+        if role:
+            query = query.where(User.role == role)
+        count_query = select(User.id)
+        if username:
+            count_query = count_query.where(User.username.ilike(f"%{username}%"))
+        if email:
+            count_query = count_query.where(User.email.ilike(f"%{email}%"))
+        if fio:
+            count_query = count_query.where(User.fio.ilike(f"%{fio}%"))
+        if is_active is not None:
+            count_query = count_query.where(User.is_active == is_active)
+        if is_superuser is not None:
+            count_query = count_query.where(User.is_superuser == is_superuser)
+        if role:
+            count_query = count_query.where(User.role == role)
+        total_result = await db.execute(select(User.id))
+        if any([username, email, fio, is_active is not None, is_superuser is not None, role]):
+            total_result = await db.execute(count_query)
+        total = len(total_result.scalars().all())
+        query = query.order_by(User.id).offset(skip).limit(size)
+        result = await db.execute(query)
+        users = result.scalars().all()
+        pages = (total + size - 1) // size if size > 0 else 1
+        has_next = page < pages
+        has_prev = page > 1
+        return PaginatedResponse(
+            items=users,
+            total=total,
+            page=page,
+            size=size,
+            pages=pages,
+            has_next=has_next,
+            has_prev=has_prev
+        )
     except Exception as e:
-        print(f"❌ Ошибка при получении пользователей: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении пользователей: {str(e)}")
+        print(f"❌ Ошибка при поиске пользователей: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при поиске пользователей: {str(e)}")
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
