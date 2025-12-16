@@ -63,3 +63,21 @@ class PaginatedConnectionResponse(BaseModel):
     has_next: bool
     has_prev: bool
     model_config = ConfigDict(from_attributes=True)
+
+
+class DatabaseConfigParameter(BaseModel):
+    name: str
+    setting: str
+    unit: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+
+
+class DatabaseConfigResponse(BaseModel):
+    connection_id: int
+    connection_name: str
+    database_name: str
+    total_parameters: int
+    parameters: List[DatabaseConfigParameter]
+    status: str
+    model_config = ConfigDict(from_attributes=True)

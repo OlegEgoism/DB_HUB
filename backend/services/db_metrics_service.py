@@ -223,8 +223,6 @@ class DBMetricsService:
         except Exception:
             return {"check_name": "Здоровье кластера", "status": "not_supported", }
 
-    # backend/services/db_metrics_service.py - обновите метод get_active_connections
-
     @staticmethod
     async def get_active_connections(connection: Connection) -> List[Dict[str, Any]]:
         """Получить активные подключения к базе данных"""
@@ -238,7 +236,6 @@ class DBMetricsService:
                 database=connection.database_name,
                 timeout=10,
             )
-
             sql_query = """
             SELECT 
                 usename as username,
@@ -287,15 +284,9 @@ class DBMetricsService:
                 state_change ASC NULLS LAST
             LIMIT 100;
             """
-
             rows = await conn.fetch(sql_query)
             await conn.close()
-
-            # Получаем общее количество подключений отдельным запросом
-            total_conn = await conn.fetchval(
-                "SELECT COUNT(*) FROM pg_stat_activity WHERE pid <> pg_backend_pid()"
-            )
-
+            total_conn = await conn.fetchval("SELECT COUNT(*) FROM pg_stat_activity WHERE pid <> pg_backend_pid()")
             active_connections = []
             for row in rows:
                 active_connections.append({
@@ -310,12 +301,9 @@ class DBMetricsService:
                     "connection_start": row["connection_start_time"].isoformat() if row["connection_start_time"] else None,
                     "application": row["application_name"]
                 })
-
-            # Добавляем total_connections в первый элемент
             if active_connections:
                 active_connections[0]["total_connections"] = total_conn
             else:
-                # Если нет активных подключений кроме текущего
                 active_connections.append({
                     "user": "Нет активных подключений",
                     "host": "",
@@ -329,8 +317,44 @@ class DBMetricsService:
                     "application": "",
                     "total_connections": 0
                 })
-
             return active_connections
-
         except Exception as e:
             return [{"error": f"Ошибка получения активных подключений: {str(e)}"}]
+
+    @staticmethod
+    async def get_database_config(connection: Connection) -> List[Dict[str, Any]]:
+        """Получить все конфигурацию базы данных"""
+        try:
+            password = decrypt_password(connection.password)
+            conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=password,
+                database=connection.database_name,
+                timeout=10,
+            )
+            sql_query = """
+            SELECT 
+                name, 
+                setting, 
+                unit,
+                category,
+                short_desc as description
+            FROM pg_settings
+            ORDER BY name;
+            """
+            rows = await conn.fetch(sql_query)
+            await conn.close()
+            config_parameters = []
+            for row in rows:
+                config_parameters.append({
+                    "name": row["name"],
+                    "setting": row["setting"],
+                    "unit": row["unit"],
+                    "category": row["category"],
+                    "description": row["description"]
+                })
+            return config_parameters
+        except Exception as e:
+            return [{"error": f"Ошибка получения конфигурации: {str(e)}"}]
