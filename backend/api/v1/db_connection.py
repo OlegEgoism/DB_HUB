@@ -1,8 +1,8 @@
 # backend/api/v1/db_connection.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import List
+from sqlalchemy import select, and_
 import asyncpg
 from backend.database.session import get_db
 from backend.models.db import Connection
@@ -45,6 +45,52 @@ async def list_connections(db: AsyncSession = Depends(get_db)):
         status, size = await get_db_status_and_size(c)
         response.append(ConnectionOut(**c.__dict__, status=status, db_size_mb=size))
     return response
+
+
+@router.get("/search/", response_model=List[ConnectionOut])
+async def search_connections(
+        database_name: Optional[str] = Query(None, description="Поиск по названию базы данных"),
+        name: Optional[str] = Query(None, description="Поиск по названию подключения"),
+        description: Optional[str] = Query(None, description="Поиск по описанию"),
+        database_type: Optional[str] = Query(None, description="Фильтр по типу СУБД"),
+        environment: Optional[str] = Query(None, description="Фильтр по окружению"),
+        is_favorite: Optional[bool] = Query(None, description="Фильтр по избранному"),
+        owner_id: Optional[int] = Query(None, description="Фильтр по владельцу"),
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1),
+        size: int = Query(20, ge=1, le=100)
+):
+    """Поиск подключений"""
+    try:
+        skip = (page - 1) * size
+        query = select(Connection)
+        filters = []
+        if database_name:
+            filters.append(Connection.database_name.ilike(f"%{database_name}%"))
+        if name:
+            filters.append(Connection.name.ilike(f"%{name}%"))
+        if description:
+            filters.append(Connection.description.ilike(f"%{description}%"))
+        if database_type:
+            filters.append(Connection.database_type == database_type)
+        if environment:
+            filters.append(Connection.environment == environment)
+        if is_favorite is not None:
+            filters.append(Connection.is_favorite == is_favorite)
+        if owner_id:
+            filters.append(Connection.owner_id == owner_id)
+        if filters:
+            query = query.where(and_(*filters))
+        query = query.order_by(Connection.name).offset(skip).limit(size)
+        result = await db.execute(query)
+        connections = result.scalars().all()
+        response = []
+        for conn in connections:
+            status_conn, size_mb = await get_db_status_and_size(conn)
+            response.append(ConnectionOut(**conn.__dict__, status=status_conn, db_size_mb=size_mb))
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при поиске подключений: {str(e)}")
 
 
 @router.get("/{connection_id}", response_model=ConnectionOut)

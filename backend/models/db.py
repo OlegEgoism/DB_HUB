@@ -1,5 +1,5 @@
 # backend/models/db.py
-from sqlalchemy import Column, Integer, String, Boolean, Text, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, Text, Enum, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from backend.database.session import Base
 from backend.models.base_mixin import DateTimeMixin
@@ -39,8 +39,28 @@ class Connection(Base, DateTimeMixin):
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, comment="ID владельца (пользователя)")
     owner = relationship("User", back_populates="connections")
 
-    # Ограничение уникальности по комбинации полей
-    __table_args__ = (UniqueConstraint("host", "port", "database_name", "username", "name", "owner_id", name="uq_connection_unique_fields"),)
+    # Ограничения и индексы
+    __table_args__ = (
+        # Ограничение уникальности
+        UniqueConstraint("host", "port", "database_name", "username", "name", "owner_id", name="uq_connection_unique_fields"),
+
+        # Индексы для полнотекстового поиска
+        Index('idx_connection_database_name_search', 'database_name'),
+        Index('idx_connection_name_search', 'name'),
+        Index('idx_connection_description_search', 'description'),
+        Index('idx_connection_database_type_search', 'database_type'),
+        Index('idx_connection_environment_search', 'environment'),
+
+        # Составные индексы для часто используемых комбинаций
+        Index('idx_connection_name_env_type', 'name', 'environment', 'database_type'),
+        Index('idx_connection_dbname_env', 'database_name', 'environment'),
+
+        # Индексы для фильтрации и сортировки
+        Index('idx_connection_is_favorite', 'is_favorite'),
+        Index('idx_connection_owner_id', 'owner_id'),
+        Index('idx_connection_created_at', 'created_at'),
+        Index('idx_connection_updated_at', 'updated_at'),
+    )
 
     def __repr__(self):
         return f"<Connection(id={self.id}, name='{self.name}', type='{self.database_type}', owner_id={self.owner_id})>"
