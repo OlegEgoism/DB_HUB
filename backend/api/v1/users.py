@@ -1,20 +1,43 @@
 # backend/api/v1/users.py
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
-from backend.schemas.user_schemas import UserResponse, UserCreate, UserUpdate
+from backend.schemas.user_schemas import UserResponse, UserCreate, UserUpdate, PaginatedResponse
 from backend.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["USERS APP"])
 
 
-@router.get("/", response_model=List[UserResponse])
-async def get_all_users(db: AsyncSession = Depends(get_db)):
-    """Получить всех пользователей"""
+@router.get("/", response_model=PaginatedResponse)
+async def list_users(
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1-200)")
+):
     user_service = UserService(db)
     try:
-        users = await user_service.get_all_users()
+        users, total, current_page, page_size, total_pages, has_next, has_prev = await user_service.get_paginated_users(page=page, size=size)
+        return PaginatedResponse(
+            items=users,
+            total=total,
+            page=current_page,
+            size=page_size,
+            pages=total_pages,
+            has_next=has_next,
+            has_prev=has_prev
+        )
+    except Exception as e:
+        print(f"❌ Ошибка при получении пользователей: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении пользователей: {str(e)}")
+
+
+@router.get("/all", response_model=List[UserResponse])
+async def list_users_no_pagination(db: AsyncSession = Depends(get_db)):
+    """Получить всех пользователей без пагинации"""
+    user_service = UserService(db)
+    try:
+        users = await user_service.get_all_users(skip=0, limit=1000)
         return users
     except Exception as e:
         print(f"❌ Ошибка при получении пользователей: {e}")

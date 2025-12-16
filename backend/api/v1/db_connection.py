@@ -18,7 +18,7 @@ router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
 
 async def get_db_status_and_size(connection: Connection) -> tuple[str, float | None]:
-    """Проверяет подключение и возвращает (status, size_mb)"""
+    """Размер базы данных"""
     try:
         password = decrypt_password(connection.password)
         conn = await asyncpg.connect(
