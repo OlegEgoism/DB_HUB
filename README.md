@@ -81,6 +81,12 @@ pip list --outdated
 python3 backend/collect_app_code.py 
 ```
 
+- Очистка кэш Python
+
+```bash
+python -c "import sys; sys.path_importer_cache.clear()"
+```
+
 <h3 style="color: #2486b5; text-align: center">
 Запуск backend приложения DB_HUB
 </h3>
@@ -88,5 +94,4 @@ python3 backend/collect_app_code.py
 ```bash
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-
 

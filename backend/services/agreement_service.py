@@ -12,10 +12,8 @@ class AgreementService:
     async def get_all_agreements(self, is_active: Optional[bool] = None) -> List[Agreement]:
         """Получить все соглашения с опциональной фильтрацией по активности"""
         query = select(Agreement)
-
         if is_active is not None:
             query = query.where(Agreement.is_active == is_active)
-
         query = query.order_by(Agreement.number)
         result = await self.db.execute(query)
         return result.scalars().all()

@@ -2,14 +2,14 @@
 from typing import List, Dict, Any
 import asyncpg
 from backend.core.security import decrypt_password
-from backend.models.db import Connection
+from backend.models.db import DB_Connection
 
 
 class DBMetricsService:
     """Сервис для получения метрик базы данных"""
 
     @staticmethod
-    async def get_database_metrics(connection: Connection) -> List[Dict[str, Any]]:
+    async def get_database_metrics(connection: DB_Connection) -> List[Dict[str, Any]]:
         metrics: List[Dict[str, Any]] = []
         try:
             password = decrypt_password(connection.password)
@@ -112,7 +112,7 @@ class DBMetricsService:
             return [{"metric": "connection_error", "value": str(e), }]
 
     @staticmethod
-    async def get_cluster_replication_info(connection: Connection, ) -> List[Dict[str, Any]]:
+    async def get_cluster_replication_info(connection: DB_Connection, ) -> List[Dict[str, Any]]:
         """Кластеризация и репликация"""
         try:
             password = decrypt_password(connection.password)
@@ -179,7 +179,7 @@ class DBMetricsService:
             return []
 
     @staticmethod
-    async def get_cluster_health(connection: Connection) -> Dict[str, Any]:
+    async def get_cluster_health(connection: DB_Connection) -> Dict[str, Any]:
         """Проверка состояния кластера"""
         try:
             password = decrypt_password(connection.password)
@@ -225,7 +225,7 @@ class DBMetricsService:
             return {"check_name": "Здоровье кластера", "status": "not_supported", }
 
     @staticmethod
-    async def get_active_connections(connection: Connection) -> List[Dict[str, Any]]:
+    async def get_active_connections(connection: DB_Connection) -> List[Dict[str, Any]]:
         """Получить активные подключения к базе данных"""
         try:
             password = decrypt_password(connection.password)
@@ -323,7 +323,7 @@ class DBMetricsService:
             return [{"error": f"Ошибка получения активных подключений: {str(e)}"}]
 
     @staticmethod
-    async def get_database_config(connection: Connection) -> List[Dict[str, Any]]:
+    async def get_database_config(connection: DB_Connection) -> List[Dict[str, Any]]:
         """Получить все конфигурацию базы данных"""
         try:
             password = decrypt_password(connection.password)

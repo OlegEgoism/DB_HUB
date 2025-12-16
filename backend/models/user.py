@@ -34,7 +34,6 @@ class User(Base, DateTimeMixin):
     __table_args__ = (
         CheckConstraint(role_check, name="valid_role"),
 
-        # Индексы для полнотекстового поиска по отдельным полям
         Index('idx_users_username_search', 'username'),
         Index('idx_users_email_search', 'email'),
         Index('idx_users_fio_search', 'fio'),
@@ -44,7 +43,7 @@ class User(Base, DateTimeMixin):
     )
 
     # Связи
-    connections = relationship("Connection", back_populates="owner", cascade="all, delete-orphan", lazy="selectin")
+    db_connection = relationship("DB_Connection", back_populates="owner", cascade="all, delete-orphan", lazy="selectin")
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}', role='{self.role}')>"

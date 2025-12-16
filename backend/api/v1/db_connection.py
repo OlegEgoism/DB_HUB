@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 import asyncpg
 from backend.database.session import get_db
-from backend.models.db import Connection
+from backend.models.db import DB_Connection
 from backend.models.user import User
 from backend.core.security import encrypt_password, decrypt_password
 from backend.schemas.db_connection_schemas import PaginatedConnectionResponse
@@ -19,7 +19,7 @@ from backend.schemas.db_connection_schemas import (
 router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
 
-async def get_db_status_and_size(connection: Connection) -> tuple[str, float | None]:
+async def get_db_status_and_size(connection: DB_Connection) -> tuple[str, float | None]:
     """Размер базы данных"""
     try:
         password = decrypt_password(connection.password)
@@ -45,13 +45,13 @@ async def list_connections(
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)")
 ):
     try:
-        total_result = await db.execute(select(func.count(Connection.id)))
+        total_result = await db.execute(select(func.count(DB_Connection.id)))
         total = total_result.scalar_one()
         pages = (total + size - 1) // size
         has_next = page < pages
         has_prev = page > 1
         skip = (page - 1) * size
-        result = await db.execute(select(Connection).order_by(Connection.name).offset(skip).limit(size))
+        result = await db.execute(select(DB_Connection).order_by(DB_Connection.name).offset(skip).limit(size))
         connections = result.scalars().all()
         items = []
         for c in connections:
@@ -87,25 +87,25 @@ async def search_connections(
     """Поиск подключений"""
     try:
         skip = (page - 1) * size
-        query = select(Connection)
+        query = select(DB_Connection)
         filters = []
         if database_name:
-            filters.append(Connection.database_name.ilike(f"%{database_name}%"))
+            filters.append(DB_Connection.database_name.ilike(f"%{database_name}%"))
         if name:
-            filters.append(Connection.name.ilike(f"%{name}%"))
+            filters.append(DB_Connection.name.ilike(f"%{name}%"))
         if description:
-            filters.append(Connection.description.ilike(f"%{description}%"))
+            filters.append(DB_Connection.description.ilike(f"%{description}%"))
         if database_type:
-            filters.append(Connection.database_type == database_type)
+            filters.append(DB_Connection.database_type == database_type)
         if environment:
-            filters.append(Connection.environment == environment)
+            filters.append(DB_Connection.environment == environment)
         if is_favorite is not None:
-            filters.append(Connection.is_favorite == is_favorite)
+            filters.append(DB_Connection.is_favorite == is_favorite)
         if owner_id:
-            filters.append(Connection.owner_id == owner_id)
+            filters.append(DB_Connection.owner_id == owner_id)
         if filters:
             query = query.where(and_(*filters))
-        query = query.order_by(Connection.name).offset(skip).limit(size)
+        query = query.order_by(DB_Connection.name).offset(skip).limit(size)
         result = await db.execute(query)
         connections = result.scalars().all()
         response = []
@@ -119,7 +119,7 @@ async def search_connections(
 
 @router.get("/{connection_id}", response_model=ConnectionOut)
 async def read_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Connection).where(Connection.id == connection_id))
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     connection = result.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=404, detail="Подключение не найдено")
@@ -133,7 +133,7 @@ async def create_connection_endpoint(connection: ConnectionCreate, db: AsyncSess
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Владелец не найден")
     encrypted_password = encrypt_password(connection.password)
-    db_connection = Connection(**connection.model_dump(exclude={"password"}), password=encrypted_password)
+    db_connection = DB_Connection(**connection.model_dump(exclude={"password"}), password=encrypted_password)
     db.add(db_connection)
     await db.commit()
     await db.refresh(db_connection)
@@ -143,7 +143,7 @@ async def create_connection_endpoint(connection: ConnectionCreate, db: AsyncSess
 
 @router.put("/{connection_id}", response_model=ConnectionOut)
 async def update_connection_endpoint(connection_id: int, connection: ConnectionUpdate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Connection).where(Connection.id == connection_id))
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     db_connection = result.scalar_one_or_none()
     if not db_connection:
         raise HTTPException(status_code=404, detail="Подключение не найдено")
@@ -160,7 +160,7 @@ async def update_connection_endpoint(connection_id: int, connection: ConnectionU
 
 @router.delete("/{connection_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_connection_endpoint(connection_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Connection).where(Connection.id == connection_id))
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     db_connection = result.scalar_one_or_none()
     if not db_connection:
         raise HTTPException(status_code=404, detail="Подключение не найдено")

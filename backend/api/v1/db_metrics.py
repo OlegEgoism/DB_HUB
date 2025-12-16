@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.core.security import decrypt_password
 from backend.database.session import get_db
-from backend.models.db import Connection
+from backend.models.db import DB_Connection
 from backend.schemas.db_connection_schemas import DatabaseConfigResponse
 from backend.schemas.db_metrics_schemas import SingleDatabaseMetricsResponse, ClusterReplicationResponse, ClusterHealthResponse
 from backend.services.db_metrics_service import DBMetricsService
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/db_metrics", tags=["DB METRIC"])
 @router.get("/{connection_id}", response_model=SingleDatabaseMetricsResponse)
 async def get_database_metrics_by_id(connection_id: int, db: AsyncSession = Depends(get_db), ):
     """Получить метрики базы данных по ID подключения"""
-    result = await db.execute(select(Connection).where(Connection.id == connection_id))
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     connection = result.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Подключение с connection_id {connection_id} не найдено", )
@@ -43,7 +43,7 @@ async def get_database_metrics_by_id(connection_id: int, db: AsyncSession = Depe
 @router.get("/{connection_id}/cluster", response_model=ClusterReplicationResponse, )
 async def get_cluster_replication_info(connection_id: int, db: AsyncSession = Depends(get_db), ):
     """Кластеризация и репликация (Greenplum-aware)"""
-    result = await db.execute(select(Connection).where(Connection.id == connection_id))
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     connection = result.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Подключение с ID {connection_id} не найдено", )
@@ -61,7 +61,7 @@ async def get_cluster_replication_info(connection_id: int, db: AsyncSession = De
 @router.get("/{connection_id}/cluster_health", response_model=ClusterHealthResponse, )
 async def get_cluster_health(connection_id: int, db: AsyncSession = Depends(get_db), ):
     """Здоровье кластера"""
-    result = await db.execute(select(Connection).where(Connection.id == connection_id))
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     connection = result.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Подключение с ID {connection_id} не найдено", )
@@ -88,7 +88,7 @@ async def get_database_active_connections(
         db: AsyncSession = Depends(get_db),
 ):
     """Список активных подключений к базе данных"""
-    result = await db.execute(select(Connection).where(Connection.id == connection_id))
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     connection = result.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Подключение не найдено")
@@ -166,7 +166,7 @@ async def get_database_active_connections(
 @router.get("/{connection_id}/config", response_model=DatabaseConfigResponse)
 async def get_database_config(connection_id: int, db: AsyncSession = Depends(get_db), ):
     """Полная конфигурацию базы данных"""
-    result = await db.execute(select(Connection).where(Connection.id == connection_id))
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     connection = result.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Подключение не найдено")
