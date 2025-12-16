@@ -67,9 +67,9 @@ class DB_Group(Base, DateTimeMixin):
     id = Column(Integer, primary_key=True, index=True, comment="PK группы")
 
     # Основные поля
-    name = Column(String(255), nullable=False, index=True, comment="Название группы")
+    name = Column(String(255), nullable=False, index=True, comment="Название группы из внешней БД")
     description = Column(Text, nullable=True, comment="Описание группы")
-    user_count = Column(Integer, default=0, nullable=False, comment="Количество пользователей в группе")
+    user_count = Column(Integer, default=0, nullable=False, comment="Количество пользователей в группе из внешней БД")
 
     # Связь
     connection_id = Column(Integer, ForeignKey("db_connection.id", ondelete="CASCADE"), nullable=False, comment="ID подключения к БД")
@@ -87,4 +87,3 @@ class DB_Group(Base, DateTimeMixin):
 
     def __repr__(self):
         return f"<DB_Group(id={self.id}, name='{self.name}', connection_id={self.connection_id}, user_count={self.user_count})>"
-
