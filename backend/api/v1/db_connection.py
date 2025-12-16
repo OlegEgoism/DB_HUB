@@ -57,8 +57,9 @@ async def search_connections(
         is_favorite: Optional[bool] = Query(None, description="Фильтр по избранному"),
         owner_id: Optional[int] = Query(None, description="Фильтр по владельцу"),
         db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1),
-        size: int = Query(20, ge=1, le=100)
+        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1-200)")
+
 ):
     """Поиск подключений"""
     try:
