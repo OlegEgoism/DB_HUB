@@ -26,3 +26,8 @@ class GetGroupsWithSyncResponse(BaseModel):
     last_sync_time: Optional[datetime] = Field(None, description="Время последней синхронизации")
     sync_reason: Optional[str] = Field(None, description="Причина синхронизации: no_data, outdated, manual, force, changes_detected")
     model_config = ConfigDict(from_attributes=True)
+
+
+class UpdateGroupRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255, description="Новое имя группы (роли). Должно быть уникальным во внешней БД.")
+    description: Optional[str] = Field(None, description="Новое описание группы (хранится только локально)")

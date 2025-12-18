@@ -1,3 +1,5 @@
+import re
+
 import asyncpg
 from typing import List, Dict, Any, Optional, Set
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -283,3 +285,69 @@ class DBGroupService:
         except Exception as e:
             await self.db.rollback()
             raise Exception(f"Ошибка при принудительной синхронизации групп: {str(e)}")
+
+    async def update_group(self, group_id: int, name: Optional[str] = None, description: Optional[str] = None) -> Dict[str, Any]:
+        """Обновить группу, поле`description` обновляется локально, поле `name` обновляется во внешней БД (через ALTER ROLE), и локально"""
+        result = await self.db.execute(select(DB_Group).where(DB_Group.id == group_id))
+        group = result.scalar_one_or_none()
+        if not group:
+            raise ValueError(f"Группа с ID {group_id} не найдена")
+        connection = await self.db.get(DB_Connection, group.connection_id)
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        update_info = {"group_id": group_id, "changes": {}}
+        if description is not None and description != group.description:
+            group.description = description
+            update_info["changes"]["description"] = {"old": group.description, "new": description}
+        if name is not None and name != group.name:
+            name = name.strip()
+            if not name:
+                raise ValueError("Имя группы не может быть пустым")
+            if not re.match(r"^[a-zA-Z0-9_]+$", name):
+                raise ValueError("Имя группы может содержать только буквы, цифры и символ подчёркивания _")
+            external_groups = await self.get_groups_from_database(connection)
+            external_names = {g["name"] for g in external_groups}
+            if name in external_names:
+                raise ValueError(f"Имя группы '{name}' уже существует во внешней базе данных")
+            try:
+                password = decrypt_password(connection.password)
+                conn = await asyncpg.connect(
+                    host=connection.host,
+                    port=connection.port,
+                    user=connection.username,
+                    password=password,
+                    database=connection.database_name,
+                    timeout=10,
+                )
+                old_name = group.name
+                if '"' in old_name or '"' in name:
+                    await conn.close()
+                    raise ValueError("Имя роли не должно содержать кавычки")
+                sql = f'ALTER ROLE "{old_name}" RENAME TO "{name}"'
+                await conn.execute(sql)
+                await conn.close()
+            except Exception as e:
+                if 'conn' in locals():
+                    await conn.close()
+                raise Exception(f"Ошибка при переименовании роли во внешней БД: {str(e)}")
+            old_name_local = group.name
+            group.name = name
+            update_info["changes"]["name"] = {"old": old_name_local, "new": name}
+            try:
+                external_groups_after = await self.get_groups_from_database(connection)
+                ext_group = next((g for g in external_groups_after if g["name"] == name), None)
+                if ext_group:
+                    group.user_count = ext_group["user_count"]
+            except Exception:
+                pass
+        self.db.add(group)
+        await self.db.commit()
+        await self.db.refresh(group)
+        return {
+            "id": group.id,
+            "name": group.name,
+            "description": group.description,
+            "user_count": group.user_count,
+            "updated_at": group.updated_at,
+            "changes_applied": update_info["changes"]
+        }
