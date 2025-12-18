@@ -1,14 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from enum import Enum
-
-
-class SyncMode(str, Enum):
-    """Режимы синхронизации"""
-    NONE = "none"
-    SMART = "smart"
-    FORCE = "force"
 
 
 class GroupInfo(BaseModel):
@@ -27,7 +19,6 @@ class GetGroupsWithSyncResponse(BaseModel):
     connection_name: str
     auto_sync_performed: bool = Field(..., description="Была ли выполнена автоматическая синхронизация")
     sync_successful: bool = Field(..., description="Успешна ли была синхронизация")
-    sync_mode: SyncMode = Field(..., description="Режим синхронизации")
     total_groups: int = Field(..., description="Всего групп после синхронизации")
     groups: List[GroupInfo] = Field(..., description="Список групп")
     sync_statistics: Optional[Dict[str, Any]] = Field(None, description="Статистика синхронизации")

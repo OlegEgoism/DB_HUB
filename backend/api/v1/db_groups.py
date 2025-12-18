@@ -1,22 +1,15 @@
-# backend/api/v1/db_groups.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from backend.database.session import get_db
 from backend.services.db_group_service import DBGroupService
-from backend.schemas.db_group_schemas import (
-    GetGroupsWithSyncResponse,
-    SyncMode
-)
+from backend.schemas.db_group_schemas import GetGroupsWithSyncResponse
 
 router = APIRouter(prefix="/db_groups", tags=["DB GROUPS"])
 
 
 @router.get("/connection/{connection_id}", response_model=GetGroupsWithSyncResponse)
-async def get_groups_auto_sync(
-        connection_id: int,
-        db: AsyncSession = Depends(get_db)
-):
+async def get_groups_auto_sync(connection_id: int, db: AsyncSession = Depends(get_db)):
     """Список группы"""
     try:
         group_service = DBGroupService(db)
@@ -33,13 +26,12 @@ async def get_groups_auto_sync(
                 auto_sync_performed = True
                 sync_successful = False
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка автоматической синхронизации: {str(e)}")
-        result = await group_service.get_or_sync_groups_by_connection(connection_id, sync_mode="none")
+        result = await group_service.get_or_sync_groups_by_connection(connection_id)
         response_data = {
             "connection_id": result["connection_id"],
             "connection_name": result["connection_name"],
             "auto_sync_performed": auto_sync_performed,
             "sync_successful": sync_successful,
-            "sync_mode": SyncMode.SMART if auto_sync_performed else SyncMode.NONE,
             "total_groups": result["total_groups"],
             "groups": result["groups"],
             "last_sync_time": datetime.now() if auto_sync_performed else None

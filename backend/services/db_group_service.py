@@ -220,27 +220,16 @@ class DBGroupService:
             await self.db.commit()
         return deleted
 
-    async def get_or_sync_groups_by_connection(self, connection_id: int, sync_mode: str = "none") -> Dict[str, Any]:
-        """Получить группы с опциональной синхронизацией"""
+    async def get_or_sync_groups_by_connection(self, connection_id: int) -> Dict[str, Any]:
+        """Получить группы из локальной БД (без синхронизации)"""
         connection, _ = await self._get_connection_and_groups(connection_id)
-        sync_performed = False
-        sync_result = None
-        sync_successful = True
-        if sync_mode in ["smart", "force"]:
-            try:
-                sync_result = await (
-                    self.smart_sync_groups_for_connection(connection_id)
-                    if sync_mode == "smart" else
-                    self.force_sync_groups_for_connection(connection_id)
-                )
-                sync_performed = True
-            except Exception as e:
-                sync_performed = True
-                sync_successful = False
-                sync_result = {"error": str(e)}
-        result = await self.db.execute(select(DB_Group).where(DB_Group.connection_id == connection_id).order_by(DB_Group.name))
+        result = await self.db.execute(
+            select(DB_Group)
+            .where(DB_Group.connection_id == connection_id)
+            .order_by(DB_Group.name)
+        )
         groups = result.scalars().all()
-        response = {
+        return {
             "connection_id": connection_id,
             "connection_name": connection.name,
             "total_groups": len(groups),
@@ -254,17 +243,8 @@ class DBGroupService:
                     "updated_at": g.updated_at
                 }
                 for g in groups
-            ],
-            "sync_performed": sync_performed,
-            "sync_successful": sync_successful,
-            "sync_mode": sync_mode
+            ]
         }
-        if sync_result:
-            if "error" in sync_result:
-                response["sync_error"] = sync_result["error"]
-            else:
-                response["sync_details"] = sync_result
-        return response
 
     async def force_sync_groups_for_connection(self, connection_id: int) -> Dict[str, Any]:
         """Принудительная синхронизация групп"""
