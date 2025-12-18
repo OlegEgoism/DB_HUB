@@ -35,9 +35,5 @@ class GetGroupsWithSyncResponse(BaseModel):
     sync_statistics: Optional[Dict[str, Any]] = Field(None, description="Статистика синхронизации")
     sync_error: Optional[str] = Field(None, description="Ошибка при синхронизации")
     last_sync_time: Optional[datetime] = Field(None, description="Время последней синхронизации")
-    sync_reason: Optional[str] = Field(
-        None,
-        description="Причина синхронизации: no_data, outdated, manual, force, changes_detected"
-    )
-
+    sync_reason: Optional[str] = Field(None, description="Причина синхронизации: no_data, outdated, manual, force, changes_detected")
     model_config = ConfigDict(from_attributes=True)
