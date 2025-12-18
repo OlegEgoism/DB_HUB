@@ -1,4 +1,3 @@
-# backend/schemas/db_group_schemas.py
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -17,7 +16,6 @@ class GroupInfo(BaseModel):
     id: int
     name: str
     description: Optional[str]
-    description_protected: bool
     user_count: int
     created_at: datetime
     updated_at: datetime

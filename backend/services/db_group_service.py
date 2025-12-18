@@ -1,4 +1,3 @@
-# backend/services/db_group_service.py
 import asyncpg
 from typing import List, Dict, Any, Optional, Set
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,21 +80,17 @@ class DBGroupService:
                 external = external_dict[name]
                 user_count_diff = local.user_count != external["user_count"]
                 description_diff = self._check_description_difference(local, external)
-                description_protected = description_diff and bool(local.description)
                 if user_count_diff or description_diff:
                     data_differences.append({
                         "name": name,
                         "user_count_diff": user_count_diff,
                         "description_diff": description_diff,
-                        "description_protected": description_protected,
                         "local_user_count": local.user_count,
                         "external_user_count": external["user_count"],
                         "local_description": local.description,
                         "external_description": external["external_description"]
                     })
-            needs_sync = bool(new_groups or missing_groups or
-                              any(not d["description_protected"] or d["user_count_diff"]
-                                  for d in data_differences))
+            needs_sync = bool(new_groups or missing_groups or data_differences)
 
             return {
                 "connection_id": connection_id,
@@ -107,12 +102,7 @@ class DBGroupService:
                     "new_groups": list(new_groups),
                     "missing_groups": list(missing_groups),
                     "data_differences": data_differences,
-                    "description_protected_groups": [d["name"] for d in data_differences if d["description_protected"]],
-                    "total_differences": (
-                            len(new_groups) + len(missing_groups) +
-                            len([d for d in data_differences
-                                 if not d["description_protected"] or d["user_count_diff"]])
-                    )
+                    "total_differences": (len(new_groups) + len(missing_groups) + len(data_differences))
                 }
             }
         except Exception as e:
@@ -140,7 +130,6 @@ class DBGroupService:
             "new_groups": [],
             "missing_groups": [],
             "data_differences": [],
-            "description_protected_groups": [],
             "total_differences": 0
         }
 
@@ -150,7 +139,7 @@ class DBGroupService:
         try:
             external_groups = await self.get_groups_from_database(connection)
             existing_dict = {g.name: g for g in existing_groups}
-            stats = {"added": 0, "updated": 0, "deleted": 0, "unchanged": 0, "description_preserved": 0}
+            stats = {"added": 0, "updated": 0, "deleted": 0, "unchanged": 0}
             added = []
             updated = []
             for ext in external_groups:
@@ -176,7 +165,6 @@ class DBGroupService:
                 "updated_groups": updated,
                 "deleted_groups": deleted_groups,
                 "has_changes": any(stats[key] for key in ["added", "updated", "deleted"]),
-                "description_protection_applied": stats["description_preserved"] > 0
             }
         except Exception as e:
             await self.db.rollback()
@@ -192,9 +180,6 @@ class DBGroupService:
                 existing.user_count = external["user_count"]
             if new_description != existing.description:
                 existing.description = new_description
-                if new_description and external["external_description"] and \
-                        new_description != external["external_description"]:
-                    stats["description_preserved"] += 1
             stats["updated"] += 1
             return stats, {
                 "name": existing.name,
@@ -204,7 +189,7 @@ class DBGroupService:
                 "new_user_count": external["user_count"] if user_count_changed else None,
                 "old_description": None,
                 "new_description": new_description,
-                "description_preserved": new_description and external["external_description"] and new_description != external["external_description"]}
+            }
         else:
             stats["unchanged"] += 1
             return stats, None
@@ -217,8 +202,7 @@ class DBGroupService:
             return external["external_description"]
         return None
 
-    async def _add_new_group(self, external: Dict, connection_id: int,
-                             stats: Dict) -> Dict:
+    async def _add_new_group(self, external: Dict, connection_id: int, stats: Dict) -> Dict:
         """Добавить новую группу"""
         db_group = DB_Group(name=external["name"], description=external["external_description"], user_count=external["user_count"], connection_id=connection_id)
         self.db.add(db_group)
@@ -265,7 +249,6 @@ class DBGroupService:
                     "id": g.id,
                     "name": g.name,
                     "description": g.description,
-                    "description_protected": bool(g.description),
                     "user_count": g.user_count,
                     "created_at": g.created_at,
                     "updated_at": g.updated_at
@@ -306,9 +289,7 @@ class DBGroupService:
                     "name": ext["name"],
                     "user_count": ext["user_count"],
                     "description": description,
-                    "description_source": "preserved" if description and
-                                                         ext["name"] in old_dict and old_dict[ext["name"]].description else "external"
-                })
+                    "description_source": "preserved" if description and ext["name"] in old_dict and old_dict[ext["name"]].description else "external"})
             await self.db.commit()
             return {
                 "connection_id": connection_id,
