@@ -351,3 +351,53 @@ class DBGroupService:
             "updated_at": group.updated_at,
             "changes_applied": update_info["changes"]
         }
+
+    async def create_group(self, connection_id: int, name: str, description: Optional[str] = None) -> Dict[str, Any]:
+        """Создать новую группу (роль)"""
+        name = name.strip()
+        if not name:
+            raise ValueError("Имя группы не может быть пустым")
+        if not re.match(r"^[a-zA-Z0-9_]+$", name):
+            raise ValueError("Имя группы может содержать только латинские буквы, цифры и символ подчёркивания '_'")
+        result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+        connection = result.scalar_one_or_none()
+        if not connection:
+            raise ValueError(f"Подключение с ID {connection_id} не найдено")
+        external_groups = await self.get_groups_from_database(connection)
+        external_names = {g["name"] for g in external_groups}
+        if name in external_names:
+            raise ValueError(f"Группа с именем '{name}' уже существует во внешней базе данных")
+        try:
+            password = decrypt_password(connection.password)
+            conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=password,
+                database=connection.database_name,
+                timeout=10,
+            )
+            sql = f'CREATE ROLE "{name}" NOLOGIN'
+            await conn.execute(sql)
+            await conn.close()
+        except Exception as e:
+            if 'conn' in locals():
+                await conn.close()
+            raise Exception(f"Ошибка при создании роли во внешней БД: {str(e)}")
+        db_group = DB_Group(
+            name=name,
+            description=description,
+            user_count=0,
+            connection_id=connection_id
+        )
+        self.db.add(db_group)
+        await self.db.commit()
+        await self.db.refresh(db_group)
+        return {
+            "id": db_group.id,
+            "name": db_group.name,
+            "description": db_group.description,
+            "user_count": db_group.user_count,
+            "created_at": db_group.created_at,
+            "updated_at": db_group.updated_at
+        }

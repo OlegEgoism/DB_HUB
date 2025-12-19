@@ -31,3 +31,18 @@ class GetGroupsWithSyncResponse(BaseModel):
 class UpdateGroupRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255, description="Новое имя группы (роли). Должно быть уникальным во внешней БД.")
     description: Optional[str] = Field(None, description="Новое описание группы (хранится только локально)")
+
+
+class CreateGroupRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50, description="Имя группы (роли)")
+    description: Optional[str] = Field(None, description="Описание (сохраняется только локально)")
+
+
+class CreateGroupResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+    user_count: int
+    created_at: datetime
+    connection_id: int
+    model_config = ConfigDict(from_attributes=True)

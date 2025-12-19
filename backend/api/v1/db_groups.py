@@ -6,7 +6,7 @@ from typing import Optional
 from datetime import datetime
 from backend.database.session import get_db
 from backend.services.db_group_service import DBGroupService
-from backend.schemas.db_group_schemas import GetGroupsWithSyncResponse, UpdateGroupRequest
+from backend.schemas.db_group_schemas import GetGroupsWithSyncResponse, UpdateGroupRequest, CreateGroupResponse, CreateGroupRequest, GroupInfo
 from backend.models.db import DB_Connection, DB_Group
 
 router = APIRouter(prefix="/db_groups", tags=["DB GROUPS"])
@@ -153,3 +153,16 @@ async def update_group_with_sync(group_id: int, update_data: UpdateGroupRequest,
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при обновлении группы: {str(e)}")
+
+
+@router.post("/connection/{connection_id}", response_model=GroupInfo)
+async def create_group(connection_id: int, group_data: CreateGroupRequest, db: AsyncSession = Depends(get_db)):
+    """Создать новую группу (роль)"""
+    try:
+        service = DBGroupService(db)
+        result = await service.create_group(connection_id=connection_id, name=group_data.name, description=group_data.description)
+        return GroupInfo(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при создании группы: {str(e)}")
