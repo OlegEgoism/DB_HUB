@@ -157,7 +157,7 @@ async def update_group_with_sync(group_id: int, update_data: UpdateGroupRequest,
 
 @router.post("/connection/{connection_id}", response_model=GroupInfo)
 async def create_group(connection_id: int, group_data: CreateGroupRequest, db: AsyncSession = Depends(get_db)):
-    """Создать новую группу (роль)"""
+    """Создать группу (роль)"""
     try:
         service = DBGroupService(db)
         result = await service.create_group(connection_id=connection_id, name=group_data.name, description=group_data.description)
@@ -166,3 +166,16 @@ async def create_group(connection_id: int, group_data: CreateGroupRequest, db: A
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при создании группы: {str(e)}")
+
+
+@router.delete("/{group_id}", status_code=status.HTTP_200_OK, response_model=dict)
+async def delete_group(group_id: int, db: AsyncSession = Depends(get_db)):
+    """Удалить группу"""
+    try:
+        service = DBGroupService(db)
+        result = await service.delete_group(group_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при удалении группы: {str(e)}")

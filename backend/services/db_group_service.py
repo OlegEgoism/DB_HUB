@@ -353,7 +353,7 @@ class DBGroupService:
         }
 
     async def create_group(self, connection_id: int, name: str, description: Optional[str] = None) -> Dict[str, Any]:
-        """Создать новую группу (роль)"""
+        """Создать группу (роль)"""
         name = name.strip()
         if not name:
             raise ValueError("Имя группы не может быть пустым")
@@ -400,4 +400,47 @@ class DBGroupService:
             "user_count": db_group.user_count,
             "created_at": db_group.created_at,
             "updated_at": db_group.updated_at
+        }
+
+    async def delete_group(self, group_id: int) -> Dict[str, Any]:
+        """Удалить группу"""
+        result = await self.db.execute(select(DB_Group).where(DB_Group.id == group_id))
+        group = result.scalar_one_or_none()
+        if not group:
+            raise ValueError(f"Группа с ID {group_id} не найдена")
+        connection_id = group.connection_id
+        group_name = group.name
+        conn_result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+        connection = conn_result.scalar_one_or_none()
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        await self.smart_sync_groups_for_connection(connection_id)
+        external_groups = await self.get_groups_from_database(connection)
+        external_names = {g["name"] for g in external_groups}
+        if group_name not in external_names:
+            raise ValueError(f"Группа '{group_name}' не существует во внешней базе данных")
+        try:
+            password = decrypt_password(connection.password)
+            conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=password,
+                database=connection.database_name,
+                timeout=10,
+            )
+            sql = f'DROP ROLE IF EXISTS "{group_name}"'
+            await conn.execute(sql)
+            await conn.close()
+        except Exception as e:
+            if 'conn' in locals():
+                await conn.close()
+            raise Exception(f"Ошибка при удалении роли из внешней БД: {str(e)}")
+        await self.db.execute(delete(DB_Group).where(DB_Group.id == group_id))
+        await self.db.commit()
+        return {
+            "message": f"Группа '{group_name}' успешно удалена из внешней и локальной баз данных",
+            "deleted_group_id": group_id,
+            "group_name": group_name,
+            "connection_id": connection_id,
         }

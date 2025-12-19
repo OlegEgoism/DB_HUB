@@ -46,3 +46,10 @@ class CreateGroupResponse(BaseModel):
     created_at: datetime
     connection_id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class DeleteGroupResponse(BaseModel):
+    message: str
+    deleted_group_id: int
+    group_name: str
+    connection_id: int
