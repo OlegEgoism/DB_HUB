@@ -1,11 +1,42 @@
 import re
-
 import asyncpg
 from typing import List, Dict, Any, Optional, Set
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from backend.models.db import DB_Connection, DB_Group
 from backend.core.security import decrypt_password
+
+FORBIDDEN_ROLE_NAMES = {
+    # Системные роли и шаблоны
+    "pg_database_owner",
+    "pg_signal_backend",
+    "pg_read_all_data",
+    "pg_write_all_data",
+    "pg_read_all_settings",
+    "pg_read_all_stats",
+    "pg_stat_scan_tables",
+    "pg_monitor",
+    "pg_read_server_files",
+    "pg_write_server_files",
+    "pg_execute_server_program",
+    "postgres",
+    "current_user",
+    "session_user",
+    "public",
+    # Общие SQL-ключевые слова (частичный список)
+    "select", "insert", "update", "delete", "create", "drop", "alter",
+    "grant", "revoke", "user", "role", "group", "table", "schema",
+    "database", "function", "procedure", "trigger", "view", "index",
+    "sequence", "default", "null", "true", "false", "and", "or", "not",
+    "exists", "in", "between", "like", "any", "all", "some",
+    "order", "group", "by", "having", "where", "from", "join", "on",
+    "as", "into", "values", "set", "show", "use", "explain", "analyze",
+    "begin", "commit", "rollback", "transaction", "savepoint",
+    "if", "then", "else", "end", "case", "when", "loop", "while",
+    "for", "do", "declare", "execute", "call", "return", "returns"
+}
+
+FORBIDDEN_ROLE_NAMES = {name.lower() for name in FORBIDDEN_ROLE_NAMES}
 
 
 class DBGroupService:
@@ -359,13 +390,18 @@ class DBGroupService:
             raise ValueError("Имя группы не может быть пустым")
         if not re.match(r"^[a-zA-Z0-9_]+$", name):
             raise ValueError("Имя группы может содержать только латинские буквы, цифры и символ подчёркивания '_'")
+        name_lower = name.lower()
+        if name_lower in FORBIDDEN_ROLE_NAMES:
+            raise ValueError(f"Имя группы '{name}' запрещено к использованию")
+        if name_lower.startswith("pg_"):
+            raise ValueError("Имена групп, начинающиеся с 'pg_', зарезервированы и не могут быть использованы")
         result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
         connection = result.scalar_one_or_none()
         if not connection:
             raise ValueError(f"Подключение с ID {connection_id} не найдено")
         external_groups = await self.get_groups_from_database(connection)
-        external_names = {g["name"] for g in external_groups}
-        if name in external_names:
+        external_names = {g["name"].lower() for g in external_groups}
+        if name_lower in external_names:
             raise ValueError(f"Группа с именем '{name}' уже существует во внешней базе данных")
         try:
             password = decrypt_password(connection.password)
@@ -377,19 +413,13 @@ class DBGroupService:
                 database=connection.database_name,
                 timeout=10,
             )
-            sql = f'CREATE ROLE "{name}" NOLOGIN'
-            await conn.execute(sql)
+            await conn.execute(f'CREATE ROLE "{name}" NOLOGIN')
             await conn.close()
         except Exception as e:
             if 'conn' in locals():
                 await conn.close()
             raise Exception(f"Ошибка при создании роли во внешней БД: {str(e)}")
-        db_group = DB_Group(
-            name=name,
-            description=description,
-            user_count=0,
-            connection_id=connection_id
-        )
+        db_group = DB_Group(name=name, description=description, user_count=0, connection_id=connection_id)
         self.db.add(db_group)
         await self.db.commit()
         await self.db.refresh(db_group)
