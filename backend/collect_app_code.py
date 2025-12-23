@@ -6,7 +6,7 @@ EXCLUDED = ['collect_app_code.py', 'generate_app_key.py']
 
 
 def collect_code():
-    backend = Path.cwd() / "backend"
+    backend = Path.cwd() #/ "backend"
     if not backend.exists():
         print("❌ Нет папки backend")
         return

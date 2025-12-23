@@ -4,3 +4,4 @@
 .idea/
 /all_code.txt
 /.env
+backend/collect_app_code.py
