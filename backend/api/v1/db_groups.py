@@ -94,6 +94,7 @@ async def search_groups_with_sync(connection_id: int, q: Optional[str] = Query(N
             "groups": [
                 {
                     "id": g.id,
+                    "oid": g.oid,
                     "name": g.name,
                     "description": g.description,
                     "user_count": g.user_count,
@@ -115,7 +116,7 @@ async def search_groups_with_sync(connection_id: int, q: Optional[str] = Query(N
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при поиске групп: {str(e)}")
 
 
-@router.patch("/{group_id}", response_model=GetGroupsWithSyncResponse)
+@router.patch("/{group_id}", response_model=GroupInfo)
 async def update_group_with_sync(group_id: int, update_data: UpdateGroupRequest, db: AsyncSession = Depends(get_db)):
     """Обновить группу, поле`description` обновляется локально, поле `name` обновляется во внешней БД (через ALTER ROLE), и локально"""
     try:
@@ -125,30 +126,7 @@ async def update_group_with_sync(group_id: int, update_data: UpdateGroupRequest,
         group = group_result.scalar_one_or_none()
         if not group:
             raise ValueError("Группа не найдена после обновления")
-        conn_result = await db.execute(select(DB_Connection).where(DB_Connection.id == group.connection_id))
-        connection = conn_result.scalar_one_or_none()
-        if not connection:
-            raise ValueError("Подключение не найдено")
-        group_info = {
-            "id": group.id,
-            "name": group.name,
-            "description": group.description,
-            "user_count": group.user_count,
-            "created_at": group.created_at,
-            "updated_at": group.updated_at
-        }
-        name_changed = "name" in result["changes_applied"]
-        response_data = {
-            "connection_id": connection.id,
-            "connection_name": connection.name,
-            "auto_sync_performed": name_changed,
-            "sync_successful": True,
-            "total_groups": 1,
-            "groups": [group_info],
-            "last_sync_time": datetime.now() if name_changed else None,
-            "sync_statistics": result["changes_applied"] or None
-        }
-        return GetGroupsWithSyncResponse(**response_data)
+        return GroupInfo(id=group.id, oid=group.oid, name=group.name, description=group.description, user_count=group.user_count, created_at=group.created_at, updated_at=group.updated_at)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:

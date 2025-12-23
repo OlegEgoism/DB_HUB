@@ -1,11 +1,13 @@
+# backend/schemas/db_group_schemas.py
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
 class GroupInfo(BaseModel):
-    """Краткая информация о группе для ответа"""
+    """Краткая информация о группе"""
     id: int
+    oid: Optional[int] = Field(None)
     name: str
     description: Optional[str]
     user_count: int

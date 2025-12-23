@@ -60,10 +60,9 @@ class DB_Connection(Base, DateTimeMixin):
 
 class DB_Group(Base, DateTimeMixin):
     __tablename__ = "db_group"
-
     id = Column(Integer, primary_key=True, index=True, comment="PK группы")
     # Основные поля
-    # oid = Column(Integer, nullable=False, index=True, comment="OID группы в БД") # FIXME добавить потом логику
+    oid = Column(Integer, nullable=False, index=True, comment="OID группы в БД")
     name = Column(String(255), nullable=False, index=True, comment="Название группы из внешней БД")
     description = Column(Text, nullable=True, comment="Описание группы")
     user_count = Column(Integer, default=0, nullable=False, comment="Количество пользователей в группе из внешней БД")
@@ -73,6 +72,7 @@ class DB_Group(Base, DateTimeMixin):
     # Ограничения и индексы
     __table_args__ = (
         UniqueConstraint("connection_id", "name", name="uq_db_group_connection_name"),
+        UniqueConstraint("connection_id", "oid", name="uq_db_group_connection_oid"),
         Index("idx_db_group_name", "name"),
     )
 

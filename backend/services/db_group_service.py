@@ -65,6 +65,7 @@ class DBGroupService:
         try:
             sql_query = """
             SELECT
+                r.oid,
                 r.rolname AS name,
                 pg_catalog.shobj_description(r.oid, 'pg_authid') AS external_description,
                 COUNT(m.member) AS user_count
@@ -77,6 +78,7 @@ class DBGroupService:
             rows = await self._get_db_connection(connection, sql_query)
             return [
                 {
+                    "oid": row["oid"],
                     "name": row["name"],
                     "external_description": row["external_description"],
                     "user_count": row["user_count"]
@@ -171,29 +173,61 @@ class DBGroupService:
         connection, existing_groups = await self._get_connection_and_groups(connection_id)
         try:
             external_groups = await self.get_groups_from_database(connection)
-            existing_dict = {g.name: g for g in existing_groups}
+            existing_by_oid = {g.oid: g for g in existing_groups}
+            existing_by_name = {g.name: g for g in existing_groups}
             stats = {"added": 0, "updated": 0, "deleted": 0, "unchanged": 0}
             added = []
             updated = []
+            processed_oids = set()
             for ext in external_groups:
-                if ext["name"] in existing_dict:
-                    stats, update_info = await self._update_existing_group(
-                        existing_dict[ext["name"]], ext, stats
-                    )
-                    if update_info:
-                        updated.append(update_info)
+                ext_oid = ext["oid"]
+                ext_name = ext["name"]
+                local_group = existing_by_oid.get(ext_oid)
+                if local_group:
+                    needs_update = False
+                    changes = {}
+                    if local_group.name != ext_name:
+                        local_group.name = ext_name
+                        changes["name"] = {"old": local_group.name, "new": ext_name}
+                        needs_update = True
+                    new_description = self._determine_new_description(local_group, ext)
+                    if new_description != local_group.description:
+                        local_group.description = new_description
+                        changes["description"] = {"old": local_group.description, "new": new_description}
+                        needs_update = True
+                    if local_group.user_count != ext["user_count"]:
+                        local_group.user_count = ext["user_count"]
+                        changes["user_count"] = ext["user_count"]
+                        needs_update = True
+                    if needs_update:
+                        stats["updated"] += 1
+                        updated.append({
+                            "name": ext_name,
+                            "oid": ext_oid,
+                            "changes": changes
+                        })
+                        self.db.add(local_group)
+                    else:
+                        stats["unchanged"] += 1
+                    processed_oids.add(ext_oid)
                 else:
-                    stats = await self._add_new_group(ext, connection_id, stats)
-                    added.append({"name": ext["name"], "user_count": ext["user_count"], "description": ext["external_description"]})
-            await self.db.commit()
-            external_names = {g["name"] for g in external_groups}
-            deleted_groups = await self._delete_obsolete_groups(existing_groups, external_names)
+                    db_group = DB_Group(oid=ext_oid, name=ext_name, description=ext["external_description"], user_count=ext["user_count"], connection_id=connection_id)
+                    self.db.add(db_group)
+                    stats["added"] += 1
+                    added.append({"oid": ext_oid, "name": ext_name, "user_count": ext["user_count"], "description": ext["external_description"]})
+                    processed_oids.add(ext_oid)
+            deleted_groups = []
+            for group in existing_groups:
+                if group.oid not in processed_oids:
+                    await self.db.delete(group)
+                    deleted_groups.append({"oid": group.oid, "name": group.name, "description": group.description, "user_count": group.user_count})
             stats["deleted"] = len(deleted_groups)
+            await self.db.commit()
             return {
                 "connection_id": connection_id,
                 "connection_name": connection.name,
                 "total_external_groups": len(external_groups),
-                "sync_statistics": {**stats, "total_after_sync": len(external_groups)},
+                "sync_statistics": {**stats, "total_after_sync": len(external_groups) - stats["deleted"] + stats["added"]},
                 "added_groups": added,
                 "updated_groups": updated,
                 "deleted_groups": deleted_groups,
@@ -269,6 +303,7 @@ class DBGroupService:
             "groups": [
                 {
                     "id": g.id,
+                    "oid": g.oid,
                     "name": g.name,
                     "description": g.description,
                     "user_count": g.user_count,
@@ -280,29 +315,30 @@ class DBGroupService:
         }
 
     async def force_sync_groups_for_connection(self, connection_id: int) -> Dict[str, Any]:
-        """Принудительная синхронизация групп"""
         connection, old_groups = await self._get_connection_and_groups(connection_id)
         try:
             external_groups = await self.get_groups_from_database(connection)
-            old_dict = {g.name: g for g in old_groups}
+            old_by_oid = {g.oid: g for g in old_groups}
             await self.db.execute(delete(DB_Group).where(DB_Group.connection_id == connection_id))
             created = []
             preserved = 0
             for ext in external_groups:
                 description = (
-                    old_dict[ext["name"]].description
-                    if ext["name"] in old_dict and old_dict[ext["name"]].description
+                    old_by_oid[ext["oid"]].description
+                    if ext["oid"] in old_by_oid and old_by_oid[ext["oid"]].description
                     else ext["external_description"]
                 )
-                if ext["name"] in old_dict and old_dict[ext["name"]].description:
+                if ext["oid"] in old_by_oid and old_by_oid[ext["oid"]].description:
                     preserved += 1
-                db_group = DB_Group(name=ext["name"], description=description, user_count=ext["user_count"], connection_id=connection_id)
+                db_group = DB_Group(oid=ext["oid"], name=ext["name"], description=description, user_count=ext["user_count"], connection_id=connection_id)
                 self.db.add(db_group)
                 created.append({
+                    "oid": ext["oid"],
                     "name": ext["name"],
                     "user_count": ext["user_count"],
                     "description": description,
-                    "description_source": "preserved" if description and ext["name"] in old_dict and old_dict[ext["name"]].description else "external"})
+                    "description_source": "preserved" if description and ext["oid"] in old_by_oid and old_by_oid[ext["oid"]].description else "external"
+                })
             await self.db.commit()
             return {
                 "connection_id": connection_id,
@@ -399,10 +435,6 @@ class DBGroupService:
         connection = result.scalar_one_or_none()
         if not connection:
             raise ValueError(f"Подключение с ID {connection_id} не найдено")
-        external_groups = await self.get_groups_from_database(connection)
-        external_names = {g["name"].lower() for g in external_groups}
-        if name_lower in external_names:
-            raise ValueError(f"Группа с именем '{name}' уже существует во внешней базе данных")
         try:
             password = decrypt_password(connection.password)
             conn = await asyncpg.connect(
@@ -414,17 +446,20 @@ class DBGroupService:
                 timeout=10,
             )
             await conn.execute(f'CREATE ROLE "{name}" NOLOGIN')
+            oid_result = await conn.fetchrow('SELECT oid FROM pg_roles WHERE rolname = $1', name)
+            oid = oid_result['oid'] if oid_result else None
             await conn.close()
         except Exception as e:
             if 'conn' in locals():
                 await conn.close()
             raise Exception(f"Ошибка при создании роли во внешней БД: {str(e)}")
-        db_group = DB_Group(name=name, description=description, user_count=0, connection_id=connection_id)
+        db_group = DB_Group(oid=oid, name=name, description=description, user_count=0, connection_id=connection_id)
         self.db.add(db_group)
         await self.db.commit()
         await self.db.refresh(db_group)
         return {
             "id": db_group.id,
+            "oid": db_group.oid,
             "name": db_group.name,
             "description": db_group.description,
             "user_count": db_group.user_count,
