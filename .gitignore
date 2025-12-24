@@ -2,5 +2,6 @@
 
 .venv/
 .idea/
-/all_code.txt
 /.env
+backend/collect_app_code.py
+backend/all_code.txt

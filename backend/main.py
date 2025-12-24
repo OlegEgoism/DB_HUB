@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from backend.database.session import engine, Base
-from backend.api.v1 import users, auth, db_connection, agreement, db_metrics
+from backend.api.v1 import users, auth, db_connection, agreement, db_metrics, db_groups
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -45,7 +45,8 @@ app.add_middleware(
 
 """Подключаем роутеры"""
 app.include_router(agreement.router, prefix="/api/v1")
-app.include_router(users.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
 app.include_router(db_connection.router, prefix="/api/v1")
 app.include_router(db_metrics.router, prefix="/api/v1")
+app.include_router(db_groups.router, prefix="/api/v1")

@@ -1,6 +1,6 @@
 # backend/schemas/user_schemas.py
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from backend.models.user import ROLE_CHOICES
 
@@ -86,6 +86,20 @@ class UserProfile(BaseModel):
     is_superuser: bool
     created_at: datetime
     last_login: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PaginatedResponse(BaseModel):
+    """Схема для ответа с пагинацией"""
+    items: List[UserResponse]
+    total: int
+    page: int
+    size: int
+    pages: int
+    has_next: bool
+    has_prev: bool
 
     class Config:
         from_attributes = True

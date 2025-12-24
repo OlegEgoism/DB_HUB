@@ -1,29 +1,29 @@
 # backend/services/db_connection_service.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from backend.models.db import Connection
+from backend.models.db import DB_Connection
 from backend.models.user import User
 from backend.core.security import encrypt_password
 from backend.schemas.db_connection_schemas import ConnectionCreate, ConnectionUpdate
 
 
-async def get_connection(db: AsyncSession, connection_id: int) -> Connection | None:
-    result = await db.execute(select(Connection).where(Connection.id == connection_id))
+async def get_connection(db: AsyncSession, connection_id: int) -> DB_Connection | None:
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     return result.scalar_one_or_none()
 
 
 async def get_connections(db: AsyncSession):
-    result = await db.execute(select(Connection))
+    result = await db.execute(select(DB_Connection))
     return result.scalars().all()
 
 
-async def create_connection(db: AsyncSession, connection: ConnectionCreate) -> Connection:
+async def create_connection(db: AsyncSession, connection: ConnectionCreate) -> DB_Connection:
     result = await db.execute(select(User).where(User.id == connection.owner_id))
     owner = result.scalar_one_or_none()
     if not owner:
         raise ValueError(f"Владелец с ID {connection.owner_id} не найден")
     encrypted_password = encrypt_password(connection.password)
-    db_connection = Connection(
+    db_connection = DB_Connection(
         name=connection.name,
         description=connection.description,
         database_type=connection.database_type,
@@ -42,7 +42,7 @@ async def create_connection(db: AsyncSession, connection: ConnectionCreate) -> C
     return db_connection
 
 
-async def update_connection(db: AsyncSession, connection_id: int, connection_update: ConnectionUpdate) -> Connection | None:
+async def update_connection(db: AsyncSession, connection_id: int, connection_update: ConnectionUpdate) -> DB_Connection | None:
     db_connection = await get_connection(db, connection_id)
     if not db_connection:
         return None

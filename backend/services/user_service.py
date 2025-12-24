@@ -1,8 +1,8 @@
 # backend/services/user_service.py
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from backend.models.user import User
 from backend.schemas.user_schemas import UserCreate, UserUpdate
 from datetime import datetime
@@ -13,11 +13,31 @@ class UserService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_all_users(self) -> List[User]:
-        """Получить всех пользователей"""
-        result = await self.db.execute(select(User))
+    async def get_all_users(self, skip: int = 0, limit: int = 100) -> List[User]:
+        """Получить пользователей с пагинацией"""
+        result = await self.db.execute(
+            select(User)
+            .order_by(User.id)
+            .offset(skip)
+            .limit(limit)
+        )
         users = result.scalars().all()
         return users
+
+    async def get_total_users_count(self) -> int:
+        """Получить общее количество пользователей"""
+        result = await self.db.execute(select(func.count(User.id)))
+        return result.scalar_one()
+
+    async def get_paginated_users(self, page: int = 1, size: int = 20) -> Tuple[List[User], int, int, int, bool, bool]:
+        """Получить пользователей с пагинацией"""
+        skip = (page - 1) * size
+        users = await self.get_all_users(skip=skip, limit=size)
+        total = await self.get_total_users_count()
+        pages = (total + size - 1) // size
+        has_next = page < pages
+        has_prev = page > 1
+        return users, total, page, size, pages, has_next, has_prev
 
     async def get_user_by_id(self, user_id: int) -> Optional[User]:
         """Получить пользователя по ID"""
