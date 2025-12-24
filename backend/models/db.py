@@ -1,5 +1,4 @@
 # backend/models/db.py
-# Добавим в существующий файл, обновив класс DB_User
 from sqlalchemy import Column, Integer, String, Boolean, Text, Enum, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from backend.database.session import Base
@@ -65,7 +64,6 @@ class DB_Group(Base, DateTimeMixin):
     oid = Column(Integer, nullable=False, index=True, comment="OID группы в БД")
     name = Column(String(255), nullable=False, index=True, comment="Название группы из внешней БД")
     description = Column(Text, nullable=True, comment="Описание группы")
-    user_count = Column(Integer, default=0, nullable=False, comment="Количество пользователей в группе из внешней БД")
     # Связь
     connection_id = Column(Integer, ForeignKey("db_connection.id", ondelete="CASCADE"), nullable=False, comment="ID подключения к БД")
     connection = relationship("DB_Connection", back_populates="groups")
@@ -74,10 +72,11 @@ class DB_Group(Base, DateTimeMixin):
         UniqueConstraint("connection_id", "name", name="uq_db_group_connection_name"),
         UniqueConstraint("connection_id", "oid", name="uq_db_group_connection_oid"),
         Index("idx_db_group_name", "name"),
+        Index("idx_db_description", "description"),
     )
 
     def __repr__(self):
-        return f"<DB_Group(id={self.id}, name='{self.name}', connection_id={self.connection_id}, user_count={self.user_count})>"
+        return f"<DB_Group(id={self.id}, name='{self.name}', connection_id={self.connection_id})>"
 
 class DB_User(Base, DateTimeMixin):
     __tablename__ = "db_user"

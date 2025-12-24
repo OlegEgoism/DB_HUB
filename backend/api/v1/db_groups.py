@@ -52,7 +52,11 @@ async def get_groups_auto_sync(connection_id: int, db: AsyncSession = Depends(ge
 
 
 @router.get("/connection/{connection_id}/search", response_model=GetGroupsWithSyncResponse)
-async def search_groups_with_sync(connection_id: int, q: Optional[str] = Query(None, description="Поиск по name или description (регистронезависимый, частичный)"), db: AsyncSession = Depends(get_db)):
+async def search_groups_with_sync(
+    connection_id: int,
+    q: Optional[str] = Query(None, description="Поиск по name или description (регистронезависимый, частичный)"),
+    db: AsyncSession = Depends(get_db)
+):
     """Поиск групп с предварительной синхронизацией, затем ищет по локальным данным"""
     try:
         group_service = DBGroupService(db)
@@ -68,7 +72,10 @@ async def search_groups_with_sync(connection_id: int, q: Optional[str] = Query(N
             except Exception as e:
                 auto_sync_performed = True
                 sync_successful = False
-                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка синхронизации перед поиском: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Ошибка синхронизации перед поиском: {str(e)}"
+                )
         conn_result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
         connection = conn_result.scalar_one_or_none()
         if not connection:
@@ -85,24 +92,27 @@ async def search_groups_with_sync(connection_id: int, q: Optional[str] = Query(N
         query = query.order_by(DB_Group.name)
         result = await db.execute(query)
         filtered_groups = result.scalars().all()
+        external_groups = await group_service.get_groups_from_database(connection)
+        external_by_name = {g["name"]: g["user_count"] for g in external_groups}
+        response_groups = [
+            {
+                "id": g.id,
+                "oid": g.oid,
+                "name": g.name,
+                "description": g.description,
+                "user_count": external_by_name.get(g.name, 0),
+                "created_at": g.created_at,
+                "updated_at": g.updated_at
+            }
+            for g in filtered_groups
+        ]
         response_data = {
             "connection_id": connection.id,
             "connection_name": connection.name,
             "auto_sync_performed": auto_sync_performed,
             "sync_successful": sync_successful,
-            "total_groups": len(filtered_groups),
-            "groups": [
-                {
-                    "id": g.id,
-                    "oid": g.oid,
-                    "name": g.name,
-                    "description": g.description,
-                    "user_count": g.user_count,
-                    "created_at": g.created_at,
-                    "updated_at": g.updated_at
-                }
-                for g in filtered_groups
-            ],
+            "total_groups": len(response_groups),
+            "groups": response_groups,
             "last_sync_time": datetime.now() if auto_sync_performed else None
         }
         if sync_details:
@@ -113,8 +123,10 @@ async def search_groups_with_sync(connection_id: int, q: Optional[str] = Query(N
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при поиске групп: {str(e)}")
-
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при поиске групп: {str(e)}"
+        )
 
 @router.patch("/{group_id}", response_model=GroupInfo)
 async def update_group_with_sync(group_id: int, update_data: UpdateGroupRequest, db: AsyncSession = Depends(get_db)):
@@ -126,7 +138,21 @@ async def update_group_with_sync(group_id: int, update_data: UpdateGroupRequest,
         group = group_result.scalar_one_or_none()
         if not group:
             raise ValueError("Группа не найдена после обновления")
-        return GroupInfo(id=group.id, oid=group.oid, name=group.name, description=group.description, user_count=group.user_count, created_at=group.created_at, updated_at=group.updated_at)
+        conn_result = await db.execute(select(DB_Connection).where(DB_Connection.id == group.connection_id))
+        connection = conn_result.scalar_one_or_none()
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        external_groups = await service.get_groups_from_database(connection)
+        user_count = next((g["user_count"] for g in external_groups if g["name"] == group.name), 0)
+        return GroupInfo(
+            id=group.id,
+            oid=group.oid,
+            name=group.name,
+            description=group.description,
+            user_count=user_count,
+            created_at=group.created_at,
+            updated_at=group.updated_at
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
