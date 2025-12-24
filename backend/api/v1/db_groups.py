@@ -93,7 +93,7 @@ async def search_groups_with_sync(
         result = await db.execute(query)
         filtered_groups = result.scalars().all()
         external_groups = await group_service.get_groups_from_database(connection)
-        external_by_name = {g["name"]: g["user_count"] for g in external_groups}
+        external_by_name = {g["name"]: 0 for g in external_groups}
         response_groups = [
             {
                 "id": g.id,
