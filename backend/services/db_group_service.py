@@ -67,9 +67,12 @@ class DBGroupService:
             SELECT
                 r.oid,
                 r.rolname AS name,
-                pg_catalog.shobj_description(r.oid, 'pg_authid') AS external_description
+                pg_catalog.shobj_description(r.oid, 'pg_authid') AS external_description,
+                COUNT(m.member) AS user_count
             FROM pg_catalog.pg_roles r
+            LEFT JOIN pg_catalog.pg_auth_members m ON m.roleid = r.oid
             WHERE r.rolcanlogin = false
+            GROUP BY r.oid, r.rolname
             ORDER BY r.rolname;
             """
             rows = await self._get_db_connection(connection, sql_query)
@@ -77,7 +80,8 @@ class DBGroupService:
                 {
                     "oid": row["oid"],
                     "name": row["name"],
-                    "external_description": row["external_description"]
+                    "external_description": row["external_description"],
+                    "user_count": row["user_count"]
                 }
                 for row in rows
             ]
@@ -310,9 +314,8 @@ class DBGroupService:
             .order_by(DB_Group.name)
         )
         groups = result.scalars().all()
-
         external_groups = await self.get_groups_from_database(connection)
-        external_by_name = {g["name"]: 0 for g in external_groups}  # user_count всегда 0 для групп
+        external_by_name = {g["name"]: g["user_count"] for g in external_groups}
 
         return {
             "connection_id": connection_id,
@@ -324,7 +327,7 @@ class DBGroupService:
                     "oid": g.oid,
                     "name": g.name,
                     "description": g.description,
-                    "user_count": 0,
+                    "user_count": external_by_name.get(g.name, 0),
                     "created_at": g.created_at,
                     "updated_at": g.updated_at
                 }
