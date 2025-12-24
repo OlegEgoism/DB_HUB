@@ -94,115 +94,130 @@ class DBGroupService:
         return connection, groups
 
     async def smart_sync_groups_for_connection(self, connection_id: int) -> Dict[str, Any]:
-        """Умная синхронизация групп согласно новой логике"""
-        connection, local_groups = await self._get_connection_and_groups(connection_id)
+        """Умная синхронизация: сопоставление по OID и имени с корректной обработкой изменений OID при неизменном имени"""
+        connection, existing_groups = await self._get_connection_and_groups(connection_id)
         try:
             external_groups = await self.get_groups_from_database(connection)
 
-            # Индексация локальных и внешних групп
-            local_by_oid = {g.oid: g for g in local_groups}
-            local_by_name = {g.name: g for g in local_groups}
-            external_by_oid = {g["oid"]: g for g in external_groups}
-            external_by_name = {g["name"]: g for g in external_groups}
+            # Индексы
+            existing_by_oid = {g.oid: g for g in existing_groups}
+            existing_by_name = {g.name: g for g in existing_groups}
+            external_oids = {g["oid"] for g in external_groups}
 
-            stats = {"added": 0, "updated": 0, "deleted": 0}
+            stats = {"added": 0, "updated": 0, "deleted": 0, "unchanged": 0}
             added = []
             updated = []
             deleted_groups = []
 
-            # === Шаг 1: Обработка групп по OID ===
-            processed_local_oids = set()
+            # === Шаг 1: Удаляем локальные группы, которых нет во внешней БД по OID ===
+            for local in existing_groups:
+                if local.oid not in external_oids:
+                    # Возможно, группа пересоздана с новым OID — проверим по имени
+                    if local.name in existing_by_name and local.name in [g["name"] for g in external_groups]:
+                        # Группа с таким именем есть во внешней БД, но с другим OID → пересоздана
+                        external_with_same_name = next(g for g in external_groups if g["name"] == local.name)
+                        if external_with_same_name["oid"] != local.oid:
+                            # Удаляем старую запись
+                            await self.db.delete(local)
+                            deleted_groups.append({
+                                "oid": local.oid,
+                                "name": local.name,
+                                "description": local.description,
+                                "reason": "oid_changed_same_name"
+                            })
+                            stats["deleted"] += 1
+                            continue
+                    # Иначе — группа реально удалена
+                    await self.db.delete(local)
+                    deleted_groups.append({
+                        "oid": local.oid,
+                        "name": local.name,
+                        "description": local.description,
+                        "reason": "deleted_from_external"
+                    })
+                    stats["deleted"] += 1
+
+            # Обновим индексы после удаления (или просто перечитаем — безопаснее)
+            result = await self.db.execute(select(DB_Group).where(DB_Group.connection_id == connection_id))
+            current_groups = result.scalars().all()
+            current_by_oid = {g.oid: g for g in current_groups}
+            current_by_name = {g.name: g for g in current_groups}
+
+            # === Шаг 2: Обрабатываем внешние группы ===
             for ext in external_groups:
                 ext_oid = ext["oid"]
                 ext_name = ext["name"]
-                ext_desc = ext["external_description"]
 
-                # Случай: OID совпадает → обновляем только name и description
-                if ext_oid in local_by_oid:
-                    local = local_by_oid[ext_oid]
+                if ext_oid in current_by_oid:
+                    # Случай 1: OID совпадает — обновляем name и description
+                    local = current_by_oid[ext_oid]
                     changes = {}
+
                     if local.name != ext_name:
                         changes["name"] = {"old": local.name, "new": ext_name}
                         local.name = ext_name
+
                     new_desc = self._determine_new_description(local, ext)
-                    if local.description != new_desc:
+                    if new_desc != local.description:
                         changes["description"] = {"old": local.description, "new": new_desc}
                         local.description = new_desc
+
                     if changes:
+                        stats["updated"] += 1
                         updated.append({
                             "oid": ext_oid,
                             "name": ext_name,
-                            "changes": changes,
-                            "reason": "matched_by_oid"
+                            "reason": "oid_match",
+                            "changes": changes
                         })
-                        stats["updated"] += 1
+                    else:
+                        stats["unchanged"] += 1
                     self.db.add(local)
-                    processed_local_oids.add(ext_oid)
-                else:
-                    # Случай: новая группа → создаём
+
+                elif ext_name in current_by_name:
+                    # Случай 2: имя совпадает, но OID другой → заменяем запись
+                    old_local = current_by_name[ext_name]
+                    await self.db.delete(old_local)
+                    deleted_groups.append({
+                        "oid": old_local.oid,
+                        "name": old_local.name,
+                        "description": old_local.description,
+                        "reason": "replaced_due_to_oid_change"
+                    })
+                    stats["deleted"] += 1
+
+                    # Создаём новую запись
                     new_group = DB_Group(
                         oid=ext_oid,
                         name=ext_name,
-                        description=ext_desc,
+                        description=ext["external_description"],
                         connection_id=connection_id
                     )
                     self.db.add(new_group)
                     added.append({
                         "oid": ext_oid,
                         "name": ext_name,
-                        "description": ext_desc,
-                        "reason": "new_group"
+                        "description": ext["external_description"],
+                        "reason": "name_preserved_new_oid"
                     })
                     stats["added"] += 1
 
-            # === Шаг 2: Обработка групп, у которых изменился OID, но имя совпадает ===
-            for local in local_groups:
-                if local.oid in processed_local_oids:
-                    continue  # уже обработано по OID
-
-                # Если имя совпадает, но OID изменился → пересоздаём
-                if local.name in external_by_name:
-                    ext = external_by_name[local.name]
-                    if ext["oid"] != local.oid:
-                        # Удалить старую запись
-                        await self.db.delete(local)
-                        deleted_groups.append({
-                            "oid": local.oid,
-                            "name": local.name,
-                            "reason": "oid_changed_same_name"
-                        })
-                        stats["deleted"] += 1
-
-                        # Создать новую запись
-                        new_desc = self._determine_new_description(None, ext)
-                        new_group = DB_Group(
-                            oid=ext["oid"],
-                            name=ext["name"],
-                            description=new_desc,
-                            connection_id=connection_id
-                        )
-                        self.db.add(new_group)
-                        added.append({
-                            "oid": ext["oid"],
-                            "name": ext["name"],
-                            "description": new_desc,
-                            "reason": "recreated_same_name_new_oid"
-                        })
-                        stats["added"] += 1
-                        processed_local_oids.add(local.oid)  # чтобы не удалить снова
-
-            # === Шаг 3: Удаление групп, которых нет во внешней БД (по OID) ===
-            for local in local_groups:
-                if local.oid in processed_local_oids:
-                    continue
-                if local.oid not in external_by_oid:
-                    await self.db.delete(local)
-                    deleted_groups.append({
-                        "oid": local.oid,
-                        "name": local.name,
-                        "reason": "deleted_from_db"
+                else:
+                    # Случай 3: полностью новая группа
+                    new_group = DB_Group(
+                        oid=ext_oid,
+                        name=ext_name,
+                        description=ext["external_description"],
+                        connection_id=connection_id
+                    )
+                    self.db.add(new_group)
+                    added.append({
+                        "oid": ext_oid,
+                        "name": ext_name,
+                        "description": ext["external_description"],
+                        "reason": "new_group"
                     })
-                    stats["deleted"] += 1
+                    stats["added"] += 1
 
             await self.db.commit()
 
