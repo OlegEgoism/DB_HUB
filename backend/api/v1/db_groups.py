@@ -6,7 +6,7 @@ from typing import Optional
 from datetime import datetime
 from backend.database.session import get_db
 from backend.services.db_group_service import DBGroupService
-from backend.schemas.db_group_schemas import GetGroupsWithSyncResponse, UpdateGroupRequest, CreateGroupResponse, CreateGroupRequest, GroupInfo
+from backend.schemas.db_group_schemas import GetGroupsWithSyncResponse, UpdateGroupRequest, CreateGroupRequest, GroupInfo
 from backend.models.db import DB_Connection, DB_Group
 
 router = APIRouter(prefix="/db_groups", tags=["DB GROUPS"])
@@ -52,11 +52,7 @@ async def get_groups_auto_sync(connection_id: int, db: AsyncSession = Depends(ge
 
 
 @router.get("/connection/{connection_id}/search", response_model=GetGroupsWithSyncResponse)
-async def search_groups_with_sync(
-    connection_id: int,
-    q: Optional[str] = Query(None, description="Поиск по name или description (регистронезависимый, частичный)"),
-    db: AsyncSession = Depends(get_db)
-):
+async def search_groups_with_sync(connection_id: int, q: Optional[str] = Query(None, description="Поиск по name или description"), db: AsyncSession = Depends(get_db)):
     """Поиск групп с предварительной синхронизацией, затем ищет по локальным данным"""
     try:
         group_service = DBGroupService(db)
@@ -83,12 +79,7 @@ async def search_groups_with_sync(
         query = select(DB_Group).where(DB_Group.connection_id == connection_id)
         if q and q.strip():
             q_clean = q.strip().lower()
-            query = query.where(
-                or_(
-                    func.lower(DB_Group.name).contains(q_clean),
-                    func.lower(DB_Group.description).contains(q_clean)
-                )
-            )
+            query = query.where(or_(func.lower(DB_Group.name).contains(q_clean), func.lower(DB_Group.description).contains(q_clean)))
         query = query.order_by(DB_Group.name)
         result = await db.execute(query)
         filtered_groups = result.scalars().all()
@@ -123,10 +114,8 @@ async def search_groups_with_sync(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при поиске групп: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при поиске групп: {str(e)}")
+
 
 @router.patch("/{group_id}", response_model=GroupInfo)
 async def update_group_with_sync(group_id: int, update_data: UpdateGroupRequest, db: AsyncSession = Depends(get_db)):
