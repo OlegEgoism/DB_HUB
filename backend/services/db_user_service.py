@@ -1,6 +1,8 @@
 # backend/services/db_user_service.py
+import re
+from datetime import datetime
 import asyncpg
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.models.db import DB_Connection, DB_User
@@ -184,3 +186,100 @@ class DBUserService:
             "total_users": len(user_list),
             "users": user_list
         }
+
+    async def create_user_in_external_db(
+            self,
+            connection_id: int,
+            username: str,
+            password: str,
+            description: Optional[str] = None,
+            email: Optional[str] = None,
+            rolsuper: bool = False,
+            rolinherit: bool = True,
+            rolcreaterole: bool = False,
+            rolcreatedb: bool = False,
+            rolcanlogin: bool = True,
+            rolreplication: bool = False,
+            rolconnlimit: int = -1,
+            rolvaliduntil: Optional[str] = None
+    ) -> Dict[str, Any]:
+        username = username.strip()
+        if not username:
+            raise ValueError("Имя пользователя не может быть пустым")
+        if not re.match(r"^[a-zA-Z0-9_]+$", username):
+            raise ValueError("Имя пользователя может содержать только латинские буквы, цифры и символ подчёркивания '_'")
+        if username.lower().startswith("pg_"):
+            raise ValueError("Имена, начинающиеся с 'pg_', зарезервированы")
+        result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+        connection = result.scalar_one_or_none()
+        if not connection:
+            raise ValueError(f"Подключение с ID {connection_id} не найдено")
+        try:
+            decrypted_pass = decrypt_password(connection.password)
+            conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=decrypted_pass,
+                database=connection.database_name,
+                timeout=10,
+            )
+            options = []
+            if rolsuper:
+                options.append("SUPERUSER")
+            else:
+                options.append("NOSUPERUSER")
+            if rolinherit:
+                options.append("INHERIT")
+            else:
+                options.append("NOINHERIT")
+            if rolcreaterole:
+                options.append("CREATEROLE")
+            else:
+                options.append("NOCREATEROLE")
+            if rolcreatedb:
+                options.append("CREATEDB")
+            else:
+                options.append("NOCREATEDB")
+            if rolcanlogin:
+                options.append("LOGIN")
+            else:
+                options.append("NOLOGIN")
+            if rolreplication:
+                options.append("REPLICATION")
+            else:
+                options.append("NOREPLICATION")
+            if rolconnlimit >= 0:
+                options.append(f"CONNECTION LIMIT {rolconnlimit}")
+            if rolvaliduntil is not None:
+                try:
+                    dt = datetime.fromisoformat(rolvaliduntil.replace("Z", "+00:00"))
+                    options.append(f"VALID UNTIL '{dt.isoformat()}'")
+                except ValueError:
+                    raise ValueError("Неверный формат даты для rolvaliduntil. Ожидается ISO 8601, например: 2026-12-31T23:59:59")
+            options_str = " ".join(options)
+            sql = f'CREATE ROLE "{username}" WITH {options_str} PASSWORD \'{password}\''
+            await conn.execute(sql)
+            oid_row = await conn.fetchrow('SELECT oid FROM pg_roles WHERE rolname = $1', username)
+            oid = oid_row["oid"] if oid_row else None
+            await conn.close()
+            new_user = DB_User(oid=oid, username=username, description=description, email=email, connection_id=connection_id)
+            self.db.add(new_user)
+            await self.db.commit()
+            await self.db.refresh(new_user)
+            return {
+                "id": new_user.id,
+                "oid": new_user.oid,
+                "username": new_user.username,
+                "description": new_user.description,
+                "email": new_user.email,
+                "created_at": new_user.created_at,
+                "updated_at": new_user.updated_at,
+                "message": "Пользователь успешно создан во внешней и локальной БД"
+            }
+        except asyncpg.UniqueViolationError:
+            raise ValueError(f"Пользователь с именем '{username}' уже существует во внешней БД")
+        except Exception as e:
+            if 'conn' in locals():
+                await conn.close()
+            raise Exception(f"Ошибка при создании пользователя во внешней БД: {str(e)}")
