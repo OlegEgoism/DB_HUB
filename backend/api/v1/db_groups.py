@@ -6,7 +6,7 @@ from typing import Optional
 from datetime import datetime
 from backend.database.session import get_db
 from backend.services.db_group_service import DBGroupService
-from backend.schemas.db_group_schemas import GetGroupsWithSyncResponse, UpdateGroupRequest, CreateGroupRequest, GroupInfo
+from backend.schemas.db_group_schemas import GetGroupsWithSyncResponse, UpdateGroupRequest, CreateGroupRequest, GroupInfo, GroupMembersResponse
 from backend.models.db import DB_Connection, DB_Group
 
 router = APIRouter(prefix="/db_groups", tags=["DB GROUPS"])
@@ -172,3 +172,16 @@ async def delete_group(group_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при удалении группы: {str(e)}")
+
+
+@router.get("/group/{group_id}/members", response_model=GroupMembersResponse)
+async def get_group_members(group_id: int, db: AsyncSession = Depends(get_db)):
+    """Получить список пользователей, входящих в группу (из внешней БД)"""
+    try:
+        service = DBGroupService(db)
+        result = await service.get_group_members_from_external_db(group_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении членов группы: {str(e)}")

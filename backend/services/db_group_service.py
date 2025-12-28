@@ -551,3 +551,66 @@ class DBGroupService:
         except Exception as e:
             await self.db.rollback()
             raise Exception(f"Ошибка при принудительной синхронизации групп: {str(e)}")
+
+    # backend/services/db_group_service.py
+
+    async def get_group_members_from_external_db(self, group_id: int) -> Dict[str, Any]:
+        """Получает список пользователей, входящих в группу (роль) во внешней БД"""
+        result = await self.db.execute(select(DB_Group).where(DB_Group.id == group_id))
+        group = result.scalar_one_or_none()
+        if not group:
+            raise ValueError(f"Группа с ID {group_id} не найдена")
+
+        conn_result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == group.connection_id))
+        connection = conn_result.scalar_one_or_none()
+        if not connection:
+            raise ValueError("Подключение не найдено")
+
+        try:
+            password = decrypt_password(connection.password)
+            conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=password,
+                database=connection.database_name,
+                timeout=10,
+            )
+
+            # Получаем членов группы
+            members_query = """
+            SELECT
+                ur.oid AS user_oid,
+                ur.rolname AS username,
+                ur.rolsuper
+            FROM pg_auth_members am
+            JOIN pg_roles gr ON gr.oid = am.roleid
+            JOIN pg_roles ur ON ur.oid = am.member
+            WHERE gr.rolname = $1 AND ur.rolcanlogin = true
+            ORDER BY ur.rolname;
+            """
+            rows = await conn.fetch(members_query, group.name)
+            await conn.close()
+
+            members = [
+                {
+                    "user_oid": row["user_oid"],
+                    "username": row["username"],
+                    "rolsuper": row["rolsuper"]
+                }
+                for row in rows
+            ]
+
+            return {
+                "group_id": group.id,
+                "group_name": group.name,
+                "connection_id": group.connection_id,
+                "connection_name": connection.name,
+                "total_members": len(members),
+                "members": members
+            }
+
+        except Exception as e:
+            if 'conn' in locals():
+                await conn.close()
+            raise Exception(f"Ошибка при получении членов группы из внешней БД: {str(e)}")
