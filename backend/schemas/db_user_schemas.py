@@ -67,3 +67,7 @@ class DBUserUpdateRequest(BaseModel):
         examples=[_default_rolvaliduntil_example()]
     )
 
+
+class AddUserToGroupRequest(BaseModel):
+    user_id: int = Field(..., gt=0, description="ID пользователя в локальной БД")
+    group_id: int = Field(..., gt=0, description="ID группы в локальной БД")

@@ -5,7 +5,7 @@ import asyncpg
 from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
-from backend.models.db import DB_Connection, DB_User
+from backend.models.db import DB_Connection, DB_User, DB_Group
 from backend.core.security import decrypt_password
 
 
@@ -451,3 +451,54 @@ class DBUserService:
                 await ext_conn.close()
             await self.db.rollback()
             raise Exception(f"Ошибка при удалении пользователя из внешней БД: {str(e)}")
+
+
+    async def add_user_to_group(self, user_id: int, group_id: int) -> Dict[str, Any]:
+        """Добавляет пользователя в группу во внешней БД (GRANT group TO user)"""
+        user_result = await self.db.execute(select(DB_User).where(DB_User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if not user:
+            raise ValueError(f"Пользователь с ID {user_id} не найден")
+
+        group_result = await self.db.execute(select(DB_Group).where(DB_Group.id == group_id))
+        group = group_result.scalar_one_or_none()
+        if not group:
+            raise ValueError(f"Группа с ID {group_id} не найдена")
+
+        if user.connection_id != group.connection_id:
+            raise ValueError("Пользователь и группа должны принадлежать одному подключению")
+
+        connection_id = user.connection_id
+        conn_result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+        connection = conn_result.scalar_one_or_none()
+        if not connection:
+            raise ValueError("Подключение не найдено")
+
+        try:
+            decrypted_pass = decrypt_password(connection.password)
+            ext_conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=decrypted_pass,
+                database=connection.database_name,
+                timeout=10,
+            )
+
+            # Выполняем GRANT
+            await ext_conn.execute(f'GRANT "{group.name}" TO "{user.username}";')
+            await ext_conn.close()
+
+            return {
+                "message": f"Пользователь '{user.username}' успешно добавлен в группу '{group.name}'",
+                "user_id": user.id,
+                "group_id": group.id,
+                "username": user.username,
+                "group_name": group.name,
+                "connection_id": connection_id
+            }
+
+        except Exception as e:
+            if 'ext_conn' in locals():
+                await ext_conn.close()
+            raise Exception(f"Ошибка при добавлении пользователя в группу во внешней БД: {str(e)}")
