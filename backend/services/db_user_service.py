@@ -459,21 +459,17 @@ class DBUserService:
         user = user_result.scalar_one_or_none()
         if not user:
             raise ValueError(f"Пользователь с ID {user_id} не найден")
-
         group_result = await self.db.execute(select(DB_Group).where(DB_Group.id == group_id))
         group = group_result.scalar_one_or_none()
         if not group:
             raise ValueError(f"Группа с ID {group_id} не найдена")
-
         if user.connection_id != group.connection_id:
             raise ValueError("Пользователь и группа должны принадлежать одному подключению")
-
         connection_id = user.connection_id
         conn_result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
         connection = conn_result.scalar_one_or_none()
         if not connection:
             raise ValueError("Подключение не найдено")
-
         try:
             decrypted_pass = decrypt_password(connection.password)
             ext_conn = await asyncpg.connect(
@@ -484,11 +480,8 @@ class DBUserService:
                 database=connection.database_name,
                 timeout=10,
             )
-
-            # Выполняем GRANT
             await ext_conn.execute(f'GRANT "{group.name}" TO "{user.username}";')
             await ext_conn.close()
-
             return {
                 "message": f"Пользователь '{user.username}' успешно добавлен в группу '{group.name}'",
                 "user_id": user.id,
@@ -497,7 +490,6 @@ class DBUserService:
                 "group_name": group.name,
                 "connection_id": connection_id
             }
-
         except Exception as e:
             if 'ext_conn' in locals():
                 await ext_conn.close()
