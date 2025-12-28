@@ -4,7 +4,7 @@ from datetime import datetime
 import asyncpg
 from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from backend.models.db import DB_Connection, DB_User
 from backend.core.security import decrypt_password
 
@@ -408,3 +408,46 @@ class DBUserService:
             "updated_at": local_user.updated_at,
             "message": "Роль успешно обновлена"
         }
+
+
+    async def delete_user_in_external_db(self, user_id: int) -> Dict[str, Any]:
+        """Удаляет роль из внешней БД и удаляет запись из локальной таблицы db_user"""
+        result = await self.db.execute(select(DB_User).where(DB_User.id == user_id))
+        local_user = result.scalar_one_or_none()
+        if not local_user:
+            raise ValueError(f"Пользователь с ID {user_id} не найден")
+        connection_id = local_user.connection_id
+        username = local_user.username
+        conn_result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+        connection = conn_result.scalar_one_or_none()
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        try:
+            decrypted_pass = decrypt_password(connection.password)
+            ext_conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=decrypted_pass,
+                database=connection.database_name,
+                timeout=10,
+            )
+            exists = await ext_conn.fetchval("SELECT 1 FROM pg_roles WHERE rolname = $1", username)
+            if not exists:
+                await ext_conn.close()
+                raise ValueError(f"Пользователь '{username}' не существует во внешней БД")
+            await ext_conn.execute(f'DROP ROLE "{username}";')
+            await ext_conn.close()
+            await self.db.execute(delete(DB_User).where(DB_User.id == user_id))
+            await self.db.commit()
+            return {
+                "message": f"Пользователь '{username}' успешно удалён из внешней и локальной БД",
+                "deleted_user_id": user_id,
+                "username": username,
+                "connection_id": connection_id
+            }
+        except Exception as e:
+            if 'ext_conn' in locals():
+                await ext_conn.close()
+            await self.db.rollback()
+            raise Exception(f"Ошибка при удалении пользователя из внешней БД: {str(e)}")

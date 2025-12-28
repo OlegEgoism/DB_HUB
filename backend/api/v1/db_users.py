@@ -1,6 +1,6 @@
 # backend/api/v1/db_users.py
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
 from backend.models import DB_User, DB_Connection
@@ -130,3 +130,16 @@ async def update_db_user(user_id: int, user_data: DBUserUpdateRequest, db: Async
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при обновлении роли: {str(e)}")
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_200_OK, response_model=dict)
+async def delete_db_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    """Удаляет пользователя (роль) из внешней БД и удаляет запись из локальной БД"""
+    try:
+        service = DBUserService(db)
+        result = await service.delete_user_in_external_db(user_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при удалении пользователя: {str(e)}")
