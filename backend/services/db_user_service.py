@@ -283,3 +283,128 @@ class DBUserService:
             if 'conn' in locals():
                 await conn.close()
             raise Exception(f"Ошибка при создании пользователя во внешней БД: {str(e)}")
+
+    async def update_user_in_external_db(
+            self,
+            user_id: int,
+            username: Optional[str] = None,
+            password: Optional[str] = None,
+            description: Optional[str] = None,
+            email: Optional[str] = None,
+            rolsuper: Optional[bool] = None,
+            rolinherit: Optional[bool] = None,
+            rolcreaterole: Optional[bool] = None,
+            rolcreatedb: Optional[bool] = None,
+            rolcanlogin: Optional[bool] = None,
+            rolreplication: Optional[bool] = None,
+            rolconnlimit: Optional[int] = None,
+            rolvaliduntil: Optional[str] = None
+    ) -> Dict[str, Any]:
+        result = await self.db.execute(select(DB_User).where(DB_User.id == user_id))
+        local_user = result.scalar_one_or_none()
+        if not local_user:
+            raise ValueError(f"Пользователь с ID {user_id} не найден")
+        connection_id = local_user.connection_id
+        old_username = local_user.username
+        result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+        connection = result.scalar_one_or_none()
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        external_users = await self._fetch_users_from_external_db(connection)
+        current_ext = next((u for u in external_users if u["oid"] == local_user.oid), None)
+        if not current_ext:
+            raise ValueError("Роль не найдена во внешней БД")
+        new_username = username.strip() if username else old_username
+        if username and username != old_username:
+            if not re.match(r"^[a-zA-Z0-9_]+$", new_username):
+                raise ValueError("Имя пользователя может содержать только латинские буквы, цифры и символ подчёркивания '_'")
+            if new_username.lower().startswith("pg_"):
+                raise ValueError("Имена, начинающиеся с 'pg_', зарезервированы")
+        options = []
+        current_rolsuper = current_ext["rolsuper"]
+        rolsuper_val = rolsuper if rolsuper is not None else current_rolsuper
+        options.append("SUPERUSER" if rolsuper_val else "NOSUPERUSER")
+        try:
+            decrypted_pass = decrypt_password(connection.password)
+            ext_conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=decrypted_pass,
+                database=connection.database_name,
+                timeout=10,
+            )
+            role_attrs = await ext_conn.fetchrow("""
+                SELECT
+                    rolinherit,
+                    rolcreaterole,
+                    rolcreatedb,
+                    rolcanlogin,
+                    rolreplication,
+                    rolconnlimit,
+                    rolvaliduntil
+                FROM pg_roles
+                WHERE oid = $1
+            """, local_user.oid)
+            rolinherit_val = rolinherit if rolinherit is not None else role_attrs["rolinherit"]
+            options.append("INHERIT" if rolinherit_val else "NOINHERIT")
+            rolcreaterole_val = rolcreaterole if rolcreaterole is not None else role_attrs["rolcreaterole"]
+            options.append("CREATEROLE" if rolcreaterole_val else "NOCREATEROLE")
+            rolcreatedb_val = rolcreatedb if rolcreatedb is not None else role_attrs["rolcreatedb"]
+            options.append("CREATEDB" if rolcreatedb_val else "NOCREATEDB")
+            rolcanlogin_val = rolcanlogin if rolcanlogin is not None else role_attrs["rolcanlogin"]
+            options.append("LOGIN" if rolcanlogin_val else "NOLOGIN")
+            rolreplication_val = rolreplication if rolreplication is not None else role_attrs["rolreplication"]
+            options.append("REPLICATION" if rolreplication_val else "NOREPLICATION")
+            if rolconnlimit is not None:
+                if rolconnlimit >= 0:
+                    options.append(f"CONNECTION LIMIT {rolconnlimit}")
+            else:
+                current_limit = role_attrs["rolconnlimit"]
+                if current_limit >= 0:
+                    options.append(f"CONNECTION LIMIT {current_limit}")
+            valid_clause = None
+            if rolvaliduntil is not None:
+                if rolvaliduntil.strip().lower() in ("null", "", "none"):
+                    valid_clause = "VALID UNTIL NULL"
+                else:
+                    try:
+                        dt = datetime.fromisoformat(rolvaliduntil.replace("Z", "+00:00"))
+                        valid_clause = f"VALID UNTIL '{dt.isoformat()}'"
+                    except ValueError:
+                        raise ValueError("Неверный формат даты для rolvaliduntil. Ожидается ISO 8601, например: 2026-12-31T23:59:59")
+            else:
+                pass
+            alter_parts = []
+            if username and username != old_username:
+                alter_parts.append(f'ALTER ROLE "{old_username}" RENAME TO "{new_username}";')
+            options_str = " ".join(options)
+            password_clause = f" PASSWORD '{password}'" if password else ""
+            valid_part = f" {valid_clause}" if valid_clause else ""
+            alter_parts.append(f'ALTER ROLE "{new_username}" WITH {options_str}{password_clause}{valid_part};')
+            for stmt in alter_parts:
+                await ext_conn.execute(stmt)
+            await ext_conn.close()
+        except Exception as e:
+            if 'ext_conn' in locals():
+                await ext_conn.close()
+            raise Exception(f"Ошибка при обновлении роли во внешней БД: {str(e)}")
+        if username:
+            local_user.username = new_username
+        if description is not None:
+            local_user.description = description
+        if email is not None:
+            local_user.email = email
+        self.db.add(local_user)
+        await self.db.commit()
+        await self.db.refresh(local_user)
+        return {
+            "id": local_user.id,
+            "oid": local_user.oid,
+            "username": local_user.username,
+            "description": local_user.description,
+            "email": local_user.email,
+            "created_at": local_user.created_at,
+            "updated_at": local_user.updated_at,
+            "message": "Роль успешно обновлена"
+        }

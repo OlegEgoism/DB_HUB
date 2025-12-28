@@ -1,7 +1,14 @@
 # backend/schemas/db_user_schemas.py
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+
+def _default_rolvaliduntil_example() -> str:
+    """Возвращает пример даты: сейчас + 1 год в ISO 8601"""
+    now = datetime.now(timezone.utc)
+    next_year = now + timedelta(days=365)
+    return next_year.isoformat()
 
 
 class DBUserInfo(BaseModel):
@@ -34,4 +41,29 @@ class DBUserCreateRequest(BaseModel):
     rolcanlogin: bool = True
     rolreplication: bool = False
     rolconnlimit: int = Field(-1, ge=-1)
-    rolvaliduntil: Optional[str] = None
+    rolvaliduntil: Optional[str] = Field(
+        None,
+        description="Дата окончания действия пароля в формате ISO 8601 (например, 2026-12-31T23:59:59). Укажите null для бессрочного действия.",
+        examples=[_default_rolvaliduntil_example()]
+    )
+
+
+class DBUserUpdateRequest(BaseModel):
+    username: Optional[str] = Field(None, min_length=1, max_length=100)
+    password: Optional[str] = Field(None, min_length=1)
+    description: Optional[str] = Field(None, max_length=500)
+    email: Optional[str] = Field(None, max_length=255)
+    # Права роли
+    rolsuper: Optional[bool] = None
+    rolinherit: Optional[bool] = None
+    rolcreaterole: Optional[bool] = None
+    rolcreatedb: Optional[bool] = None
+    rolcanlogin: Optional[bool] = None
+    rolreplication: Optional[bool] = None
+    rolconnlimit: Optional[int] = Field(None, ge=-1)
+    rolvaliduntil: Optional[str] = Field(
+        None,
+        description="Дата окончания действия пароля в формате ISO 8601 (например, 2026-12-31T23:59:59). Укажите null для бессрочного действия.",
+        examples=[_default_rolvaliduntil_example()]
+    )
+

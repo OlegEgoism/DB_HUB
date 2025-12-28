@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
 from backend.models import DB_User, DB_Connection
 from backend.services.db_user_service import DBUserService
-from backend.schemas.db_user_schemas import DBUsersResponse, DBUserCreateRequest
+from backend.schemas.db_user_schemas import DBUsersResponse, DBUserCreateRequest, DBUserUpdateRequest
 
 router = APIRouter(prefix="/db_users", tags=["DB USERS"])
 
@@ -103,3 +103,30 @@ async def search_db_users(connection_id: int, q: str = Query(..., min_length=1, 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при поиске пользователей: {str(e)}")
+
+
+@router.patch("/{user_id}", response_model=dict)
+async def update_db_user(user_id: int, user_data: DBUserUpdateRequest, db: AsyncSession = Depends(get_db)):
+    """Обновление роли во внешней БД"""
+    try:
+        service = DBUserService(db)
+        result = await service.update_user_in_external_db(
+            user_id=user_id,
+            username=user_data.username,
+            password=user_data.password,
+            description=user_data.description,
+            email=user_data.email,
+            rolsuper=user_data.rolsuper,
+            rolinherit=user_data.rolinherit,
+            rolcreaterole=user_data.rolcreaterole,
+            rolcreatedb=user_data.rolcreatedb,
+            rolcanlogin=user_data.rolcanlogin,
+            rolreplication=user_data.rolreplication,
+            rolconnlimit=user_data.rolconnlimit,
+            rolvaliduntil=user_data.rolvaliduntil
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при обновлении роли: {str(e)}")
