@@ -409,7 +409,6 @@ class DBUserService:
             "message": "Роль успешно обновлена"
         }
 
-
     async def delete_user_in_external_db(self, user_id: int) -> Dict[str, Any]:
         """Удаляет роль из внешней БД и удаляет запись из локальной таблицы db_user"""
         result = await self.db.execute(select(DB_User).where(DB_User.id == user_id))
@@ -452,7 +451,6 @@ class DBUserService:
             await self.db.rollback()
             raise Exception(f"Ошибка при удалении пользователя из внешней БД: {str(e)}")
 
-
     async def add_user_to_group(self, user_id: int, group_id: int) -> Dict[str, Any]:
         """Добавляет пользователя в группу во внешней БД (GRANT group TO user)"""
         user_result = await self.db.execute(select(DB_User).where(DB_User.id == user_id))
@@ -494,3 +492,53 @@ class DBUserService:
             if 'ext_conn' in locals():
                 await ext_conn.close()
             raise Exception(f"Ошибка при добавлении пользователя в группу во внешней БД: {str(e)}")
+
+    async def remove_user_from_group(self, user_id: int, group_id: int) -> Dict[str, Any]:
+        """Удаляет пользователя из группы во внешней БД (REVOKE group FROM user)"""
+        user_result = await self.db.execute(select(DB_User).where(DB_User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if not user:
+            raise ValueError(f"Пользователь с ID {user_id} не найден")
+        group_result = await self.db.execute(select(DB_Group).where(DB_Group.id == group_id))
+        group = group_result.scalar_one_or_none()
+        if not group:
+            raise ValueError(f"Группа с ID {group_id} не найдена")
+        if user.connection_id != group.connection_id:
+            raise ValueError("Пользователь и группа должны принадлежать одному подключению")
+        connection_id = user.connection_id
+        conn_result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+        connection = conn_result.scalar_one_or_none()
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        try:
+            decrypted_pass = decrypt_password(connection.password)
+            ext_conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=decrypted_pass,
+                database=connection.database_name,
+                timeout=10,
+            )
+            user_exists = await ext_conn.fetchval("SELECT 1 FROM pg_roles WHERE rolname = $1", user.username)
+            group_exists = await ext_conn.fetchval("SELECT 1 FROM pg_roles WHERE rolname = $1", group.name)
+            if not user_exists:
+                await ext_conn.close()
+                raise ValueError(f"Пользователь '{user.username}' не существует во внешней БД")
+            if not group_exists:
+                await ext_conn.close()
+                raise ValueError(f"Группа '{group.name}' не существует во внешней БД")
+            await ext_conn.execute(f'REVOKE "{group.name}" FROM "{user.username}";')
+            await ext_conn.close()
+            return {
+                "message": f"Пользователь '{user.username}' успешно удалён из группы '{group.name}'",
+                "user_id": user.id,
+                "group_id": group.id,
+                "username": user.username,
+                "group_name": group.name,
+                "connection_id": connection_id
+            }
+        except Exception as e:
+            if 'ext_conn' in locals():
+                await ext_conn.close()
+            raise Exception(f"Ошибка при удалении пользователя из группы во внешней БД: {str(e)}")

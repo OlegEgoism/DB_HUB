@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
 from backend.models import DB_User, DB_Connection
 from backend.services.db_user_service import DBUserService
-from backend.schemas.db_user_schemas import DBUsersResponse, DBUserCreateRequest, DBUserUpdateRequest, AddUserToGroupRequest
+from backend.schemas.db_user_schemas import DBUsersResponse, DBUserCreateRequest, DBUserUpdateRequest, AddRemoveUserToGroupRequest
 
 router = APIRouter(prefix="/db_users", tags=["DB USERS"])
 
@@ -146,7 +146,7 @@ async def delete_db_user(user_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/add-to-group", response_model=dict, status_code=status.HTTP_200_OK)
-async def add_user_to_group_endpoint(request: AddUserToGroupRequest, db: AsyncSession = Depends(get_db)):
+async def add_user_to_group_endpoint(request: AddRemoveUserToGroupRequest, db: AsyncSession = Depends(get_db)):
     """Добавить пользователя в группу во внешней БД"""
     try:
         service = DBUserService(db)
@@ -156,3 +156,16 @@ async def add_user_to_group_endpoint(request: AddUserToGroupRequest, db: AsyncSe
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при добавлении в группу: {str(e)}")
+
+
+@router.post("/remove-from-group", response_model=dict, status_code=status.HTTP_200_OK)
+async def remove_user_from_group_endpoint(request: AddRemoveUserToGroupRequest, db: AsyncSession = Depends(get_db)):
+    """Удалить пользователя из группы во внешней БД"""
+    try:
+        service = DBUserService(db)
+        result = await service.remove_user_from_group(user_id=request.user_id, group_id=request.group_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при удалении из группы: {str(e)}")
