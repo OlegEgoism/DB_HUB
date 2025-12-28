@@ -57,8 +57,6 @@ class DeleteGroupResponse(BaseModel):
     connection_id: int
 
 
-# backend/schemas/db_group_schemas.py
-
 class GroupMemberInfo(BaseModel):
     user_oid: int
     username: str

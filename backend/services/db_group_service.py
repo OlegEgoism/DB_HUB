@@ -552,7 +552,6 @@ class DBGroupService:
             await self.db.rollback()
             raise Exception(f"Ошибка при принудительной синхронизации групп: {str(e)}")
 
-    # backend/services/db_group_service.py
 
     async def get_group_members_from_external_db(self, group_id: int) -> Dict[str, Any]:
         """Получает список пользователей, входящих в группу (роль) во внешней БД"""
@@ -560,12 +559,10 @@ class DBGroupService:
         group = result.scalar_one_or_none()
         if not group:
             raise ValueError(f"Группа с ID {group_id} не найдена")
-
         conn_result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == group.connection_id))
         connection = conn_result.scalar_one_or_none()
         if not connection:
             raise ValueError("Подключение не найдено")
-
         try:
             password = decrypt_password(connection.password)
             conn = await asyncpg.connect(
@@ -576,8 +573,6 @@ class DBGroupService:
                 database=connection.database_name,
                 timeout=10,
             )
-
-            # Получаем членов группы
             members_query = """
             SELECT
                 ur.oid AS user_oid,
@@ -591,7 +586,6 @@ class DBGroupService:
             """
             rows = await conn.fetch(members_query, group.name)
             await conn.close()
-
             members = [
                 {
                     "user_oid": row["user_oid"],
@@ -600,7 +594,6 @@ class DBGroupService:
                 }
                 for row in rows
             ]
-
             return {
                 "group_id": group.id,
                 "group_name": group.name,
@@ -609,7 +602,6 @@ class DBGroupService:
                 "total_members": len(members),
                 "members": members
             }
-
         except Exception as e:
             if 'conn' in locals():
                 await conn.close()
