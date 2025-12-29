@@ -8,13 +8,15 @@ from backend.database.session import get_db
 from backend.models.db import DB_Connection
 from backend.models.user import User
 from backend.core.security import encrypt_password, decrypt_password
-from backend.schemas.db_connection_schemas import PaginatedConnectionResponse
 from sqlalchemy import func
 from backend.schemas.db_connection_schemas import (
     ConnectionCreate,
     ConnectionOut,
-    ConnectionUpdate
+    ConnectionUpdate,
+    PaginatedConnectionResponse,
+    ActiveConnectionsResponse, TerminateConnectionRequest
 )
+from backend.services.db_connection_service import DBConnectionService
 
 router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
@@ -166,3 +168,29 @@ async def delete_connection_endpoint(connection_id: int, db: AsyncSession = Depe
         raise HTTPException(status_code=404, detail="Подключение не найдено")
     await db.delete(db_connection)
     await db.commit()
+
+
+@router.get("/{connection_id}/active-connections", response_model=ActiveConnectionsResponse)
+async def get_active_connections(connection_id: int, db: AsyncSession = Depends(get_db)):
+    """Получить список активных подключений к внешней"""
+    try:
+        service = DBConnectionService(db)
+        result = await service.get_active_connections(connection_id)  # ← ИСПРАВЛЕНО
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении активных подключений: {str(e)}")
+
+
+@router.post("/{connection_id}/active-connections/terminate", response_model=dict)
+async def terminate_active_connection(connection_id: int, request: TerminateConnectionRequest, db: AsyncSession = Depends(get_db)):
+    """Завершить активное подключение (процесс) во внешней БД по PID"""
+    try:
+        service = DBConnectionService(db)
+        result = await service.terminate_backend_process(connection_id, request.pid)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при завершении процесса: {str(e)}")

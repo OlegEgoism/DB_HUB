@@ -6,7 +6,6 @@ from backend.models.db import DB_Connection
 
 
 class DBMetricsService:
-    """Сервис для получения метрик базы данных"""
 
     @staticmethod
     async def get_database_metrics(connection: DB_Connection) -> List[Dict[str, Any]]:

@@ -81,3 +81,28 @@ class DatabaseConfigResponse(BaseModel):
     parameters: List[DatabaseConfigParameter]
     status: str
     model_config = ConfigDict(from_attributes=True)
+
+
+class ActiveConnectionInfo(BaseModel):
+    pid: int
+    username: str
+    application_name: Optional[str]
+    client_addr: Optional[str]
+    client_hostname: Optional[str]
+    client_port: Optional[int]
+    backend_start: datetime
+    query_start: Optional[datetime]
+    state_change: Optional[datetime]
+    state: str
+    query: str
+
+
+class ActiveConnectionsResponse(BaseModel):
+    connection_id: int
+    connection_name: str
+    total_active_connections: int
+    active_connections: List[ActiveConnectionInfo]
+
+
+class TerminateConnectionRequest(BaseModel):
+    pid: int = Field(..., gt=0, description="PID процесса, который нужно завершить")

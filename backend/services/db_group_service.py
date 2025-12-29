@@ -40,7 +40,6 @@ FORBIDDEN_ROLE_NAMES = {name.lower() for name in FORBIDDEN_ROLE_NAMES}
 
 
 class DBGroupService:
-    """Группы из подключенных баз данных"""
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -305,7 +304,6 @@ class DBGroupService:
                 }
             }
 
-    # Остальные методы остаются без изменений, если не затронуты логикой
     async def get_or_sync_groups_by_connection(self, connection_id: int) -> Dict[str, Any]:
         connection, _ = await self._get_connection_and_groups(connection_id)
         result = await self.db.execute(
@@ -334,9 +332,6 @@ class DBGroupService:
                 for g in groups
             ]
         }
-
-    # Остальные методы (create_group, update_group, delete_group, force_sync и т.д.) остаются без изменений,
-    # так как они не связаны с общей логикой `smart_sync_groups_for_connection`.
 
     async def create_group(self, connection_id: int, name: str, description: Optional[str] = None) -> Dict[str, Any]:
         name = name.strip()
@@ -551,7 +546,6 @@ class DBGroupService:
         except Exception as e:
             await self.db.rollback()
             raise Exception(f"Ошибка при принудительной синхронизации групп: {str(e)}")
-
 
     async def get_group_members_from_external_db(self, group_id: int) -> Dict[str, Any]:
         """Получает список пользователей, входящих в группу (роль) во внешней БД"""
