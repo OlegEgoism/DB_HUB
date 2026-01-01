@@ -173,18 +173,30 @@ async def delete_connection_endpoint(connection_id: int, db: AsyncSession = Depe
 
 @router.get("/{connection_id}/active-connections", response_model=PaginatedActiveConnectionsResponse)
 async def get_active_connections(
-    connection_id: int,
-    db: AsyncSession = Depends(get_db),
-    page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
-    size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)")
+        connection_id: int,
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
+        username: Optional[str] = Query(
+            None,
+            description="Фильтр по имени пользователя (регистронезависимый поиск)"
+        )
 ):
-    """Получить список активных подключений к внешней БД с пагинацией"""
+    """
+    Получить список активных подключений к внешней БД с пагинацией и фильтрацией
+
+    - **username**: Поиск по имени пользователя. Использует ILIKE для регистронезависимого поиска.
+      Например: `?username=admin` найдет 'admin', 'Admin', 'ADMIN' и т.д.
+    - **page**: Номер страницы (начинается с 1)
+    - **size**: Количество записей на странице (макс. 200)
+    """
     try:
         service = DBConnectionService(db)
         result = await service.get_active_connections(
             connection_id=connection_id,
             page=page,
-            size=size
+            size=size,
+            username=username
         )
         return result
     except ValueError as e:

@@ -1,4 +1,5 @@
 # backend/services/db_connection_service.py
+from typing import Optional
 import asyncpg
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -129,13 +130,13 @@ class DBConnectionService:
             self,
             connection_id: int,
             page: int = 1,
-            size: int = 20
+            size: int = 20,
+            username: Optional[str] = None
     ) -> PaginatedActiveConnectionsResponse:
-        """Получает список активных сессий из внешней PostgreSQL-БД с пагинацией"""
+        """Получает список активных сессий из внешней PostgreSQL-БД с пагинацией и фильтрацией по username"""
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
-
         try:
             password = decrypt_password(connection.password)
             conn = await asyncpg.connect(
@@ -146,22 +147,30 @@ class DBConnectionService:
                 database=connection.database_name,
                 timeout=10,
             )
-
-            # Сначала получаем общее количество
-            count_query = """
+            where_conditions = ["state IS NOT NULL", "pid <> pg_backend_pid()"]
+            params = []
+            if username and username.strip():
+                where_conditions.append("usename ILIKE $1")
+                params.append(f"%{username.strip()}%")
+            where_clause = " AND ".join(where_conditions)
+            total_all_query = f"""
                 SELECT COUNT(*) as total
                 FROM pg_stat_activity
                 WHERE state IS NOT NULL
                   AND pid <> pg_backend_pid()
             """
-            total_result = await conn.fetchrow(count_query)
-            total = total_result["total"] if total_result else 0
-
-            # Рассчитываем OFFSET и LIMIT для пагинации
+            total_all_result = await conn.fetchrow(total_all_query)
+            total_all = total_all_result["total"] if total_all_result else 0
+            total_filtered_query = f"""
+                SELECT COUNT(*) as total
+                FROM pg_stat_activity
+                WHERE {where_clause}
+            """
+            total_filtered_result = await conn.fetchrow(total_filtered_query, *params)
+            total_filtered = total_filtered_result["total"] if total_filtered_result else 0
             offset = (page - 1) * size
             limit = size
-
-            query = """
+            query = f"""
                 SELECT
                     pid,
                     usename AS username,
@@ -175,14 +184,13 @@ class DBConnectionService:
                     state,
                     query
                 FROM pg_stat_activity
-                WHERE state IS NOT NULL
-                  AND pid <> pg_backend_pid()
+                WHERE {where_clause}
                 ORDER BY backend_start DESC
-                LIMIT $1 OFFSET $2;
+                LIMIT ${len(params) + 1} OFFSET ${len(params) + 2};
             """
-            rows = await conn.fetch(query, limit, offset)
+            params_with_pagination = params + [limit, offset]
+            rows = await conn.fetch(query, *params_with_pagination)
             await conn.close()
-
             active_connections = []
             for row in rows:
                 active_connections.append({
@@ -196,18 +204,16 @@ class DBConnectionService:
                     "query_start": row["query_start"],
                     "state_change": row["state_change"],
                     "state": row["state"],
-                    "query": (row["query"] or "")[:500]  # Ограничиваем длину запроса
+                    "query": (row["query"] or "")
                 })
-
-            # Рассчитываем количество страниц
-            pages = math.ceil(total / size) if size > 0 else 1
+            pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
             has_next = page < pages
             has_prev = page > 1
-
             return PaginatedActiveConnectionsResponse(
                 connection_id=connection.id,
                 connection_name=connection.name,
-                total_active_connections=total,
+                total_active_connections=total_all,
+                total_filtered_connections=total_filtered,
                 page=page,
                 size=size,
                 pages=pages,
@@ -215,7 +221,6 @@ class DBConnectionService:
                 has_prev=has_prev,
                 active_connections=active_connections
             )
-
         except Exception as e:
             if 'conn' in locals():
                 await conn.close()

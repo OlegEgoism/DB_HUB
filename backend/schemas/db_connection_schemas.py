@@ -101,6 +101,7 @@ class PaginatedActiveConnectionsResponse(BaseModel):
     connection_id: int
     connection_name: str
     total_active_connections: int
+    total_filtered_connections: int
     page: int
     size: int
     pages: int
