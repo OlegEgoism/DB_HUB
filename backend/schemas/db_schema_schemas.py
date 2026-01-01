@@ -38,17 +38,8 @@ class PaginatedDBSchemasResponse(BaseModel):
 
 class DBSchemaUpdateRequest(BaseModel):
     """Запрос для обновления схемы"""
-    name: Optional[str] = Field(
-        None,
-        min_length=1,
-        max_length=63,
-        description="Новое имя схемы. Должно начинаться с буквы или подчёркивания, может содержать только латинские буквы, цифры и подчёркивания."
-    )
-    description: Optional[str] = Field(
-        None,
-        max_length=1000,
-        description="Новое описание схемы. Для удаления описания передайте пустую строку."
-    )
+    name: Optional[str] = Field(None, min_length=1, max_length=63, description="Новое имя схемы. Должно начинаться с буквы или подчёркивания, может содержать только латинские буквы, цифры и подчёркивания.")
+    description: Optional[str] = Field(None, max_length=1000, description="Новое описание схемы.")
 
     @field_validator('name')
     @classmethod
@@ -71,10 +62,10 @@ class DBSchemaUpdateResponse(BaseModel):
     schema: DBSchemaInfo
 
 
-class DBSchemaStatsRequest(BaseModel):
-    """Запрос для получения статистики по схемам"""
-    search: Optional[str] = Field(None, description="Поиск по имени схемы, владельцу или описанию")
-    page: int = Field(1, ge=1, description="Номер страницы")
-    size: int = Field(20, ge=1, le=200, description="Размер страницы")
-    sort_by: str = Field("name", description="Поле для сортировки (name, owner, size_bytes, table_count)")
-    sort_order: str = Field("asc", description="Порядок сортировки (asc/desc)")
+# class DBSchemaStatsRequest(BaseModel):
+#     """Запрос для получения статистики по схемам"""
+#     search: Optional[str] = Field(None, description="Поиск по имени схемы, владельцу или описанию")
+#     page: int = Field(1, ge=1, description="Номер страницы")
+#     size: int = Field(20, ge=1, le=200, description="Размер страницы")
+#     sort_by: str = Field("name", description="Поле для сортировки (name, owner, size_bytes, table_count)")
+#     sort_order: str = Field("asc", description="Порядок сортировки (asc/desc)")
