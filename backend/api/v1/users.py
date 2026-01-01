@@ -1,12 +1,17 @@
 # backend/api/v1/users.py
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, and_, func
 from backend.database.session import get_db
 from backend.models.user import User
-from backend.schemas.user_schemas import UserResponse, UserCreate, UserUpdate, PaginatedResponse
 from backend.services.user_service import UserService
+from backend.schemas.user_schemas import (
+    UserResponse,
+    UserCreate,
+    UserUpdate,
+    PaginatedResponse
+)
 
 router = APIRouter(prefix="/users", tags=["USERS APP"])
 
@@ -14,89 +19,56 @@ router = APIRouter(prefix="/users", tags=["USERS APP"])
 @router.get("/", response_model=PaginatedResponse)
 async def list_users(
         db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
-        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1-200)")
+        page: int = Query(1, ge=1, description="Номер страницы"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
+        search: Optional[str] = Query(None, description="""Поиск по нескольким полям"""),
+        is_active: Optional[bool] = Query(None, description="Фильтр по активности (true/false)"),
+        is_superuser: Optional[bool] = Query(None, description="Фильтр по правам суперпользователя (true/false)"),
+        role: Optional[str] = Query(None, description="Фильтр по роли (Администратор БД, Аналитик, Разработчик, Тестировщик, Пользователь)"),
+        sort_by: str = Query("id", description="Поле для сортировки (id, username, email, created_at, last_login)"),
+        sort_order: str = Query("asc", description="Порядок сортировки (asc или desc)")
 ):
-    user_service = UserService(db)
+    """Получить список пользователей с поддержкой поиска, фильтрации и сортировки."""
     try:
-        users, total, current_page, page_size, total_pages, has_next, has_prev = await user_service.get_paginated_users(page=page, size=size)
-        return PaginatedResponse(
-            items=users,
-            total=total,
-            page=current_page,
-            size=page_size,
-            pages=total_pages,
-            has_next=has_next,
-            has_prev=has_prev
-        )
-    except Exception as e:
-        print(f"❌ Ошибка при получении пользователей: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении пользователей: {str(e)}")
-
-
-@router.get("/search/", response_model=PaginatedResponse)
-async def search_users(
-        username: Optional[str] = Query(None, description="Поиск по username"),
-        email: Optional[str] = Query(None, description="Поиск по email"),
-        fio: Optional[str] = Query(None, description="Поиск по ФИО"),
-        is_active: Optional[bool] = Query(None, description="Фильтр по активности"),
-        is_superuser: Optional[bool] = Query(None, description="Фильтр по правам суперпользователя"),
-        role: Optional[str] = Query(None, description="Фильтр по роли"),
-        db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1),
-        size: int = Query(20, ge=1, le=200)
-):
-    """Поиск пользователей с фильтрацией по различным полям"""
-    try:
-        skip = (page - 1) * size
         query = select(User)
-        if username:
-            query = query.where(User.username.ilike(f"%{username}%"))
-        if email:
-            query = query.where(User.email.ilike(f"%{email}%"))
-        if fio:
-            query = query.where(User.fio.ilike(f"%{fio}%"))
+        filters = []
+        if search and search.strip():
+            search_term = f"%{search.strip()}%"
+            filters.append(or_(User.username.ilike(search_term), User.email.ilike(search_term), User.fio.ilike(search_term), ))
         if is_active is not None:
-            query = query.where(User.is_active == is_active)
+            filters.append(User.is_active == is_active)
         if is_superuser is not None:
-            query = query.where(User.is_superuser == is_superuser)
+            filters.append(User.is_superuser == is_superuser)
         if role:
-            query = query.where(User.role == role)
-        count_query = select(User.id)
-        if username:
-            count_query = count_query.where(User.username.ilike(f"%{username}%"))
-        if email:
-            count_query = count_query.where(User.email.ilike(f"%{email}%"))
-        if fio:
-            count_query = count_query.where(User.fio.ilike(f"%{fio}%"))
-        if is_active is not None:
-            count_query = count_query.where(User.is_active == is_active)
-        if is_superuser is not None:
-            count_query = count_query.where(User.is_superuser == is_superuser)
-        if role:
-            count_query = count_query.where(User.role == role)
-        total_result = await db.execute(select(User.id))
-        if any([username, email, fio, is_active is not None, is_superuser is not None, role]):
-            total_result = await db.execute(count_query)
-        total = len(total_result.scalars().all())
-        query = query.order_by(User.id).offset(skip).limit(size)
+            filters.append(User.role == role)
+        if filters:
+            query = query.where(and_(*filters))
+        count_query = select(func.count(User.id)).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar_one()
+        valid_sort_fields = ["id", "username", "email", "created_at", "last_login", "role", "fio"]
+        valid_sort_orders = ["asc", "desc"]
+        if sort_by not in valid_sort_fields:
+            sort_by = "id"
+        sort_order = sort_order.lower()
+        if sort_order not in valid_sort_orders:
+            sort_order = "asc"
+        sort_column = getattr(User, sort_by, User.id)
+        if sort_order == "desc":
+            query = query.order_by(sort_column.desc())
+        else:
+            query = query.order_by(sort_column.asc())
+        skip = (page - 1) * size
+        query = query.offset(skip).limit(size)
         result = await db.execute(query)
         users = result.scalars().all()
         pages = (total + size - 1) // size if size > 0 else 1
         has_next = page < pages
         has_prev = page > 1
-        return PaginatedResponse(
-            items=users,
-            total=total,
-            page=page,
-            size=size,
-            pages=pages,
-            has_next=has_next,
-            has_prev=has_prev
-        )
+        return PaginatedResponse(items=users, total=total, page=page, size=size, pages=pages, has_next=has_next, has_prev=has_prev)
     except Exception as e:
-        print(f"❌ Ошибка при поиске пользователей: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при поиске пользователей: {str(e)}")
+        print(f"❌ Ошибка при получении пользователей: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении пользователей: {str(e)}")
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
