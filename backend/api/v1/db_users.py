@@ -106,6 +106,7 @@ async def get_users_by_connection(
 
 @router.post("/connection/{connection_id}", response_model=dict)
 async def create_db_user(connection_id: int, user_data: DBUserCreateRequest, db: AsyncSession = Depends(get_db)):
+    """Создать пользователя (роль) во внешней БД"""
     try:
         service = DBUserService(db)
         result = await service.create_user_in_external_db(
@@ -132,7 +133,7 @@ async def create_db_user(connection_id: int, user_data: DBUserCreateRequest, db:
 
 @router.patch("/{user_id}", response_model=dict)
 async def update_db_user(user_id: int, user_data: DBUserUpdateRequest, db: AsyncSession = Depends(get_db)):
-    """Обновление роли во внешней БД"""
+    """Обновление пользователя (роль) во внешней БД"""
     try:
         service = DBUserService(db)
         result = await service.update_user_in_external_db(
@@ -185,7 +186,7 @@ async def add_user_to_group_endpoint(request: AddRemoveUserToGroupRequest, db: A
 
 @router.post("/remove-from-group", response_model=dict, status_code=status.HTTP_200_OK)
 async def remove_user_from_group_endpoint(request: AddRemoveUserToGroupRequest, db: AsyncSession = Depends(get_db)):
-    """Удалить пользователя из группы во внешней БД"""
+    """Удалить пользователя (роль) из группы во внешней БД"""
     try:
         service = DBUserService(db)
         result = await service.remove_user_from_group(user_id=request.user_id, group_id=request.group_id)
