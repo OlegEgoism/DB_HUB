@@ -1,15 +1,10 @@
 # backend/api/v1/db_metrics.py
-from datetime import datetime
-from typing import Dict, Any
-import asyncpg
-from fastapi import Depends, HTTPException, APIRouter, status, Query
+from fastapi import Depends, HTTPException, APIRouter, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from backend.core.security import decrypt_password
 from backend.database.session import get_db
 from backend.models.db import DB_Connection
-from backend.schemas.db_connection_schemas import DatabaseConfigResponse
-from backend.schemas.db_metrics_schemas import SingleDatabaseMetricsResponse, ClusterReplicationResponse, ClusterHealthResponse
+from backend.schemas.db_metrics_schemas import SingleDatabaseMetricsResponse, ClusterReplicationResponse, ClusterHealthResponse, DatabaseConfigResponse
 from backend.services.db_metrics_service import DBMetricsService
 
 router = APIRouter(prefix="/db_metrics", tags=["DB METRIC"])
@@ -79,88 +74,6 @@ async def get_cluster_health(connection_id: int, db: AsyncSession = Depends(get_
         health=health,
     )
 
-
-@router.get("/{connection_id}/active", response_model=Dict[str, Any], )
-async def get_database_active_connections(
-        connection_id: int,
-        limit: int = Query(20, ge=1, le=200, description="Максимальное количество записей"),
-        show_all: bool = Query(False, description="Показать все подключения (включая системные)"),
-        db: AsyncSession = Depends(get_db),
-):
-    """Список активных подключений к базе данных"""
-    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
-    connection = result.scalar_one_or_none()
-    if not connection:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Подключение не найдено")
-    try:
-        password = decrypt_password(connection.password)
-        conn = await asyncpg.connect(
-            host=connection.host,
-            port=connection.port,
-            user=connection.username,
-            password=password,
-            database=connection.database_name,
-            timeout=10,
-        )
-        where_clause = "WHERE pid <> pg_backend_pid()" if not show_all else ""
-        sql_query = f"""
-        SELECT 
-            pid as "PID",
-            usename as "Пользователь",
-            COALESCE(client_addr::text, 'localhost') as "Хост",
-            COALESCE(state, 'idle') as "Команда",
-            CASE 
-                WHEN state_change IS NOT NULL 
-                THEN EXTRACT(EPOCH FROM (now() - state_change))::INT || ' сек'
-                ELSE 'N/A'
-            END as "Время",
-            CASE 
-                WHEN state = 'active' THEN 'Активно'
-                WHEN state = 'idle' THEN 'Ожидание'
-                WHEN state = 'idle in transaction' THEN 'Ожидание в транзакции'
-                ELSE COALESCE(state, 'Неизвестно')
-            END as "Состояние",
-            COALESCE(
-                CASE 
-                    WHEN query IS NOT NULL AND query != '' THEN 
-                        LEFT(query, 100)
-                    WHEN application_name IS NOT NULL THEN application_name
-                    ELSE 'Бездействует'
-                END,
-                'Нет информации'
-            ) as "Инфо",
-            datname as "База_данных",
-            backend_start as "Время_начала",
-            application_name as "Приложение"
-        FROM pg_stat_activity 
-        {where_clause}
-        ORDER BY 
-            CASE 
-                WHEN state = 'active' THEN 1
-                ELSE 2
-            END,
-            state_change ASC NULLS LAST
-        LIMIT {limit};
-        """
-        rows = await conn.fetch(sql_query)
-        total = await conn.fetchval(f"SELECT COUNT(*) FROM pg_stat_activity {where_clause}")
-        await conn.close()
-        connections = []
-        for row in rows:
-            connections.append(dict(row))
-        return {
-            "connection_id": connection.id,
-            "connection_name": connection.name,
-            "database": connection.database_name,
-            "total_connections": total,
-            "limit": limit,
-            "show_all": show_all,
-            "active_connections": connections,
-            "timestamp": datetime.utcnow().isoformat(),
-            "status": "success"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при подключении к базе данных: {str(e)}")
 
 
 @router.get("/{connection_id}/config", response_model=DatabaseConfigResponse)

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 
 
@@ -48,29 +48,19 @@ class ClusterHealthResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# backend/schemas/db_metrics_schemas.py - добавьте в конец файла
-
-class ActiveConnection(BaseModel):
-    """Информация об активном подключении к БД"""
-    user: str = Field(..., description="Имя пользователя БД")
-    host: str = Field(..., description="Хост клиента")
-    command: str = Field(..., description="Текущая команда/состояние")
-    duration: str = Field(..., description="Время выполнения")
-    status: str = Field(..., description="Состояние подключения")
-    info: str = Field(..., description="Дополнительная информация")
-    process_id: int = Field(..., description="PID процесса")
-    database: Optional[str] = Field(None, description="Имя базы данных")
-    connection_start: Optional[str] = Field(None, description="Время начала подключения")
-    application: Optional[str] = Field(None, description="Имя приложения")
+class DatabaseConfigParameter(BaseModel):
+    name: str
+    setting: str
+    unit: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
 
 
-class ActiveConnectionsResponse(BaseModel):
-    """Ответ с активными подключениями к БД"""
+class DatabaseConfigResponse(BaseModel):
     connection_id: int
     connection_name: str
-    host: str
     database_name: str
-    total_connections: int = Field(..., description="Всего активных подключений")
-    active_connections: List[ActiveConnection] = Field(..., description="Список активных подключений")
-    status: str = Field(..., description="Статус выполнения запроса")
+    total_parameters: int
+    parameters: List[DatabaseConfigParameter]
+    status: str
     model_config = ConfigDict(from_attributes=True)
