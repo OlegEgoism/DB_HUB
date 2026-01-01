@@ -97,6 +97,19 @@ class ActiveConnectionInfo(BaseModel):
     query: str
 
 
+class PaginatedActiveConnectionsResponse(BaseModel):
+    connection_id: int
+    connection_name: str
+    total_active_connections: int
+    page: int
+    size: int
+    pages: int
+    has_next: bool
+    has_prev: bool
+    active_connections: List[ActiveConnectionInfo]
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ActiveConnectionsResponse(BaseModel):
     connection_id: int
     connection_name: str

@@ -5,7 +5,12 @@ from sqlalchemy import select
 from backend.models.db import DB_Connection
 from backend.models.user import User
 from backend.core.security import encrypt_password, decrypt_password
-from backend.schemas.db_connection_schemas import ConnectionCreate, ConnectionUpdate, ConnectionOut, ActiveConnectionsResponse
+from backend.schemas.db_connection_schemas import (
+    ConnectionCreate, ConnectionUpdate, ConnectionOut,
+    ActiveConnectionsResponse, TerminateConnectionRequest,
+    PaginatedActiveConnectionsResponse  # ← добавьте импорт
+)
+import math
 
 
 class DBConnectionService:
@@ -119,11 +124,17 @@ class DBConnectionService:
             db_size_mb=size_mb
         )
 
-    async def get_active_connections(self, connection_id: int) -> ActiveConnectionsResponse:
-        """Получает список активных сессий из внешней PostgreSQL-БД"""
+    async def get_active_connections(
+            self,
+            connection_id: int,
+            page: int = 1,
+            size: int = 20
+    ) -> PaginatedActiveConnectionsResponse:
+        """Получает список активных сессий из внешней PostgreSQL-БД с пагинацией"""
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
+
         try:
             password = decrypt_password(connection.password)
             conn = await asyncpg.connect(
@@ -134,6 +145,21 @@ class DBConnectionService:
                 database=connection.database_name,
                 timeout=10,
             )
+
+            # Сначала получаем общее количество
+            count_query = """
+                SELECT COUNT(*) as total
+                FROM pg_stat_activity
+                WHERE state IS NOT NULL
+                  AND pid <> pg_backend_pid()
+            """
+            total_result = await conn.fetchrow(count_query)
+            total = total_result["total"] if total_result else 0
+
+            # Рассчитываем OFFSET и LIMIT для пагинации
+            offset = (page - 1) * size
+            limit = size
+
             query = """
                 SELECT
                     pid,
@@ -150,10 +176,12 @@ class DBConnectionService:
                 FROM pg_stat_activity
                 WHERE state IS NOT NULL
                   AND pid <> pg_backend_pid()
-                ORDER BY backend_start DESC;
+                ORDER BY backend_start DESC
+                LIMIT $1 OFFSET $2;
             """
-            rows = await conn.fetch(query)
+            rows = await conn.fetch(query, limit, offset)
             await conn.close()
+
             active_connections = []
             for row in rows:
                 active_connections.append({
@@ -167,19 +195,30 @@ class DBConnectionService:
                     "query_start": row["query_start"],
                     "state_change": row["state_change"],
                     "state": row["state"],
-                    "query": (row["query"] or "")[:500]
+                    "query": (row["query"] or "")[:500]  # Ограничиваем длину запроса
                 })
-            return ActiveConnectionsResponse(
+
+            # Рассчитываем количество страниц
+            pages = math.ceil(total / size) if size > 0 else 1
+            has_next = page < pages
+            has_prev = page > 1
+
+            return PaginatedActiveConnectionsResponse(
                 connection_id=connection.id,
                 connection_name=connection.name,
-                total_active_connections=len(active_connections),
+                total_active_connections=total,
+                page=page,
+                size=size,
+                pages=pages,
+                has_next=has_next,
+                has_prev=has_prev,
                 active_connections=active_connections
             )
+
         except Exception as e:
             if 'conn' in locals():
                 await conn.close()
             raise Exception(f"Ошибка при получении активных подключений: {str(e)}")
-
 
     async def terminate_backend_process(self, connection_id: int, pid: int) -> dict:
         """Завершает процесс (подключение) во внешней PostgreSQL-БД по PID"""

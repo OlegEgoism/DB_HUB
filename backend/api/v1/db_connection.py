@@ -14,7 +14,9 @@ from backend.schemas.db_connection_schemas import (
     ConnectionOut,
     ConnectionUpdate,
     PaginatedConnectionResponse,
-    ActiveConnectionsResponse, TerminateConnectionRequest
+    ActiveConnectionsResponse,  # оставляем для обратной совместимости
+    PaginatedActiveConnectionsResponse,  # ← добавляем новый импорт
+    TerminateConnectionRequest
 )
 from backend.services.db_connection_service import DBConnectionService
 
@@ -170,12 +172,21 @@ async def delete_connection_endpoint(connection_id: int, db: AsyncSession = Depe
     await db.commit()
 
 
-@router.get("/{connection_id}/active-connections", response_model=ActiveConnectionsResponse)
-async def get_active_connections(connection_id: int, db: AsyncSession = Depends(get_db)):
-    """Получить список активных подключений к внешней"""
+@router.get("/{connection_id}/active-connections", response_model=PaginatedActiveConnectionsResponse)
+async def get_active_connections(
+    connection_id: int,
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+    size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)")
+):
+    """Получить список активных подключений к внешней БД с пагинацией"""
     try:
         service = DBConnectionService(db)
-        result = await service.get_active_connections(connection_id)  # ← ИСПРАВЛЕНО
+        result = await service.get_active_connections(
+            connection_id=connection_id,
+            page=page,
+            size=size
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
