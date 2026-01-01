@@ -146,46 +146,6 @@ class DBUserService:
             "has_changes": any(stats.values())
         }
 
-    async def get_users_with_sync(self, connection_id: int) -> Dict[str, Any]:
-        """Возвращает пользователей с полем rolsuper из внешней БД"""
-        await self.smart_sync_users_for_connection(connection_id)
-
-        # Получаем внешние данные с rolsuper
-        connection_result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
-        connection = connection_result.scalar_one_or_none()
-        if not connection:
-            raise ValueError("Подключение не найдено")
-
-        external_users = await self._fetch_users_from_external_db(connection)
-        external_by_oid = {u["oid"]: u for u in external_users}
-
-        # Получаем локальных пользователей
-        local_result = await self.db.execute(
-            select(DB_User)
-            .where(DB_User.connection_id == connection_id)
-            .order_by(DB_User.username)
-        )
-        local_users = local_result.scalars().all()
-
-        user_list = []
-        for u in local_users:
-            ext = external_by_oid.get(u.oid)
-            user_list.append({
-                "id": u.id,
-                "oid": u.oid,
-                "username": u.username,
-                "description": u.description,
-                "email": u.email,
-                "created_at": u.created_at,
-                "updated_at": u.updated_at,
-                "rolsuper": ext["rolsuper"] if ext else False  # ← реальное значение из внешней БД
-            })
-
-        return {
-            "connection_id": connection_id,
-            "total_users": len(user_list),
-            "users": user_list
-        }
 
     async def create_user_in_external_db(
             self,

@@ -24,7 +24,14 @@ class DBUserInfo(BaseModel):
 
 class DBUsersResponse(BaseModel):
     connection_id: int
+    connection_name: Optional[str] = None
     total_users: int
+    total_filtered_users: int
+    page: int
+    size: int
+    pages: int
+    has_next: bool
+    has_prev: bool
     users: List[DBUserInfo]
 
 
@@ -71,4 +78,3 @@ class DBUserUpdateRequest(BaseModel):
 class AddRemoveUserToGroupRequest(BaseModel):
     user_id: int = Field(..., gt=0, description="ID пользователя в локальной БД")
     group_id: int = Field(..., gt=0, description="ID группы в локальной БД")
-
