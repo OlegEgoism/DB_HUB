@@ -6,6 +6,7 @@ from sqlalchemy import select
 from backend.models.db import DB_Connection
 from backend.core.security import decrypt_password
 import math
+import re
 
 
 class DBSchemaService:
@@ -224,3 +225,112 @@ class DBSchemaService:
             "function_count": function_count,
             "total_objects": total_objects
         }
+
+    async def get_schema_by_oid(self, connection_id: int, schema_oid: int) -> Dict[str, Any]:
+        """Получить информацию о схеме по OID"""
+        connection = await self.get_connection(connection_id)
+        query = """
+            SELECT 
+                n.oid,
+                n.nspname as name,
+                pg_catalog.pg_get_userbyid(n.nspowner) as owner,
+                pg_catalog.obj_description(n.oid, 'pg_namespace') as description
+            FROM pg_catalog.pg_namespace n
+            WHERE n.oid = $1
+        """
+
+        result = await self._execute_query(connection, query, schema_oid)
+        if not result:
+            raise ValueError(f"Схема с OID {schema_oid} не найдена")
+        schema = result[0]
+        stats = await self._get_schema_detailed_stats(connection, schema_oid)
+        return {
+            "oid": schema["oid"],
+            "name": schema["name"],
+            "owner": schema["owner"],
+            "description": schema["description"],
+            **stats
+        }
+
+    async def update_schema(
+            self,
+            connection_id: int,
+            schema_oid: int,
+            name: Optional[str] = None,
+            description: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Обновить схему (переименовать и/или изменить описание)"""
+        connection = await self.get_connection(connection_id)
+        current_schema = await self.get_schema_by_oid(connection_id, schema_oid)
+        current_name = current_schema["name"]
+        changes = {}
+        try:
+            password = decrypt_password(connection.password)
+            conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=password,
+                database=connection.database_name,
+                timeout=10,
+            )
+            target_schema_name = current_name
+            if name is not None and name != current_name:
+                name = name.strip()
+                if not name:
+                    raise ValueError("Имя схемы не может быть пустым")
+                if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", name):
+                    raise ValueError("Имя схемы может содержать только латинские буквы, цифры и символ подчёркивания, и должно начинаться с буквы или подчёркивания")
+                forbidden_schemas = ["pg_", "information_schema"]
+                if any(name.startswith(prefix) for prefix in forbidden_schemas):
+                    raise ValueError("Имя схемы не может начинаться с 'pg_' или быть 'information_schema'")
+                existing_query = """
+                    SELECT 1 FROM pg_namespace WHERE nspname = $1 AND oid != $2
+                """
+                existing = await conn.fetchval(existing_query, name, schema_oid)
+                if existing:
+                    raise ValueError(f"Схема с именем '{name}' уже существует")
+                rename_query = f'ALTER SCHEMA "{current_name}" RENAME TO "{name}"'
+                await conn.execute(rename_query)
+                changes["name"] = {"old": current_name, "new": name}
+                target_schema_name = name
+            if description is not None:
+                safe_schema_name = target_schema_name.replace('"', '""')
+                if description == "":
+                    comment_query = f'COMMENT ON SCHEMA "{safe_schema_name}" IS NULL'
+                    await conn.execute(comment_query)
+                else:
+                    safe_description = description.replace("'", "''")
+                    comment_query = f"COMMENT ON SCHEMA \"{safe_schema_name}\" IS '{safe_description}'"
+                    await conn.execute(comment_query)
+                changes["description"] = {"old": current_schema["description"], "new": description}
+            await conn.close()
+            if name is not None and name != current_name:
+                find_query = """
+                    SELECT oid FROM pg_namespace WHERE nspname = $1
+                """
+                conn = await asyncpg.connect(
+                    host=connection.host,
+                    port=connection.port,
+                    user=connection.username,
+                    password=password,
+                    database=connection.database_name,
+                    timeout=10,
+                )
+                new_oid_result = await conn.fetchrow(find_query, name)
+                await conn.close()
+                if new_oid_result:
+                    updated_schema = await self.get_schema_by_oid(connection_id, new_oid_result["oid"])
+                else:
+                    updated_schema = await self.get_schema_by_oid(connection_id, schema_oid)
+            else:
+                updated_schema = await self.get_schema_by_oid(connection_id, schema_oid)
+            return {"message": "Схема успешно обновлена", "changes": changes, "schema": updated_schema}
+        except asyncpg.exceptions.UniqueViolationError as e:
+            raise ValueError(f"Ошибка уникальности при переименовании схемы: {str(e)}")
+        except asyncpg.exceptions.InvalidSchemaNameError as e:
+            raise ValueError(f"Некорректное имя схемы: {str(e)}")
+        except Exception as e:
+            if 'conn' in locals():
+                await conn.close()
+            raise Exception(f"Ошибка при обновлении схемы: {str(e)}")

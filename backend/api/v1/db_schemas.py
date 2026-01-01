@@ -4,7 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from backend.database.session import get_db
 from backend.services.db_schema_service import DBSchemaService
-from backend.schemas.db_schema_schemas import PaginatedDBSchemasResponse
+from backend.schemas.db_schema_schemas import (
+    PaginatedDBSchemasResponse,
+    DBSchemaUpdateRequest,
+    DBSchemaUpdateResponse,
+    DBSchemaInfo
+)
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
 
@@ -35,3 +40,45 @@ async def get_schema_statistics(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении статистики по схемам: {str(e)}")
+
+
+@router.get("/connection/{connection_id}/schema/{schema_oid}", response_model=DBSchemaInfo)
+async def get_schema_by_oid(
+        connection_id: int,
+        schema_oid: int,
+        db: AsyncSession = Depends(get_db)
+):
+    """Получить информацию о конкретной схеме по её OID"""
+    try:
+        service = DBSchemaService(db)
+        schema = await service.get_schema_by_oid(connection_id, schema_oid)
+        return schema
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении информации о схеме: {str(e)}")
+
+
+@router.patch("/connection/{connection_id}/schema/{schema_oid}", response_model=DBSchemaUpdateResponse)
+async def update_schema(
+        connection_id: int,
+        schema_oid: int,
+        update_data: DBSchemaUpdateRequest,
+        db: AsyncSession = Depends(get_db)
+):
+    """Обновить схему во внешней БД."""
+    try:
+        service = DBSchemaService(db)
+        if update_data.name is None and update_data.description is None:
+            raise ValueError("Не указаны поля для обновления. Укажите name и/или description")
+        result = await service.update_schema(
+            connection_id=connection_id,
+            schema_oid=schema_oid,
+            name=update_data.name,
+            description=update_data.description
+        )
+        return DBSchemaUpdateResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при обновлении схемы: {str(e)}")

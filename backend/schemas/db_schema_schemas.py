@@ -1,6 +1,7 @@
 # backend/schemas/db_schema_schemas.py
-from pydantic import BaseModel, Field
-from typing import Optional, List
+import re
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List, Dict, Any
 
 
 class DBSchemaInfo(BaseModel):
@@ -33,6 +34,41 @@ class PaginatedDBSchemasResponse(BaseModel):
     has_next: bool
     has_prev: bool
     schemas: List[DBSchemaInfo]
+
+
+class DBSchemaUpdateRequest(BaseModel):
+    """Запрос для обновления схемы"""
+    name: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=63,
+        description="Новое имя схемы. Должно начинаться с буквы или подчёркивания, может содержать только латинские буквы, цифры и подчёркивания."
+    )
+    description: Optional[str] = Field(
+        None,
+        max_length=1000,
+        description="Новое описание схемы. Для удаления описания передайте пустую строку."
+    )
+
+    @field_validator('name')
+    @classmethod
+    def validate_schema_name(cls, v):
+        if v is None:
+            return v
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", v):
+            raise ValueError("Имя схемы должно начинаться с буквы или подчёркивания и содержать только латинские буквы, цифры и подчёркивания")
+        if v.startswith('pg_'):
+            raise ValueError("Имя схемы не может начинаться с 'pg_'")
+        if v == 'information_schema':
+            raise ValueError("Имя схемы не может быть 'information_schema'")
+        return v
+
+
+class DBSchemaUpdateResponse(BaseModel):
+    """Ответ при обновлении схемы"""
+    message: str
+    changes: Dict[str, Any]
+    schema: DBSchemaInfo
 
 
 class DBSchemaStatsRequest(BaseModel):
