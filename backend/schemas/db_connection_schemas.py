@@ -51,6 +51,7 @@ class ConnectionOut(ConnectionBase):
     updated_at: datetime
     status: str
     db_size_mb: Optional[float]
+    owner_username: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -111,11 +112,12 @@ class PaginatedActiveConnectionsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ActiveConnectionsResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    total_active_connections: int
-    active_connections: List[ActiveConnectionInfo]
+# # Старая схема (оставляем для обратной совместимости)
+# class ActiveConnectionsResponse(BaseModel):
+#     connection_id: int
+#     connection_name: str
+#     total_active_connections: int
+#     active_connections: List[ActiveConnectionInfo]
 
 
 class TerminateConnectionRequest(BaseModel):

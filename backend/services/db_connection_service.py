@@ -1,18 +1,18 @@
 # backend/services/db_connection_service.py
-from typing import Optional
 import asyncpg
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_, func, or_
 from backend.models.db import DB_Connection
 from backend.models.user import User
 from backend.core.security import encrypt_password, decrypt_password
 from backend.schemas.db_connection_schemas import (
-    ConnectionCreate,
-    ConnectionUpdate,
-    ConnectionOut,
-    PaginatedActiveConnectionsResponse
+    ConnectionCreate, ConnectionUpdate, ConnectionOut,
+    PaginatedActiveConnectionsResponse,
 )
 import math
+from typing import Optional, Dict, Any, Tuple
+from sqlalchemy.orm import aliased
+from sqlalchemy.sql import text
 
 
 class DBConnectionService:
@@ -47,6 +47,120 @@ class DBConnectionService:
             return "connected", round(size_bytes / 1024 / 1024, 2)
         except Exception:
             return "error", None
+
+    async def get_connections_with_filters(
+            self,
+            database_name: Optional[str] = None,
+            name: Optional[str] = None,
+            description: Optional[str] = None,
+            database_type: Optional[str] = None,
+            environment: Optional[str] = None,
+            is_favorite: Optional[bool] = None,
+            owner_id: Optional[int] = None,
+            page: int = 1,
+            size: int = 20,
+            owner_username: Optional[str] = None,
+            sort_by: str = "name",
+            sort_order: str = "asc"
+    ) -> Dict[str, Any]:
+        """
+        Получить подключения с фильтрацией, поиском и пагинацией
+
+        Args:
+            database_name: Поиск по названию базы данных
+            name: Поиск по названию подключения
+            description: Поиск по описанию
+            database_type: Фильтр по типу СУБД
+            environment: Фильтр по окружению
+            is_favorite: Фильтр по избранному
+            owner_id: Фильтр по ID владельца
+            owner_username: Поиск по username владельца
+            page: Номер страницы
+            size: Размер страницы
+            sort_by: Поле для сортировки (name, created_at, updated_at, database_name, environment)
+            sort_order: Порядок сортировки (asc, desc)
+
+        Returns:
+            Словарь с результатами поиска
+        """
+        try:
+            query = select(DB_Connection)
+            if owner_username:
+                owner_alias = aliased(User)
+                query = query.join(owner_alias, DB_Connection.owner_id == owner_alias.id)
+            filters = []
+            if database_name and database_name.strip():
+                filters.append(DB_Connection.database_name.ilike(f"%{database_name.strip()}%"))
+            if name and name.strip():
+                filters.append(DB_Connection.name.ilike(f"%{name.strip()}%"))
+            if description and description.strip():
+                filters.append(DB_Connection.description.ilike(f"%{description.strip()}%"))
+            if database_type:
+                filters.append(DB_Connection.database_type == database_type)
+            if environment:
+                filters.append(DB_Connection.environment == environment)
+            if is_favorite is not None:
+                filters.append(DB_Connection.is_favorite == is_favorite)
+            if owner_id:
+                filters.append(DB_Connection.owner_id == owner_id)
+            if owner_username and owner_username.strip():
+                if 'owner_alias' not in locals():
+                    owner_alias = aliased(User)
+                    query = query.join(owner_alias, DB_Connection.owner_id == owner_alias.id)
+                filters.append(owner_alias.username.ilike(f"%{owner_username.strip()}%"))
+            if filters:
+                query = query.where(and_(*filters))
+            count_query = select(func.count()).select_from(query.subquery())
+            total_result = await self.db.execute(count_query)
+            total = total_result.scalar_one()
+            valid_sort_fields = ["name", "created_at", "updated_at", "database_name", "environment", "database_type"]
+            valid_sort_orders = ["asc", "desc"]
+            sort_field = sort_by if sort_by in valid_sort_fields else "name"
+            sort_direction = text("ASC") if sort_order.lower() == "asc" else text("DESC")
+            if sort_field == "name":
+                query = query.order_by(DB_Connection.name.asc() if sort_order.lower() == "asc" else DB_Connection.name.desc())
+            elif sort_field == "created_at":
+                query = query.order_by(DB_Connection.created_at.asc() if sort_order.lower() == "asc" else DB_Connection.created_at.desc())
+            elif sort_field == "updated_at":
+                query = query.order_by(DB_Connection.updated_at.asc() if sort_order.lower() == "asc" else DB_Connection.updated_at.desc())
+            elif sort_field == "database_name":
+                query = query.order_by(DB_Connection.database_name.asc() if sort_order.lower() == "asc" else DB_Connection.database_name.desc())
+            elif sort_field == "environment":
+                query = query.order_by(DB_Connection.environment.asc() if sort_order.lower() == "asc" else DB_Connection.environment.desc())
+            elif sort_field == "database_type":
+                query = query.order_by(DB_Connection.database_type.asc() if sort_order.lower() == "asc" else DB_Connection.database_type.desc())
+            skip = (page - 1) * size
+            query = query.offset(skip).limit(size)
+            result = await self.db.execute(query)
+            connections = result.scalars().all()
+            items = []
+            for conn in connections:
+                status, size_mb = await self._get_db_status_and_size(conn)
+                items.append(ConnectionOut(**conn.__dict__, status=status, db_size_mb=size_mb))
+            pages = math.ceil(total / size) if size > 0 else 1
+            has_next = page < pages
+            has_prev = page > 1
+            return {
+                "items": items,
+                "total": total,
+                "page": page,
+                "size": size,
+                "pages": pages,
+                "has_next": has_next,
+                "has_prev": has_prev,
+                "filters_applied": {
+                    "database_name": database_name,
+                    "name": name,
+                    "description": description,
+                    "database_type": database_type,
+                    "environment": environment,
+                    "is_favorite": is_favorite,
+                    "owner_id": owner_id,
+                    "owner_username": owner_username
+                }
+            }
+        except Exception as e:
+            raise Exception(f"Ошибка при получении подключений с фильтрами: {str(e)}")
 
     async def create_connection(self, connection: ConnectionCreate) -> DB_Connection:
         """Создать новое подключение"""
@@ -204,7 +318,7 @@ class DBConnectionService:
                     "query_start": row["query_start"],
                     "state_change": row["state_change"],
                     "state": row["state"],
-                    "query": (row["query"] or "")
+                    "query": (row["query"] or "")  # [:500]
                 })
             pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
             has_next = page < pages
