@@ -14,8 +14,7 @@ from backend.schemas.db_connection_schemas import (
     ConnectionOut,
     ConnectionUpdate,
     PaginatedConnectionResponse,
-    ActiveConnectionsResponse,  # оставляем для обратной совместимости
-    PaginatedActiveConnectionsResponse,  # ← добавляем новый импорт
+    PaginatedActiveConnectionsResponse,
     TerminateConnectionRequest
 )
 from backend.services.db_connection_service import DBConnectionService

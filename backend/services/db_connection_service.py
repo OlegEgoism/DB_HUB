@@ -6,9 +6,10 @@ from backend.models.db import DB_Connection
 from backend.models.user import User
 from backend.core.security import encrypt_password, decrypt_password
 from backend.schemas.db_connection_schemas import (
-    ConnectionCreate, ConnectionUpdate, ConnectionOut,
-    ActiveConnectionsResponse, TerminateConnectionRequest,
-    PaginatedActiveConnectionsResponse  # ← добавьте импорт
+    ConnectionCreate,
+    ConnectionUpdate,
+    ConnectionOut,
+    PaginatedActiveConnectionsResponse
 )
 import math
 
