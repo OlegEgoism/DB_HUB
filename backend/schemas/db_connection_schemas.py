@@ -112,13 +112,5 @@ class PaginatedActiveConnectionsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# # Старая схема (оставляем для обратной совместимости)
-# class ActiveConnectionsResponse(BaseModel):
-#     connection_id: int
-#     connection_name: str
-#     total_active_connections: int
-#     active_connections: List[ActiveConnectionInfo]
-
-
 class TerminateConnectionRequest(BaseModel):
     pid: int = Field(..., gt=0, description="PID процесса, который нужно завершить")
