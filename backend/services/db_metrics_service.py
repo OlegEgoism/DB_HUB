@@ -1,4 +1,4 @@
-# backend/services/db_metrics_services.py
+# backend/services/db_metrics_service.py
 from typing import List, Dict, Any
 import asyncpg
 from backend.core.security import decrypt_password
@@ -8,8 +8,8 @@ from backend.models.db import DB_Connection
 class DBMetricsService:
 
     @staticmethod
-    async def get_database_metrics(connection: DB_Connection) -> List[Dict[str, Any]]:
-        metrics: List[Dict[str, Any]] = []
+    async def get_all_database_metrics(connection: DB_Connection) -> Dict[str, Any]:
+        """Получить все метрики базы данных"""
         try:
             password = decrypt_password(connection.password)
             conn = await asyncpg.connect(
@@ -20,7 +20,9 @@ class DBMetricsService:
                 database=connection.database_name,
                 timeout=10,
             )
-            sql_query = """
+
+            # Основные метрики базы данных
+            basic_metrics_query = """
             SELECT 'db_size' AS metric, pg_size_pretty(pg_database_size(current_database())) AS value
             UNION ALL
             SELECT 'count_table', COUNT(*)::TEXT
@@ -97,146 +99,79 @@ class DBMetricsService:
             UNION ALL
             SELECT 'start_time', TO_CHAR(pg_postmaster_start_time(), 'DD.MM.YYYY HH24:MI:SS')
             """
-            rows = await conn.fetch(sql_query)
-            for row in rows:
-                metrics.append(
-                    {
-                        "metric": row["metric"],
-                        "value": row["value"],
-                    }
-                )
-            await conn.close()
-            return metrics
-        except Exception as e:
-            return [{"metric": "connection_error", "value": str(e), }]
 
-    @staticmethod
-    async def get_cluster_replication_info(connection: DB_Connection, ) -> List[Dict[str, Any]]:
-        """Кластеризация и репликация"""
-        try:
-            password = decrypt_password(connection.password)
-            conn = await asyncpg.connect(
-                host=connection.host,
-                port=connection.port,
-                user=connection.username,
-                password=password,
-                database=connection.database_name,
-                timeout=10,
-            )
-            sql_query = """
-               WITH gp_available AS (
-                   SELECT 1
-                   FROM pg_catalog.pg_class c
-                   JOIN pg_catalog.pg_namespace n
-                       ON n.oid = c.relnamespace
-                   WHERE c.relname = 'gp_segment_configuration'
-                     AND n.nspname = 'pg_catalog'
-               ),
-               db_ip AS (
-                   SELECT
-                       'DB' AS node_type,
-                       'coordinator' AS node_role,
-                       inet_server_addr()::text AS ip_address
-                   WHERE inet_server_addr() IS NOT NULL
-               ),
-               segments_ip AS (
-                   SELECT
-                       'SEGMENT' AS node_type,
-                       CASE
-                           WHEN role = 'p' THEN 'primary'
-                           WHEN role = 'm' THEN 'mirror'
-                       END AS node_role,
-                       address AS ip_address
-                   FROM gp_segment_configuration
-                   WHERE EXISTS (SELECT 1 FROM gp_available)
-                     AND content >= 0
-               ),
-               all_nodes AS (
-                   SELECT node_type, node_role, ip_address FROM db_ip
-                   UNION ALL
-                   SELECT node_type, node_role, ip_address FROM segments_ip
-               )
-               SELECT
-                   node_type,
-                   node_role,
-                   COUNT(*)::INT AS count
-               FROM all_nodes
-               GROUP BY node_type, node_role
-               ORDER BY node_type, node_role;
-               """
-            rows = await conn.fetch(sql_query)
-            await conn.close()
-            return [
-                {
-                    "node_type": row["node_type"],
-                    "node_role": row["node_role"],
-                    "count": row["count"],
-                }
-                for row in rows
-            ]
-        except Exception:
-            return []
-
-    @staticmethod
-    async def get_cluster_health(connection: DB_Connection) -> Dict[str, Any]:
-        """Проверка состояния кластера"""
-        try:
-            password = decrypt_password(connection.password)
-            conn = await asyncpg.connect(
-                host=connection.host,
-                port=connection.port,
-                user=connection.username,
-                password=password,
-                database=connection.database_name,
-                timeout=10,
-            )
-            sql_query = """
-                WITH gp_available AS (
-                    SELECT 1
-                    FROM pg_catalog.pg_class c
-                    JOIN pg_catalog.pg_namespace n
-                        ON n.oid = c.relnamespace
-                    WHERE c.relname = 'gp_segment_configuration'
-                      AND n.nspname = 'pg_catalog'
-                )
-                SELECT 
-                    'Здоровье кластера' AS check_name,
-                    CASE 
-                        WHEN COUNT(*) = SUM(CASE WHEN status = 'u' THEN 1 ELSE 0 END)
-                         AND COUNT(*) = SUM(CASE WHEN mode = 's' THEN 1 ELSE 0 END)
-                        THEN '✅ Все сегменты вверх и синхронизированы'
-                        WHEN COUNT(*) > SUM(CASE WHEN status = 'u' THEN 1 ELSE 0 END)
-                        THEN '⚠ Есть проблемы: ' ||
-                             (COUNT(*) - SUM(CASE WHEN status = 'u' THEN 1 ELSE 0 END)) ||
-                             ' сегментов не вверх'
-                        ELSE '❌ Критические проблемы'
-                    END AS status
+            # Информация о кластере и репликации
+            cluster_replication_query = """
+            WITH gp_available AS (
+                SELECT 1
+                FROM pg_catalog.pg_class c
+                JOIN pg_catalog.pg_namespace n
+                    ON n.oid = c.relnamespace
+                WHERE c.relname = 'gp_segment_configuration'
+                  AND n.nspname = 'pg_catalog'
+            ),
+            db_ip AS (
+                SELECT
+                    'DB' AS node_type,
+                    'coordinator' AS node_role,
+                    inet_server_addr()::text AS ip_address
+                WHERE inet_server_addr() IS NOT NULL
+            ),
+            segments_ip AS (
+                SELECT
+                    'SEGMENT' AS node_type,
+                    CASE
+                        WHEN role = 'p' THEN 'primary'
+                        WHEN role = 'm' THEN 'mirror'
+                    END AS node_role,
+                    address AS ip_address
                 FROM gp_segment_configuration
                 WHERE EXISTS (SELECT 1 FROM gp_available)
-                  AND content != -1;
-                """
-            row = await conn.fetchrow(sql_query)
-            await conn.close()
-            if not row:
-                return {"check_name": "Здоровье кластера", "status": "not_supported", }
-            return {"check_name": row["check_name"], "status": row["status"], }
-        except Exception:
-            return {"check_name": "Здоровье кластера", "status": "not_supported", }
-
-    @staticmethod
-    async def get_database_config(connection: DB_Connection) -> List[Dict[str, Any]]:
-        """Получить все конфигурацию базы данных"""
-        try:
-            password = decrypt_password(connection.password)
-            conn = await asyncpg.connect(
-                host=connection.host,
-                port=connection.port,
-                user=connection.username,
-                password=password,
-                database=connection.database_name,
-                timeout=10,
+                  AND content >= 0
+            ),
+            all_nodes AS (
+                SELECT node_type, node_role, ip_address FROM db_ip
+                UNION ALL
+                SELECT node_type, node_role, ip_address FROM segments_ip
             )
-            sql_query = """
+            SELECT
+                node_type,
+                node_role,
+                COUNT(*)::INT AS count
+            FROM all_nodes
+            GROUP BY node_type, node_role
+            ORDER BY node_type, node_role;
+            """
+
+            # Здоровье кластера
+            cluster_health_query = """
+            WITH gp_available AS (
+                SELECT 1
+                FROM pg_catalog.pg_class c
+                JOIN pg_catalog.pg_namespace n
+                    ON n.oid = c.relnamespace
+                WHERE c.relname = 'gp_segment_configuration'
+                  AND n.nspname = 'pg_catalog'
+            )
+            SELECT 
+                'Здоровье кластера' AS check_name,
+                CASE 
+                    WHEN COUNT(*) = SUM(CASE WHEN status = 'u' THEN 1 ELSE 0 END)
+                     AND COUNT(*) = SUM(CASE WHEN mode = 's' THEN 1 ELSE 0 END)
+                    THEN '✅ Все сегменты вверх и синхронизированы'
+                    WHEN COUNT(*) > SUM(CASE WHEN status = 'u' THEN 1 ELSE 0 END)
+                    THEN '⚠ Есть проблемы: ' ||
+                         (COUNT(*) - SUM(CASE WHEN status = 'u' THEN 1 ELSE 0 END)) ||
+                         ' сегментов не вверх'
+                    ELSE '❌ Критические проблемы'
+                END AS status
+            FROM gp_segment_configuration
+            WHERE EXISTS (SELECT 1 FROM gp_available)
+              AND content != -1;
+            """
+
+            # Конфигурация базы данных
+            database_config_query = """
             SELECT 
                 name, 
                 setting, 
@@ -246,17 +181,46 @@ class DBMetricsService:
             FROM pg_settings
             ORDER BY name;
             """
-            rows = await conn.fetch(sql_query)
-            await conn.close()
+
+            # Выполняем все запросы в одной транзакции
+            basic_metrics = []
+            cluster_info = []
+            cluster_health = None
             config_parameters = []
+
+            # Получаем базовые метрики
+            rows = await conn.fetch(basic_metrics_query)
             for row in rows:
-                config_parameters.append({
-                    "name": row["name"],
-                    "setting": row["setting"],
-                    "unit": row["unit"],
-                    "category": row["category"],
-                    "description": row["description"]
-                })
-            return config_parameters
+                basic_metrics.append({                    "metric": row["metric"],                    "value": row["value"],                })
+
+            # Получаем информацию о кластере
+            try:
+                rows = await conn.fetch(cluster_replication_query)
+                for row in rows:
+                    cluster_info.append({                        "node_type": row["node_type"],                        "node_role": row["node_role"],                        "count": row["count"],                    })
+            except Exception:
+                cluster_info = []
+
+            # Получаем здоровье кластера
+            try:
+                row = await conn.fetchrow(cluster_health_query)
+                if row:
+                    cluster_health = {                        "check_name": row["check_name"],                        "status": row["status"],                    }
+                else:
+                    cluster_health = {"check_name": "Здоровье кластера", "status": "not_supported"}
+            except Exception:
+                cluster_health = {"check_name": "Здоровье кластера", "status": "not_supported"}
+
+            try:
+                rows = await conn.fetch(database_config_query)
+                for row in rows:
+                    config_parameters.append({                        "name": row["name"],                        "setting": row["setting"],                        "unit": row["unit"],                        "category": row["category"],                        "description": row["description"]                    })
+            except Exception as e:
+                config_parameters = [{"error": f"Ошибка получения конфигурации: {str(e)}"}]
+
+            await conn.close()
+
+            return {                "basic_metrics": basic_metrics,                "cluster_replication": cluster_info,                "cluster_health": cluster_health,                "database_config": config_parameters,                "status": "connected"            }
+
         except Exception as e:
-            return [{"error": f"Ошибка получения конфигурации: {str(e)}"}]
+            return {                "basic_metrics": [{"metric": "connection_error", "value": str(e)}],                "cluster_replication": [],                "cluster_health": {"check_name": "Здоровье кластера", "status": "connection_error"},                "database_config": [],                "status": "error"            }

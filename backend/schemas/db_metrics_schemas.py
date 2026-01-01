@@ -1,22 +1,10 @@
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 
 class DatabaseMetric(BaseModel):
     metric: str
     value: str
-
-
-class SingleDatabaseMetricsResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    host: str
-    database_name: str
-    environment: Optional[str] = None
-    database_type: Optional[str] = None
-    status: str
-    metrics: List[DatabaseMetric]
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ClusterNodeInfo(BaseModel):
@@ -25,27 +13,9 @@ class ClusterNodeInfo(BaseModel):
     count: int
 
 
-class ClusterReplicationResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    database_name: str
-    status: str
-    cluster_info: List[ClusterNodeInfo]
-    model_config = ConfigDict(from_attributes=True)
-
-
 class ClusterHealthCheck(BaseModel):
     check_name: str
     status: str
-
-
-class ClusterHealthResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    database_name: str
-    status: str
-    health: ClusterHealthCheck
-    model_config = ConfigDict(from_attributes=True)
 
 
 class DatabaseConfigParameter(BaseModel):
@@ -56,11 +26,17 @@ class DatabaseConfigParameter(BaseModel):
     description: Optional[str] = None
 
 
-class DatabaseConfigResponse(BaseModel):
+class AllDatabaseMetricsResponse(BaseModel):
+    """Общая схема для всех метрик базы данных"""
     connection_id: int
     connection_name: str
+    host: str
     database_name: str
-    total_parameters: int
-    parameters: List[DatabaseConfigParameter]
+    environment: Optional[str] = None
+    database_type: Optional[str] = None
     status: str
+    basic_metrics: List[DatabaseMetric]
+    cluster_replication: List[ClusterNodeInfo]
+    cluster_health: ClusterHealthCheck
+    database_config: List[DatabaseConfigParameter]
     model_config = ConfigDict(from_attributes=True)
