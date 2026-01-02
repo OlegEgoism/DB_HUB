@@ -23,15 +23,7 @@ async def get_tables_in_schema(
     """Получить список таблиц (и представлений) из указанной схемы внешней БД."""
     try:
         service = DBTableService(db)
-        result = await service.get_tables_in_schema(
-            connection_id=connection_id,
-            schema_oid=schema_oid,
-            page=page,
-            size=size,
-            search=search,
-            sort_by=sort_by,
-            sort_order=sort_order
-        )
+        result = await service.get_tables_in_schema(connection_id=connection_id, schema_oid=schema_oid, page=page, size=size, search=search, sort_by=sort_by, sort_order=sort_order)
         return result
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
