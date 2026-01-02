@@ -42,17 +42,6 @@ class DBSchemaCreateRequest(BaseModel):
     owner: Optional[str] = Field(None, description="Владелец схемы. Если не указан, владельцем становится текущий пользователь.")
     description: Optional[str] = Field(None, max_length=1000, description="Описание схемы.")
 
-    @field_validator('name')
-    @classmethod
-    def validate_schema_name(cls, v):
-        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", v):
-            raise ValueError("Имя схемы должно начинаться с буквы или подчёркивания и содержать только латинские буквы, цифры и подчёркивания")
-        if v.startswith('pg_'):
-            raise ValueError("Имя схемы не может начинаться с 'pg_'")
-        if v == 'information_schema':
-            raise ValueError("Имя схемы не может быть 'information_schema'")
-        return v
-
 
 class DBSchemaCreateResponse(BaseModel):
     """Ответ при создании схемы"""

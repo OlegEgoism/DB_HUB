@@ -78,6 +78,7 @@ class DB_Group(Base, DateTimeMixin):
     def __repr__(self):
         return f"<DB_Group(id={self.id}, name='{self.name}', connection_id={self.connection_id})>"
 
+
 class DB_User(Base, DateTimeMixin):
     __tablename__ = "db_user"
 

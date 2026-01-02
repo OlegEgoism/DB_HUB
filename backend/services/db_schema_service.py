@@ -38,6 +38,27 @@ class DBSchemaService:
         finally:
             await conn.close()
 
+    async def get_schema_by_oid(self, connection_id: int, schema_oid: int) -> Dict[str, Any]:
+        """Получить информацию о схеме по OID"""
+        connection = await self.get_connection(connection_id)
+        query = """
+            SELECT 
+                n.oid,
+                n.nspname as name,
+                pg_catalog.pg_get_userbyid(n.nspowner) as owner,
+                pg_catalog.obj_description(n.oid, 'pg_namespace') as description
+            FROM pg_catalog.pg_namespace n
+            WHERE n.oid = $1
+              AND n.nspname NOT LIKE 'pg\_%'
+              AND n.nspname != 'information_schema'
+        """
+        rows = await self._execute_query(connection, query, schema_oid)
+        if not rows:
+            raise ValueError(f"Схема с OID {schema_oid} не найдена")
+        schema = dict(rows[0])
+        schema_stats = await self._get_schema_detailed_stats(connection, schema_oid)
+        return {"oid": schema["oid"], "name": schema["name"], "owner": schema["owner"], "description": schema["description"], **schema_stats}
+
     async def get_schemas_with_statistics(self, connection_id: int, search: Optional[str] = None, page: int = 1, size: int = 20, sort_by: str = "name", sort_order: str = "asc") -> Dict[str, Any]:
         """Получить список схем с подробной статистикой"""
         connection = await self.get_connection(connection_id)
@@ -348,14 +369,7 @@ class DBSchemaService:
             stats = await self._get_schema_detailed_stats(connection, schema_info["oid"])
             return {
                 "message": f"Схема '{name}' успешно создана",
-                "schema": {
-                    "oid": schema_info["oid"],
-                    "name": schema_info["name"],
-                    "owner": schema_info["owner"],
-                    "description": description,
-                    **stats
-                }
-            }
+                "schema": {"oid": schema_info["oid"], "name": schema_info["name"], "owner": schema_info["owner"], "description": description, **stats}}
         except asyncpg.exceptions.UniqueViolationError as e:
             raise ValueError(f"Схема с именем '{name}' уже существует")
         except asyncpg.exceptions.InvalidSchemaNameError as e:

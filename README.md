@@ -1,4 +1,4 @@
-# HUB DB
+# DB HUB 
 
 ```
 Версия: Python 3.13 / PostgreSQL 13+ / Greenplum 6+
@@ -9,7 +9,7 @@ API документация:
 ```
 
 <h3 style="color: #2486b5; text-align: center">
-Структура backend приложения DB_HUB
+Структура backend приложения DB HUB
 </h3>
 
 ```
