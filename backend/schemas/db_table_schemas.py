@@ -6,7 +6,7 @@ from datetime import datetime
 class TableInfo(BaseModel):
     oid: int
     table_name: str
-    table_type: str  # 'table', 'view', 'materialized_view', 'foreign_table', 'partitioned_table'
+    table_type: str
     owner: str
     description: Optional[str] = None
     size_bytes: int

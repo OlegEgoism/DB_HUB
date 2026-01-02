@@ -45,14 +45,11 @@ class DBTableService:
         sort_order: str = "asc"
     ) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
-
-        # Получаем имя схемы
         schema_query = "SELECT nspname FROM pg_namespace WHERE oid = $1"
         schema_row = await self._execute_query(connection, schema_query, schema_oid)
         if not schema_row:
             raise ValueError(f"Схема с OID {schema_oid} не найдена")
         schema_name = schema_row[0]["nspname"]
-
         base_query = """
         SELECT
             c.oid,
@@ -67,24 +64,19 @@ class DBTableService:
         WHERE c.relnamespace = $1
           AND c.relkind IN ('r', 'm', 'v', 'f', 'p')
         """
-
         where_conditions = []
         params = [schema_oid]
-
         if search and search.strip():
             search_term = f"%{search.strip().lower()}%"
             where_conditions.append("""
                 (LOWER(c.relname) LIKE $2 OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $2)
             """)
             params.append(search_term)
-
         if where_conditions:
             base_query += " AND " + " AND ".join(where_conditions)
-
         count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
         count_rows = await self._execute_query(connection, count_query, *params)
         total_filtered = count_rows[0]["total"] if count_rows else 0
-
         total_query = """
         SELECT COUNT(*) AS total
         FROM pg_catalog.pg_class c
@@ -92,7 +84,6 @@ class DBTableService:
         """
         total_rows = await self._execute_query(connection, total_query, schema_oid)
         total_all = total_rows[0]["total"] if total_rows else 0
-
         valid_sort_fields = {
             "table_name": "c.relname",
             "owner": "owner",
@@ -101,7 +92,6 @@ class DBTableService:
         }
         sort_field = valid_sort_fields.get(sort_by, "c.relname")
         sort_dir = "DESC" if sort_order.lower() == "desc" else "ASC"
-
         offset = (page - 1) * size
         paginated_query = f"""
         {base_query}
@@ -109,10 +99,7 @@ class DBTableService:
         LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
         """
         params_with_pagination = params + [size, offset]
-
         rows = await self._execute_query(connection, paginated_query, *params_with_pagination)
-
-        # Маппинг типов
         kind_map = {
             'r': 'table',
             'm': 'materialized_view',
@@ -120,7 +107,6 @@ class DBTableService:
             'f': 'foreign_table',
             'p': 'partitioned_table'
         }
-
         tables = []
         for row in rows:
             tables.append({
@@ -133,11 +119,9 @@ class DBTableService:
                 "size_pretty": row["size_pretty"],
                 "estimated_row_count": int(row["estimated_row_count"]) if row["estimated_row_count"] is not None else None
             })
-
         pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
         has_next = page < pages
         has_prev = page > 1
-
         return {
             "connection_id": connection_id,
             "schema_oid": schema_oid,
