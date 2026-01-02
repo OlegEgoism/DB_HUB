@@ -7,5 +7,8 @@ __all__ = [
     "db_connection",
     "agreement",
     "db_metrics",
-    "db_groups"
+    "db_groups",
+    "db_users",
+    "db_schemas",
+    "db_tables.py"
 ]
