@@ -83,7 +83,7 @@ class DBSchemaService:
             """)
             params.append(search_term)
         if where_conditions:
-            base_query += " AND " + " AND ".join(where_conditions)
+            base_query += " AND " + " and ".join(where_conditions)
         count_query = f"""
             SELECT COUNT(*) as total
             FROM ({base_query}) as filtered_schemas
@@ -119,12 +119,14 @@ class DBSchemaService:
         schemas_with_stats = []
         for schema in schemas:
             schema_stats = await self._get_schema_detailed_stats(connection, schema["oid"])
+            tables = await self._get_tables_in_schema(connection, schema["oid"])
             schemas_with_stats.append({
                 "oid": schema["oid"],
                 "name": schema["name"],
                 "owner": schema["owner"],
                 "description": schema["description"],
-                **schema_stats
+                **schema_stats,
+                "tables": tables
             })
         pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
         has_next = page < pages
@@ -238,6 +240,45 @@ class DBSchemaService:
             "function_count": function_count,
             "total_objects": total_objects
         }
+
+    async def _get_tables_in_schema(self, connection: DB_Connection, schema_oid: int) -> List[Dict[str, Any]]:
+        """Получить список таблиц в схеме"""
+        tables_query = """
+            SELECT
+                c.oid,
+                c.relname as table_name,
+                c.relkind as table_type_code,
+                pg_catalog.pg_get_userbyid(c.relowner) as owner,
+                pg_catalog.obj_description(c.oid, 'pg_class') as description,
+                pg_catalog.pg_total_relation_size(c.oid) as size_bytes,
+                pg_size_pretty(pg_catalog.pg_total_relation_size(c.oid)) as size_pretty,
+                c.reltuples as estimated_row_count
+            FROM pg_catalog.pg_class c
+            WHERE c.relnamespace = $1
+              AND c.relkind IN ('r', 'm', 'v', 'f', 'p')
+            ORDER BY c.relname
+        """
+        rows = await self._execute_query(connection, tables_query, schema_oid)
+        kind_map = {
+            'r': 'table',
+            'm': 'materialized_view',
+            'v': 'view',
+            'f': 'foreign_table',
+            'p': 'partitioned_table'
+        }
+        tables = []
+        for row in rows:
+            tables.append({
+                "oid": row["oid"],
+                "table_name": row["table_name"],
+                "table_type": kind_map.get(row["table_type_code"], row["table_type_code"]),
+                "owner": row["owner"],
+                "description": row["description"],
+                "size_bytes": row["size_bytes"],
+                "size_pretty": row["size_pretty"],
+                "estimated_row_count": int(row["estimated_row_count"]) if row["estimated_row_count"] is not None else None
+            })
+        return tables
 
     async def update_schema(self, connection_id: int, schema_oid: int, name: Optional[str] = None, description: Optional[str] = None) -> Dict[str, Any]:
         """Обновить схему (переименовать и/или изменить описание)"""
@@ -367,9 +408,18 @@ class DBSchemaService:
             schema_info = await conn.fetchrow(info_query, name)
             await conn.close()
             stats = await self._get_schema_detailed_stats(connection, schema_info["oid"])
+            tables = await self._get_tables_in_schema(connection, schema_info["oid"])
             return {
                 "message": f"Схема '{name}' успешно создана",
-                "schema": {"oid": schema_info["oid"], "name": schema_info["name"], "owner": schema_info["owner"], "description": description, **stats}}
+                "schema": {
+                    "oid": schema_info["oid"],
+                    "name": schema_info["name"],
+                    "owner": schema_info["owner"],
+                    "description": description,
+                    **stats,
+                    "tables": tables
+                }
+            }
         except asyncpg.exceptions.UniqueViolationError as e:
             raise ValueError(f"Схема с именем '{name}' уже существует")
         except asyncpg.exceptions.InvalidSchemaNameError as e:
@@ -419,6 +469,7 @@ class DBSchemaService:
             """
             schema_info = await conn.fetchrow(info_query, schema_name)
             stats = await self._get_schema_detailed_stats(connection, schema_info["oid"])
+            tables = await self._get_tables_in_schema(connection, schema_info["oid"])
             drop_query = f'DROP SCHEMA "{schema_name}"'
             if cascade:
                 drop_query += ' CASCADE'
@@ -430,7 +481,8 @@ class DBSchemaService:
                     "name": schema_info["name"],
                     "owner": schema_info["owner"],
                     "description": schema_info["description"],
-                    **stats
+                    **stats,
+                    "tables": tables
                 }
             }
         except asyncpg.exceptions.DependentObjectsStillExistError as e:

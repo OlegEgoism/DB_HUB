@@ -4,6 +4,18 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 
 
+class TableInfo(BaseModel):
+    """Информация о таблице в схеме"""
+    oid: int = Field(..., description="OID таблицы в БД")
+    table_name: str = Field(..., description="Имя таблицы")
+    table_type: str = Field(..., description="Тип таблицы (table, view, materialized_view, foreign_table, partitioned_table)")
+    owner: str = Field(..., description="Владелец таблицы")
+    description: Optional[str] = Field(None, description="Описание таблицы")
+    size_bytes: int = Field(..., description="Размер таблицы в байтах")
+    size_pretty: str = Field(..., description="Человекочитаемый размер таблицы")
+    estimated_row_count: Optional[int] = Field(None, description="Оценочное количество строк")
+
+
 class DBSchemaInfo(BaseModel):
     """Информация о схеме из внешней БД"""
     oid: int = Field(..., description="OID схемы в БД")
@@ -20,6 +32,7 @@ class DBSchemaInfo(BaseModel):
     procedure_count: int = Field(0, description="Количество процедур")
     function_count: int = Field(0, description="Количество функций")
     total_objects: int = Field(0, description="Общее количество объектов")
+    tables: List[TableInfo] = Field(default_factory=list, description="Список таблиц в схеме")
 
 
 class PaginatedDBSchemasResponse(BaseModel):
