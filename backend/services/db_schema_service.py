@@ -38,22 +38,6 @@ class DBSchemaService:
         finally:
             await conn.close()
 
-    async def _execute_command(self, connection: DB_Connection, command: str) -> None:
-        """Выполнить команду DDL к внешней БД"""
-        password = decrypt_password(connection.password)
-        conn = await asyncpg.connect(
-            host=connection.host,
-            port=connection.port,
-            user=connection.username,
-            password=password,
-            database=connection.database_name,
-            timeout=10,
-        )
-        try:
-            await conn.execute(command)
-        finally:
-            await conn.close()
-
     async def get_schemas_with_statistics(self, connection_id: int, search: Optional[str] = None, page: int = 1, size: int = 20, sort_by: str = "name", sort_order: str = "asc") -> Dict[str, Any]:
         """Получить список схем с подробной статистикой"""
         connection = await self.get_connection(connection_id)
@@ -436,10 +420,7 @@ class DBSchemaService:
                 }
             }
         except asyncpg.exceptions.DependentObjectsStillExistError as e:
-            raise ValueError(
-                f"Нельзя удалить схему '{schema_name}', так как она содержит объекты. "
-                f"Используйте параметр cascade=true для удаления вместе со всеми объектами."
-            )
+            raise ValueError(f"Нельзя удалить схему '{schema_name}', так как она содержит объекты. Используйте параметр cascade=true для удаления вместе со всеми объектами.")
         except Exception as e:
             if 'conn' in locals():
                 await conn.close()

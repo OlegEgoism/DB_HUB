@@ -8,7 +8,6 @@ from backend.schemas.db_schema_schemas import (
     PaginatedDBSchemasResponse,
     DBSchemaUpdateRequest,
     DBSchemaUpdateResponse,
-    DBSchemaInfo,
     DBSchemaCreateRequest,
     DBSchemaCreateResponse,
     DBSchemaDeleteRequest,
@@ -18,7 +17,7 @@ from backend.schemas.db_schema_schemas import (
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
 
 
-@router.get("/connection/{connection_id}/statistics", response_model=PaginatedDBSchemasResponse)
+@router.get("/connection/{connection_id}", response_model=PaginatedDBSchemasResponse)
 async def get_schema_statistics(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
