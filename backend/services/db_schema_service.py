@@ -38,15 +38,23 @@ class DBSchemaService:
         finally:
             await conn.close()
 
-    async def get_schemas_with_statistics(
-            self,
-            connection_id: int,
-            search: Optional[str] = None,
-            page: int = 1,
-            size: int = 20,
-            sort_by: str = "name",
-            sort_order: str = "asc"
-    ) -> Dict[str, Any]:
+    async def _execute_command(self, connection: DB_Connection, command: str) -> None:
+        """Выполнить команду DDL к внешней БД"""
+        password = decrypt_password(connection.password)
+        conn = await asyncpg.connect(
+            host=connection.host,
+            port=connection.port,
+            user=connection.username,
+            password=password,
+            database=connection.database_name,
+            timeout=10,
+        )
+        try:
+            await conn.execute(command)
+        finally:
+            await conn.close()
+
+    async def get_schemas_with_statistics(self, connection_id: int, search: Optional[str] = None, page: int = 1, size: int = 20, sort_by: str = "name", sort_order: str = "asc") -> Dict[str, Any]:
         """Получить список схем с подробной статистикой"""
         connection = await self.get_connection(connection_id)
         base_query = """
@@ -226,39 +234,7 @@ class DBSchemaService:
             "total_objects": total_objects
         }
 
-    async def get_schema_by_oid(self, connection_id: int, schema_oid: int) -> Dict[str, Any]:
-        """Получить информацию о схеме по OID"""
-        connection = await self.get_connection(connection_id)
-        query = """
-            SELECT 
-                n.oid,
-                n.nspname as name,
-                pg_catalog.pg_get_userbyid(n.nspowner) as owner,
-                pg_catalog.obj_description(n.oid, 'pg_namespace') as description
-            FROM pg_catalog.pg_namespace n
-            WHERE n.oid = $1
-        """
-
-        result = await self._execute_query(connection, query, schema_oid)
-        if not result:
-            raise ValueError(f"Схема с OID {schema_oid} не найдена")
-        schema = result[0]
-        stats = await self._get_schema_detailed_stats(connection, schema_oid)
-        return {
-            "oid": schema["oid"],
-            "name": schema["name"],
-            "owner": schema["owner"],
-            "description": schema["description"],
-            **stats
-        }
-
-    async def update_schema(
-            self,
-            connection_id: int,
-            schema_oid: int,
-            name: Optional[str] = None,
-            description: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def update_schema(self, connection_id: int, schema_oid: int, name: Optional[str] = None, description: Optional[str] = None) -> Dict[str, Any]:
         """Обновить схему (переименовать и/или изменить описание)"""
         connection = await self.get_connection(connection_id)
         current_schema = await self.get_schema_by_oid(connection_id, schema_oid)
@@ -334,3 +310,137 @@ class DBSchemaService:
             if 'conn' in locals():
                 await conn.close()
             raise Exception(f"Ошибка при обновлении схемы: {str(e)}")
+
+    async def create_schema(self, connection_id: int, name: str, owner: Optional[str] = None, description: Optional[str] = None) -> Dict[str, Any]:
+        """Создать новую схему во внешней БД"""
+        connection = await self.get_connection(connection_id)
+        name = name.strip()
+        if not name:
+            raise ValueError("Имя схемы не может быть пустым")
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", name):
+            raise ValueError(
+                "Имя схемы должно начинаться с буквы или подчёркивания и "
+                "содержать только латинские буквы, цифры и подчёркивания"
+            )
+        forbidden_schemas = ["pg_", "information_schema"]
+        if any(name.startswith(prefix) for prefix in forbidden_schemas) or name == "information_schema":
+            raise ValueError("Имя схемы не может начинаться с 'pg_' или быть 'information_schema'")
+        try:
+            password = decrypt_password(connection.password)
+            conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=password,
+                database=connection.database_name,
+                timeout=10,
+            )
+            existing_query = """
+                SELECT 1 FROM pg_namespace WHERE nspname = $1
+            """
+            existing = await conn.fetchval(existing_query, name)
+            if existing:
+                await conn.close()
+                raise ValueError(f"Схема с именем '{name}' уже существует")
+            create_query = f'CREATE SCHEMA "{name}"'
+            if owner:
+                create_query += f' AUTHORIZATION "{owner}"'
+            await conn.execute(create_query)
+            if description:
+                safe_schema_name = name.replace('"', '""')
+                safe_description = description.replace("'", "''")
+                comment_query = f"COMMENT ON SCHEMA \"{safe_schema_name}\" IS '{safe_description}'"
+                await conn.execute(comment_query)
+            info_query = """
+                SELECT 
+                    n.oid,
+                    n.nspname as name,
+                    pg_catalog.pg_get_userbyid(n.nspowner) as owner
+                FROM pg_catalog.pg_namespace n
+                WHERE n.nspname = $1
+            """
+            schema_info = await conn.fetchrow(info_query, name)
+            await conn.close()
+            stats = await self._get_schema_detailed_stats(connection, schema_info["oid"])
+            return {
+                "message": f"Схема '{name}' успешно создана",
+                "schema": {
+                    "oid": schema_info["oid"],
+                    "name": schema_info["name"],
+                    "owner": schema_info["owner"],
+                    "description": description,
+                    **stats
+                }
+            }
+        except asyncpg.exceptions.UniqueViolationError as e:
+            raise ValueError(f"Схема с именем '{name}' уже существует")
+        except asyncpg.exceptions.InvalidSchemaNameError as e:
+            raise ValueError(f"Некорректное имя схемы: {str(e)}")
+        except asyncpg.exceptions.UndefinedObjectError as e:
+            if "owner" in str(e):
+                raise ValueError(f"Пользователь '{owner}' не найден")
+            raise
+        except Exception as e:
+            if 'conn' in locals():
+                await conn.close()
+            raise Exception(f"Ошибка при создании схемы: {str(e)}")
+
+    async def delete_schema(self, connection_id: int, schema_name: str, cascade: bool = False) -> Dict[str, Any]:
+        """Удалить схему из внешней БД"""
+        connection = await self.get_connection(connection_id)
+        schema_name = schema_name.strip()
+        if not schema_name:
+            raise ValueError("Имя схемы не может быть пустым")
+        if schema_name.startswith("pg_") or schema_name == "information_schema":
+            raise ValueError("Нельзя удалять системные схемы (pg_*, information_schema)")
+        try:
+            password = decrypt_password(connection.password)
+            conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=password,
+                database=connection.database_name,
+                timeout=10,
+            )
+            exists_query = """
+                SELECT 1 FROM pg_namespace WHERE nspname = $1
+            """
+            exists = await conn.fetchval(exists_query, schema_name)
+            if not exists:
+                await conn.close()
+                raise ValueError(f"Схема '{schema_name}' не найдена")
+            info_query = """
+                SELECT 
+                    n.oid,
+                    n.nspname as name,
+                    pg_catalog.pg_get_userbyid(n.nspowner) as owner,
+                    pg_catalog.obj_description(n.oid, 'pg_namespace') as description
+                FROM pg_catalog.pg_namespace n
+                WHERE n.nspname = $1
+            """
+            schema_info = await conn.fetchrow(info_query, schema_name)
+            stats = await self._get_schema_detailed_stats(connection, schema_info["oid"])
+            drop_query = f'DROP SCHEMA "{schema_name}"'
+            if cascade:
+                drop_query += ' CASCADE'
+            await conn.execute(drop_query)
+            await conn.close()
+            return {
+                "message": f"Схема '{schema_name}' успешно удалена" + (" (вместе со всеми объектами)" if cascade else ""),
+                "deleted_schema": {
+                    "name": schema_info["name"],
+                    "owner": schema_info["owner"],
+                    "description": schema_info["description"],
+                    **stats
+                }
+            }
+        except asyncpg.exceptions.DependentObjectsStillExistError as e:
+            raise ValueError(
+                f"Нельзя удалить схему '{schema_name}', так как она содержит объекты. "
+                f"Используйте параметр cascade=true для удаления вместе со всеми объектами."
+            )
+        except Exception as e:
+            if 'conn' in locals():
+                await conn.close()
+            raise Exception(f"Ошибка при удалении схемы: {str(e)}")

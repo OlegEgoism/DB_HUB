@@ -36,10 +36,53 @@ class PaginatedDBSchemasResponse(BaseModel):
     schemas: List[DBSchemaInfo]
 
 
+class DBSchemaCreateRequest(BaseModel):
+    """Запрос для создания схемы"""
+    name: str = Field(..., min_length=1, max_length=63, description="Имя новой схемы. Должно начинаться с буквы или подчёркивания, может содержать только латинские буквы, цифры и подчёркивания.")
+    owner: Optional[str] = Field(None, description="Владелец схемы. Если не указан, владельцем становится текущий пользователь.")
+    description: Optional[str] = Field(None, max_length=1000, description="Описание схемы.")
+
+    @field_validator('name')
+    @classmethod
+    def validate_schema_name(cls, v):
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", v):
+            raise ValueError("Имя схемы должно начинаться с буквы или подчёркивания и содержать только латинские буквы, цифры и подчёркивания")
+        if v.startswith('pg_'):
+            raise ValueError("Имя схемы не может начинаться с 'pg_'")
+        if v == 'information_schema':
+            raise ValueError("Имя схемы не может быть 'information_schema'")
+        return v
+
+
+class DBSchemaCreateResponse(BaseModel):
+    """Ответ при создании схемы"""
+    message: str
+    schema: DBSchemaInfo
+
+
+class DBSchemaDeleteRequest(BaseModel):
+    """Запрос для удаления схемы"""
+    schema_name: str = Field(..., min_length=1, max_length=63, description="Имя схемы для удаления")
+    cascade: bool = Field(False, description="Если True, удаляет схему вместе со всеми объектами внутри. Если False и в схеме есть объекты, операция завершится ошибкой.")
+
+    @field_validator('schema_name')
+    @classmethod
+    def validate_schema_name(cls, v):
+        if v.startswith("pg_") or v == "information_schema":
+            raise ValueError("Нельзя удалять системные схемы (pg_*, information_schema)")
+        return v
+
+
+class DBSchemaDeleteResponse(BaseModel):
+    """Ответ при удалении схемы"""
+    message: str
+    deleted_schema: Dict[str, Any]
+
+
 class DBSchemaUpdateRequest(BaseModel):
     """Запрос для обновления схемы"""
-    name: Optional[str] = Field(None, min_length=1, max_length=63, description="Новое имя схемы. Должно начинаться с буквы или подчёркивания, может содержать только латинские буквы, цифры и подчёркивания.")
-    description: Optional[str] = Field(None, max_length=1000, description="Новое описание схемы.")
+    name: Optional[str] = Field(None, min_length=1, max_length=63, description="Новое имя схемы")
+    description: Optional[str] = Field(None, max_length=1000, description="Новое описание схемы")
 
     @field_validator('name')
     @classmethod
@@ -60,12 +103,3 @@ class DBSchemaUpdateResponse(BaseModel):
     message: str
     changes: Dict[str, Any]
     schema: DBSchemaInfo
-
-
-# class DBSchemaStatsRequest(BaseModel):
-#     """Запрос для получения статистики по схемам"""
-#     search: Optional[str] = Field(None, description="Поиск по имени схемы, владельцу или описанию")
-#     page: int = Field(1, ge=1, description="Номер страницы")
-#     size: int = Field(20, ge=1, le=200, description="Размер страницы")
-#     sort_by: str = Field("name", description="Поле для сортировки (name, owner, size_bytes, table_count)")
-#     sort_order: str = Field("asc", description="Порядок сортировки (asc/desc)")

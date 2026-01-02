@@ -8,7 +8,11 @@ from backend.schemas.db_schema_schemas import (
     PaginatedDBSchemasResponse,
     DBSchemaUpdateRequest,
     DBSchemaUpdateResponse,
-    DBSchemaInfo
+    DBSchemaInfo,
+    DBSchemaCreateRequest,
+    DBSchemaCreateResponse,
+    DBSchemaDeleteRequest,
+    DBSchemaDeleteResponse
 )
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
@@ -42,21 +46,48 @@ async def get_schema_statistics(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении статистики по схемам: {str(e)}")
 
 
-@router.get("/connection/{connection_id}/schema/{schema_oid}", response_model=DBSchemaInfo)
-async def get_schema_by_oid(
+
+@router.post("/connection/{connection_id}", response_model=DBSchemaCreateResponse)
+async def create_schema(
         connection_id: int,
-        schema_oid: int,
+        create_data: DBSchemaCreateRequest,
         db: AsyncSession = Depends(get_db)
 ):
-    """Получить информацию о конкретной схеме по её OID"""
+    """Создать новую схему во внешней БД."""
     try:
         service = DBSchemaService(db)
-        schema = await service.get_schema_by_oid(connection_id, schema_oid)
-        return schema
+        result = await service.create_schema(
+            connection_id=connection_id,
+            name=create_data.name,
+            owner=create_data.owner,
+            description=create_data.description
+        )
+        return DBSchemaCreateResponse(**result)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении информации о схеме: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при создании схемы: {str(e)}")
+
+
+@router.delete("/connection/{connection_id}", response_model=DBSchemaDeleteResponse)
+async def delete_schema(
+        connection_id: int,
+        delete_data: DBSchemaDeleteRequest,
+        db: AsyncSession = Depends(get_db)
+):
+    """Удалить схему из внешней БД."""
+    try:
+        service = DBSchemaService(db)
+        result = await service.delete_schema(
+            connection_id=connection_id,
+            schema_name=delete_data.schema_name,
+            cascade=delete_data.cascade
+        )
+        return DBSchemaDeleteResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при удалении схемы: {str(e)}")
 
 
 @router.patch("/connection/{connection_id}/schema/{schema_oid}", response_model=DBSchemaUpdateResponse)
