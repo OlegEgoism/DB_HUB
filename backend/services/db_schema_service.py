@@ -253,7 +253,7 @@ class DBSchemaService:
         return f"{size:.1f} {units[i]}"
 
     async def get_views(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
-        """Получить список представлений (views) из подключённой БД"""
+        """Получить список представлений"""
         connection = await self._get_connection(connection_id)
         base_query = """
         SELECT
@@ -326,7 +326,7 @@ class DBSchemaService:
         }
 
     async def get_materialized_views(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
-        """Получить список материализованных представлений из подключённой БД."""
+        """Получить список материализованных представлений"""
         connection = await self._get_connection(connection_id)
         base_query = """
         SELECT
@@ -400,7 +400,7 @@ class DBSchemaService:
         }
 
     async def get_functions(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
-        """Получить список функций из подключённой БД."""
+        """Получить список функций"""
         connection = await self._get_connection(connection_id)
         base_query = """
         SELECT
