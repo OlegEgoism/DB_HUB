@@ -37,6 +37,8 @@ class DBSchemaService:
 
     async def get_schemas_with_tables(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
+
+        # Получаем все схемы
         schemas_query = """
         SELECT
             n.nspname AS schema_name,
@@ -48,44 +50,83 @@ class DBSchemaService:
         """
         all_schemas_rows = await self._execute_query(connection, schemas_query)
         all_schemas = [{"schema_name": row["schema_name"], "description": row["description"]} for row in all_schemas_rows]
-        filtered_schemas = []
+
         search_term = search.strip().lower() if search and search.strip() else None
-        for s in all_schemas:
-            schema_name = s["schema_name"]
-            schema_desc = (s["description"] or "").lower()
-            match = False
-            if search_term is None:
-                match = True
-            else:
-                if search_term in schema_name.lower() or search_term in schema_desc:
-                    match = True
+
+        # Если нет поискового запроса, сразу получаем таблицы для всех схем
+        if not search_term:
+            filtered_schemas = all_schemas
+            total_schemas = len(all_schemas)
+            total_filtered = total_schemas
+        else:
+            # Если есть поиск, фильтруем схемы и таблицы
+            schemas_with_matching_tables = []
+
+            for s in all_schemas:
+                schema_name = s["schema_name"]
+                schema_desc = (s["description"] or "").lower()
+
+                # Проверяем, соответствует ли сама схема поиску
+                schema_matches = search_term in schema_name.lower() or search_term in schema_desc
+
+                # Получаем таблицы для схемы
+                tables_query = """
+                SELECT
+                    c.relname AS table_name,
+                    pg_catalog.obj_description(c.oid, 'pg_class') AS table_description
+                FROM pg_catalog.pg_class c
+                JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = $1
+                  AND c.relkind = 'r'
+                """
+                table_rows = await self._execute_query(connection, tables_query, schema_name)
+
+                # Фильтруем таблицы по поисковому запросу
+                matching_tables = []
+                for t in table_rows:
+                    tbl_name = t["table_name"].lower()
+                    tbl_desc = (t["table_description"] or "").lower()
+
+                    if search_term in tbl_name or search_term in tbl_desc:
+                        matching_tables.append({
+                            "table_name": t["table_name"],
+                            "table_description": t["table_description"]
+                        })
+
+                # Если схема соответствует поиску ИЛИ есть таблицы, соответствующие поиску
+                if schema_matches or matching_tables:
+                    schemas_with_matching_tables.append({
+                        "schema": s,
+                        "matching_tables": matching_tables if not schema_matches else []  # Если схема совпала, покажем все таблицы
+                    })
+
+            # Собираем отфильтрованные схемы
+            filtered_schemas = []
+            for item in schemas_with_matching_tables:
+                s = item["schema"]
+                if search_term in s["schema_name"].lower() or search_term in (s["description"] or "").lower():
+                    # Схема сама совпала - покажем все таблицы
+                    filtered_schemas.append(s)
                 else:
-                    tables_query = """
-                    SELECT
-                        c.relname AS table_name,
-                        pg_catalog.obj_description(c.oid, 'pg_class') AS table_description
-                    FROM pg_catalog.pg_class c
-                    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-                    WHERE n.nspname = $1
-                      AND c.relkind = 'r'
-                    """
-                    table_rows = await self._execute_query(connection, tables_query, schema_name)
-                    for t in table_rows:
-                        tbl_name = t["table_name"].lower()
-                        tbl_desc = (t["table_description"] or "").lower()
-                        if search_term in tbl_name or search_term in tbl_desc:
-                            match = True
-                            break
-            if match:
-                filtered_schemas.append(s)
-        total_schemas = len(all_schemas)
+                    # Схема не совпала, но есть совпадающие таблицы
+                    # Добавляем схему, но будем показывать только совпадающие таблицы
+                    filtered_schemas.append(s)
+
+            total_schemas = len(all_schemas)
+            total_filtered = len(filtered_schemas)
+
+        # Пагинация
         total_filtered = len(filtered_schemas)
         start = (page - 1) * size
         end = start + size
         paginated_schemas = filtered_schemas[start:end]
+
+        # Получаем таблицы для пагинированных схем
         schemas_with_tables = []
         for s in paginated_schemas:
             schema_name = s["schema_name"]
+
+            # Базовый запрос для таблиц
             tables_query = """
             SELECT
                 c.relname AS table_name,
@@ -97,30 +138,62 @@ class DBSchemaService:
             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
             WHERE n.nspname = $1
               AND c.relkind = 'r'
-            ORDER BY c.relname;
             """
-            table_rows = await self._execute_query(connection, tables_query, schema_name)
-            tables = []
-            for tr in table_rows:
-                row_count = max(0, int(tr["row_count"])) if tr["row_count"] is not None else 0
-                size_bytes = tr["size_bytes"] or 0
-                size_pretty = self._human_readable_size(size_bytes)
-                tables.append({
-                    "table_name": tr["table_name"],
-                    "owner": tr["owner"],
-                    "description": tr["description"],
-                    "row_count": row_count,
-                    "size_bytes": size_bytes,
-                    "size_pretty": size_pretty,
-                })
+
+            # Если есть поиск и схема не совпала сама по себе, фильтруем таблицы
+            if search_term and not (search_term in schema_name.lower() or search_term in (s["description"] or "").lower()):
+                # Нам нужно получить только таблицы, соответствующие поиску
+                # Для этого сначала получим все таблицы, затем отфильтруем
+                all_tables_query = tables_query + " ORDER BY c.relname;"
+                table_rows = await self._execute_query(connection, all_tables_query, schema_name)
+
+                # Фильтруем таблицы
+                filtered_tables = []
+                for tr in table_rows:
+                    tbl_name = tr["table_name"].lower()
+                    tbl_desc = (tr["description"] or "").lower()
+
+                    if search_term in tbl_name or search_term in tbl_desc:
+                        row_count = max(0, int(tr["row_count"])) if tr["row_count"] is not None else 0
+                        size_bytes = tr["size_bytes"] or 0
+                        size_pretty = self._human_readable_size(size_bytes)
+                        filtered_tables.append({
+                            "table_name": tr["table_name"],
+                            "owner": tr["owner"],
+                            "description": tr["description"],
+                            "row_count": row_count,
+                            "size_bytes": size_bytes,
+                            "size_pretty": size_pretty,
+                        })
+
+                tables = filtered_tables
+            else:
+                # Показываем все таблицы
+                table_rows = await self._execute_query(connection, tables_query + " ORDER BY c.relname;", schema_name)
+                tables = []
+                for tr in table_rows:
+                    row_count = max(0, int(tr["row_count"])) if tr["row_count"] is not None else 0
+                    size_bytes = tr["size_bytes"] or 0
+                    size_pretty = self._human_readable_size(size_bytes)
+                    tables.append({
+                        "table_name": tr["table_name"],
+                        "owner": tr["owner"],
+                        "description": tr["description"],
+                        "row_count": row_count,
+                        "size_bytes": size_bytes,
+                        "size_pretty": size_pretty,
+                    })
+
             schemas_with_tables.append({
                 "schema_name": schema_name,
                 "description": s["description"],
                 "tables": tables,
             })
+
         pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
         has_next = page < pages
         has_prev = page > 1
+
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
@@ -137,6 +210,7 @@ class DBSchemaService:
     async def get_temporary_tables(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         """Получить список временных таблиц"""
         connection = await self._get_connection(connection_id)
+
         base_query = """
         SELECT
             c.relname AS table_name,
@@ -148,10 +222,12 @@ class DBSchemaService:
         WHERE c.relpersistence = 't'
           AND c.relkind = 'r'
         """
+
         search_term = search.strip().lower() if search and search.strip() else None
         filtered_query = base_query
         count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
         params = []
+
         if search_term:
             filtered_query += """
             AND (
@@ -169,11 +245,14 @@ class DBSchemaService:
             ) AS sub
             """
             params.append(f"%{search_term}%")
+
         total_all_query = "SELECT COUNT(*) AS total FROM pg_class WHERE relpersistence = 't' AND relkind = 'r'"
         total_all_res = await self._execute_query(connection, total_all_query)
         total_all = total_all_res[0]["total"] if total_all_res else 0
+
         total_filtered_res = await self._execute_query(connection, count_query, *params)
         total_filtered = total_filtered_res[0]["total"] if total_filtered_res else 0
+
         offset = (page - 1) * size
         paginated_query = f"""
         {filtered_query}
@@ -181,8 +260,10 @@ class DBSchemaService:
         LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
         """
         paginated_params = params + [size, offset]
+
         table_rows = await self._execute_query(connection, paginated_query, *paginated_params)
         tables = []
+
         for tr in table_rows:
             row_count = max(0, int(tr["row_count"])) if tr["row_count"] is not None else 0
             size_bytes = tr["size_bytes"] or 0
@@ -195,9 +276,11 @@ class DBSchemaService:
                 "size_bytes": size_bytes,
                 "size_pretty": size_pretty,
             })
+
         pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
         has_next = page < pages
         has_prev = page > 1
+
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
