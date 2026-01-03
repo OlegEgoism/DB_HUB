@@ -3,7 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
 from backend.services.db_schema_service import DBSchemaService
-from backend.schemas.db_schema_schemas import PaginatedSchemasWithTablesResponse, PaginatedTemporaryTablesResponse
+from backend.schemas.db_schema_schemas import (
+    PaginatedSchemasWithTablesResponse,
+    PaginatedTemporaryTablesResponse
+)
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
 
