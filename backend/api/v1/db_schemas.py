@@ -27,13 +27,14 @@ async def get_schemas_with_physical_tables(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении схем и таблиц: {str(e)}")
 
 
-@router.get("/connection/{connection_id}/temporary_tables", response_model=PaginatedTemporaryTablesResponse)
+@router.get("/connection/{connection_id}/temporary-tables", response_model=PaginatedTemporaryTablesResponse)
 async def get_temporary_tables(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество таблиц на странице"),
-        search: str = Query(None, description="Поиск по имени или описанию временной таблицы"), ):
+        search: str = Query(None, description="Поиск по имени/описанию временной таблицы"),
+):
     """Получить список временных таблиц в текущей сессии подключения."""
     try:
         service = DBSchemaService(db)
