@@ -487,6 +487,8 @@ class DBSchemaService:
         JOIN pg_catalog.pg_class t ON t.oid = idx.indrelid
         JOIN pg_catalog.pg_namespace n ON n.oid = t.relnamespace
         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+          AND t.relkind = 'r'  -- только обычные таблицы (не представления, не TOAST и т.п.)
+          AND i.relkind = 'i'  -- явно указываем: только индексы
         """
         search_term = search.strip().lower() if search and search.strip() else None
         filtered_query = base_query
