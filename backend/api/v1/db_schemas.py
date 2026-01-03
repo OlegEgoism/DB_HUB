@@ -27,7 +27,7 @@ async def get_schemas_with_physical_tables(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении схем и таблиц: {str(e)}")
 
 
-@router.get("/connection/{connection_id}/temporary-tables", response_model=PaginatedTemporaryTablesResponse)
+@router.get("/connection/{connection_id}/temporary_tables", response_model=PaginatedTemporaryTablesResponse)
 async def get_temporary_tables(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
