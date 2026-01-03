@@ -44,3 +44,24 @@ class PaginatedTemporaryTablesResponse(BaseModel):
     has_prev: bool
     temporary_tables: List[TableInfo]
     model_config = ConfigDict(from_attributes=True)
+
+
+class ViewInfo(BaseModel):
+    schema_name: str
+    view_name: str
+    description: Optional[str] = None
+    definition: str
+
+
+class PaginatedViewsResponse(BaseModel):
+    connection_id: int
+    connection_name: str
+    total_views: int
+    total_filtered_views: int
+    page: int
+    size: int
+    pages: int
+    has_next: bool
+    has_prev: bool
+    views: List[ViewInfo]
+    model_config = ConfigDict(from_attributes=True)
