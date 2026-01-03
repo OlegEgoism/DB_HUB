@@ -184,3 +184,73 @@ class DBSchemaService:
             size /= 1024.0
             i += 1
         return f"{size:.1f} {units[i]}"
+
+    async def get_temporary_tables(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None, ) -> Dict[str, Any]:
+        connection = await self._get_connection(connection_id)
+        base_query = """
+        SELECT
+            c.relname AS table_name,
+            pg_catalog.pg_get_userbyid(c.relowner) AS owner,
+            pg_catalog.obj_description(c.oid, 'pg_class') AS description,
+            c.reltuples::bigint AS row_count,
+            pg_total_relation_size(c.oid) AS size_bytes
+        FROM pg_catalog.pg_class c
+        WHERE c.relpersistence = 't'  -- temporary tables
+          AND c.relkind = 'r'         -- regular table (not view etc.)
+        """
+        params = []
+        where_conditions = []
+        if search and search.strip():
+            search_term = f"%{search.strip().lower()}%"
+            where_conditions.append("""
+                (LOWER(c.relname) LIKE $1 OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $1)
+            """)
+            params.append(search_term)
+        if where_conditions:
+            base_query += " AND " + " AND ".join(where_conditions)
+        total_query = """
+        SELECT COUNT(*) AS total
+        FROM pg_catalog.pg_class c
+        WHERE c.relpersistence = 't' AND c.relkind = 'r'
+        """
+        total_rows = await self._execute_query(connection, total_query)
+        total_all = total_rows[0]["total"] if total_rows else 0
+        count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
+        count_rows = await self._execute_query(connection, count_query, *params)
+        total_filtered = count_rows[0]["total"] if count_rows else 0
+        offset = (page - 1) * size
+        paginated_query = f"""
+        {base_query}
+        ORDER BY c.relname
+        LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
+        """
+        paginated_params = params + [size, offset]
+        table_rows = await self._execute_query(connection, paginated_query, *paginated_params)
+        tables = []
+        for tr in table_rows:
+            row_count = max(0, int(tr["row_count"])) if tr["row_count"] is not None else 0
+            size_bytes = tr["size_bytes"] or 0
+            size_pretty = self._human_readable_size(size_bytes)
+            tables.append({
+                "table_name": tr["table_name"],
+                "owner": tr["owner"],
+                "description": tr["description"],
+                "row_count": row_count,
+                "size_bytes": size_bytes,
+                "size_pretty": size_pretty,
+            })
+        pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+        has_next = page < pages
+        has_prev = page > 1
+        return {
+            "connection_id": connection.id,
+            "connection_name": connection.name,
+            "total_temp_tables": total_all,
+            "total_filtered_temp_tables": total_filtered,
+            "page": page,
+            "size": size,
+            "pages": pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
+            "temporary_tables": tables,
+        }

@@ -9,7 +9,7 @@ class TableInfo(BaseModel):
     description: Optional[str] = None
     row_count: int = Field(..., description="Оценка количества строк (pg_class.reltuples)")
     size_bytes: int = Field(..., description="Размер таблицы в байтах (pg_total_relation_size)")
-    size_pretty: str = Field(..., description="Человекочитаемый размер, например: '2.5 MB'")
+    size_pretty: str = Field(..., description="Человекочитаемый размер MB")
 
 
 class SchemaInfo(BaseModel):
@@ -29,4 +29,18 @@ class PaginatedSchemasWithTablesResponse(BaseModel):
     has_next: bool
     has_prev: bool
     schemas: List[SchemaInfo]
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedTemporaryTablesResponse(BaseModel):
+    connection_id: int
+    connection_name: str
+    total_temp_tables: int
+    total_filtered_temp_tables: int
+    page: int
+    size: int
+    pages: int
+    has_next: bool
+    has_prev: bool
+    temporary_tables: List[TableInfo]
     model_config = ConfigDict(from_attributes=True)
