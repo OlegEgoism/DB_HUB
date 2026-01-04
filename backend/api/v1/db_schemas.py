@@ -16,7 +16,7 @@ from backend.schemas.db_schema_schemas import (
     SchemaPrivilegesUpdateRequest,
     SchemaPrivilegesGroupsUpdateResponse,
     SchemaPrivilegesGroupsUpdateRequest,
-    TablePrivilegesLimitedResponse, PaginatedSchemaPrivilegesResponse, PaginatedSchemaPrivilegesGroupsResponse
+    TablePrivilegesLimitedResponse, PaginatedSchemaPrivilegesResponse, PaginatedSchemaPrivilegesGroupsResponse, PaginatedSchemaPrivilegesUsersResponse
 )
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
@@ -136,13 +136,13 @@ async def get_indexes(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении индексов: {str(e)}")
 
 
-@router.get("/connection/{connection_id}/schema_privileges_users", response_model=PaginatedSchemaPrivilegesResponse)
+@router.get("/connection/{connection_id}/schema_privileges_users", response_model=PaginatedSchemaPrivilegesUsersResponse)
 async def get_schema_privileges_for_users(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
-        search: str = Query(None, description="Поиск по schema_name, description или имени роли (role)"),
+        search: str = Query(None, description="Поиск по schema_name, description, owner или имени роли (role)"),
 ):
     try:
         service = DBSchemaService(db)
@@ -177,9 +177,8 @@ async def get_schema_privileges_for_groups(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
-        search: str = Query(None, description="Поиск по schema_name, description или имени группы (role)"),
+        search: str = Query(None, description="Поиск по schema_name, description, owner или имени группы (role)"),
 ):
-    """Получить права доступа **только групп** к схемам: CREATE и USAGE с поддержкой поиска и пагинации."""
     try:
         service = DBSchemaService(db)
         result = await service.get_schema_privileges_for_groups(connection_id=connection_id, page=page, size=size, search=search)

@@ -622,24 +622,19 @@ class DBSchemaService:
                 ]
             }
             all_entries.append(schema_entry)
-        filtered_entries = []
         search_term = search.strip().lower() if search and search.strip() else None
+        filtered_entries = []
         if not search_term:
             filtered_entries = all_entries
         else:
             for entry in all_entries:
-                schema_match = (
+                matches = (
                         search_term in entry["schema_name"].lower() or
-                        (entry["description"] and search_term in entry["description"].lower())
+                        (entry["description"] and search_term in entry["description"].lower()) or
+                        search_term in entry["owner"].lower() or
+                        any(search_term in rp["role"].lower() for rp in entry["role_privileges"])
                 )
-                if schema_match:
-                    filtered_entries.append(entry)
-                    continue
-                role_match = any(
-                    search_term in rp["role"].lower()
-                    for rp in entry["role_privileges"]
-                )
-                if role_match:
+                if matches:
                     filtered_entries.append(entry)
         total_schemas = len(all_entries)
         total_filtered = len(filtered_entries)
@@ -690,7 +685,13 @@ class DBSchemaService:
                 await self._execute_query(connection, f'REVOKE CREATE ON SCHEMA "{schema_name}" FROM "{username}";')
         return updated_users
 
-    async def get_schema_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def get_schema_privileges_for_groups(
+            self,
+            connection_id: int,
+            page: int = 1,
+            size: int = 20,
+            search: Optional[str] = None
+    ) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false;"
         group_rows = await self._execute_query(connection, groups_query)
@@ -759,18 +760,13 @@ class DBSchemaService:
             filtered_entries = all_entries
         else:
             for entry in all_entries:
-                schema_match = (
+                matches = (
                         search_term in entry["schema_name"].lower() or
-                        (entry["description"] and search_term in entry["description"].lower())
+                        (entry["description"] and search_term in entry["description"].lower()) or
+                        search_term in entry["owner"].lower() or
+                        any(search_term in rp["role"].lower() for rp in entry["role_privileges"])
                 )
-                if schema_match:
-                    filtered_entries.append(entry)
-                    continue
-                role_match = any(
-                    search_term in rp["role"].lower()
-                    for rp in entry["role_privileges"]
-                )
-                if role_match:
+                if matches:
                     filtered_entries.append(entry)
         total_schemas = len(all_entries)
         total_filtered = len(filtered_entries)
