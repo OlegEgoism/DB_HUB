@@ -277,3 +277,49 @@ class TablePrivilegesUpdateRequest(BaseModel):
 class TablePrivilegesUpdateResponse(BaseModel):
     message: str
     updated_users: List[str]
+
+
+class TableGroupPrivilege(BaseModel):
+    group: str
+    select: bool
+    insert: bool
+    update: bool
+    delete: bool
+    truncate: bool
+
+class TablePrivilegeGroupInfo(BaseModel):
+    schema_name: str
+    table_name: str
+    owner: str
+    group_privileges: List[TableGroupPrivilege]
+
+class PaginatedTablePrivilegesGroupsResponse(BaseModel):
+    connection_id: int
+    connection_name: str
+    total_tables: int
+    total_filtered_tables: int
+    page: int
+    size: int
+    pages: int
+    has_next: bool
+    has_prev: bool
+    table_privileges: List[TablePrivilegeGroupInfo]
+
+    model_config = ConfigDict(from_attributes=True)
+
+class TableGroupPrivilegeUpdateItem(BaseModel):
+    groupname: str
+    select: bool
+    insert: bool
+    update: bool
+    delete: bool
+    truncate: bool
+
+class TablePrivilegesGroupsUpdateRequest(BaseModel):
+    schema_name: str
+    table_name: str
+    groups: List[TableGroupPrivilegeUpdateItem]
+
+class TablePrivilegesGroupsUpdateResponse(BaseModel):
+    message: str
+    updated_groups: List[str]

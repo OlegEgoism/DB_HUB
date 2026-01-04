@@ -254,3 +254,63 @@ async def update_table_privileges_for_users(connection_id: int, request: TablePr
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав: {str(e)}")
+
+
+from backend.schemas.db_schema_schemas import (
+    PaginatedTablePrivilegesGroupsResponse,
+    TablePrivilegesGroupsUpdateRequest,
+    TablePrivilegesGroupsUpdateResponse
+)
+
+@router.get("/connection/{connection_id}/table_privileges_groups", response_model=PaginatedTablePrivilegesGroupsResponse)
+async def get_table_privileges_for_groups(
+    connection_id: int,
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
+    search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени группы (group)"),
+):
+    """Получить права доступа групп к таблицам с поддержкой поиска и пагинации."""
+    try:
+        service = DBSchemaService(db)
+        result = await service.get_table_privileges_for_groups(connection_id=connection_id, page=page, size=size, search=search)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий групп: {str(e)}")
+
+
+@router.post("/connection/{connection_id}/table_privileges_groups", response_model=TablePrivilegesGroupsUpdateResponse)
+async def update_table_privileges_for_groups(
+    connection_id: int,
+    request: TablePrivilegesGroupsUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Обновить права SELECT/INSERT/UPDATE/DELETE/TRUNCATE на таблицу для указанных групп"""
+    try:
+        service = DBSchemaService(db)
+        updated = await service.update_table_privileges_for_groups(
+            connection_id=connection_id,
+            schema_name=request.schema_name,
+            table_name=request.table_name,
+            group_privileges=[
+                {
+                    "groupname": g.groupname,
+                    "select": g.select,
+                    "insert": g.insert,
+                    "update": g.update,
+                    "delete": g.delete,
+                    "truncate": g.truncate,
+                }
+                for g in request.groups
+            ],
+        )
+        return TablePrivilegesGroupsUpdateResponse(
+            message="Права групп на таблицу успешно обновлены",
+            updated_groups=updated
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав групп: {str(e)}")
