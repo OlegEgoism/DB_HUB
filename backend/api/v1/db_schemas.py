@@ -206,12 +206,21 @@ async def update_schema_privileges_for_groups(connection_id: int, request: Schem
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав для групп: {str(e)}")
 
 
-@router.get("/connection/{connection_id}/table_privileges_users", response_model=TablePrivilegesLimitedResponse)
-async def get_table_privileges_for_users(connection_id: int, db: AsyncSession = Depends(get_db)):
-    """Получить права доступа пользователей к таблицам (только: SELECT, INSERT, UPDATE, DELETE, TRUNCATE)"""
+from backend.schemas.db_schema_schemas import PaginatedTablePrivilegesUsersResponse
+
+
+@router.get("/connection/{connection_id}/table_privileges_users", response_model=PaginatedTablePrivilegesUsersResponse)
+async def get_table_privileges_for_users(
+        connection_id: int,
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1, description="Номер страницы"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
+        search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени пользователя (user)"),
+):
+    """Получить права доступа пользователей к таблицам с поддержкой поиска и пагинации."""
     try:
         service = DBSchemaService(db)
-        result = await service.get_table_privileges_for_users(connection_id=connection_id)
+        result = await service.get_table_privileges_for_users(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

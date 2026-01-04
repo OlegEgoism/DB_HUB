@@ -246,3 +246,17 @@ class PaginatedSchemaPrivilegesGroupsResponse(BaseModel):
     has_prev: bool
     schema_privileges: List[SchemaPrivilegeInfo]
     model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedTablePrivilegesUsersResponse(BaseModel):
+    connection_id: int
+    connection_name: str
+    total_tables: int
+    total_filtered_tables: int
+    page: int
+    size: int
+    pages: int
+    has_next: bool
+    has_prev: bool
+    table_privileges: List[TablePrivilegeInfo]
+    model_config = ConfigDict(from_attributes=True)

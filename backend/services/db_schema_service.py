@@ -817,8 +817,7 @@ class DBSchemaService:
                 await self._execute_query(connection, f'REVOKE CREATE ON SCHEMA "{schema_name}" FROM "{groupname}";')
         return updated_groups
 
-    async def get_table_privileges_for_users(self, connection_id: int) -> Dict[str, Any]:
-        """Получить права доступа **только пользователей (login-ролей)** к таблицам: SELECT, INSERT, UPDATE, DELETE, TRUNCATE"""
+    async def get_table_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true;"
         user_rows = await self._execute_query(connection, users_query)
@@ -865,23 +864,17 @@ class DBSchemaService:
             table_oid = row["table_oid"]
             grantee_oid = row["grantee_oid"]
             privilege = row["privilege_type"]
-            if grantee_oid not in user_oids:
-                continue
-            if privilege not in target_privileges:
+            if grantee_oid not in user_oids or privilege not in target_privileges:
                 continue
             username = oid_to_rolname[grantee_oid]
             if username not in table_info[table_oid]["privileges"]:
                 table_info[table_oid]["privileges"][username] = {
-                    "SELECT": False,
-                    "INSERT": False,
-                    "UPDATE": False,
-                    "DELETE": False,
-                    "TRUNCATE": False,
+                    "SELECT": False, "INSERT": False, "UPDATE": False, "DELETE": False, "TRUNCATE": False
                 }
             table_info[table_oid]["privileges"][username][privilege] = True
-        result = []
+        all_entries = []
         for info in table_info.values():
-            table_entry = {
+            entry = {
                 "schema_name": info["schema_name"],
                 "table_name": info["table_name"],
                 "owner": info["owner"],
@@ -897,9 +890,38 @@ class DBSchemaService:
                     for user, priv in info["privileges"].items()
                 ]
             }
-            result.append(table_entry)
+            all_entries.append(entry)
+        search_term = search.strip().lower() if search and search.strip() else None
+        filtered_entries = []
+        if not search_term:
+            filtered_entries = all_entries
+        else:
+            for entry in all_entries:
+                matches = (
+                        search_term in entry["schema_name"].lower() or
+                        search_term in entry["table_name"].lower() or
+                        search_term in entry["owner"].lower() or
+                        any(search_term in up["user"].lower() for up in entry["user_privileges"])
+                )
+                if matches:
+                    filtered_entries.append(entry)
+        total_tables = len(all_entries)
+        total_filtered = len(filtered_entries)
+        start = (page - 1) * size
+        end = start + size
+        paginated = filtered_entries[start:end]
+        pages = (total_filtered + size - 1) // size if size > 0 else 1
+        has_next = page < pages
+        has_prev = page > 1
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
-            "table_privileges": result
+            "total_tables": total_tables,
+            "total_filtered_tables": total_filtered,
+            "page": page,
+            "size": size,
+            "pages": pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
+            "table_privileges": paginated,
         }
