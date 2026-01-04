@@ -16,7 +16,7 @@ from backend.schemas.db_schema_schemas import (
     SchemaPrivilegesUpdateRequest,
     SchemaPrivilegesGroupsUpdateResponse,
     SchemaPrivilegesGroupsUpdateRequest,
-    TablePrivilegesLimitedResponse
+    TablePrivilegesLimitedResponse, PaginatedSchemaPrivilegesResponse
 )
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
@@ -136,11 +136,17 @@ async def get_indexes(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении индексов: {str(e)}")
 
 
-@router.get("/connection/{connection_id}/schema_privileges_users", response_model=SchemaPrivilegesResponse)
-async def get_schema_privileges_for_users(connection_id: int, db: AsyncSession = Depends(get_db), ):
+@router.get("/connection/{connection_id}/schema_privileges_users", response_model=PaginatedSchemaPrivilegesResponse)
+async def get_schema_privileges_for_users(
+        connection_id: int,
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1, description="Номер страницы"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
+        search: str = Query(None, description="Поиск по schema_name, description или имени роли (role)"),
+):
     try:
         service = DBSchemaService(db)
-        result = await service.get_schema_privileges_for_users(connection_id=connection_id)
+        result = await service.get_schema_privileges_for_users(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -206,5 +212,3 @@ async def get_table_privileges_for_users(connection_id: int, db: AsyncSession = 
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий таблиц: {str(e)}")
-
-
