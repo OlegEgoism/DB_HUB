@@ -260,3 +260,20 @@ class PaginatedTablePrivilegesUsersResponse(BaseModel):
     has_prev: bool
     table_privileges: List[TablePrivilegeInfo]
     model_config = ConfigDict(from_attributes=True)
+
+class TablePrivilegeUpdateItem(BaseModel):
+    username: str
+    select: bool
+    insert: bool
+    update: bool
+    delete: bool
+    truncate: bool
+
+class TablePrivilegesUpdateRequest(BaseModel):
+    schema_name: str
+    table_name: str
+    users: List[TablePrivilegeUpdateItem]
+
+class TablePrivilegesUpdateResponse(BaseModel):
+    message: str
+    updated_users: List[str]

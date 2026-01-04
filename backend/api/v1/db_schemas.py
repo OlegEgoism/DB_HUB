@@ -16,7 +16,7 @@ from backend.schemas.db_schema_schemas import (
     SchemaPrivilegesUpdateRequest,
     SchemaPrivilegesGroupsUpdateResponse,
     SchemaPrivilegesGroupsUpdateRequest,
-    TablePrivilegesLimitedResponse, PaginatedSchemaPrivilegesResponse, PaginatedSchemaPrivilegesGroupsResponse, PaginatedSchemaPrivilegesUsersResponse
+    TablePrivilegesLimitedResponse, PaginatedSchemaPrivilegesResponse, PaginatedSchemaPrivilegesGroupsResponse, PaginatedSchemaPrivilegesUsersResponse, TablePrivilegesUpdateResponse, TablePrivilegesUpdateRequest
 )
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
@@ -226,3 +226,31 @@ async def get_table_privileges_for_users(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий таблиц: {str(e)}")
+
+
+@router.post("/connection/{connection_id}/table_privileges_users", response_model=TablePrivilegesUpdateResponse)
+async def update_table_privileges_for_users(connection_id: int, request: TablePrivilegesUpdateRequest, db: AsyncSession = Depends(get_db), ):
+    """Обновить права SELECT/INSERT/UPDATE/DELETE/TRUNCATE на таблицу для указанных пользователей"""
+    try:
+        service = DBSchemaService(db)
+        updated = await service.update_table_privileges_for_users(
+            connection_id=connection_id,
+            schema_name=request.schema_name,
+            table_name=request.table_name,
+            user_privileges=[
+                {
+                    "username": u.username,
+                    "select": u.select,
+                    "insert": u.insert,
+                    "update": u.update,
+                    "delete": u.delete,
+                    "truncate": u.truncate,
+                }
+                for u in request.users
+            ],
+        )
+        return TablePrivilegesUpdateResponse(message="Права на таблицу успешно обновлены", updated_users=updated)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав: {str(e)}")

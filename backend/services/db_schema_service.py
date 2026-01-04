@@ -925,3 +925,49 @@ class DBSchemaService:
             "has_prev": has_prev,
             "table_privileges": paginated,
         }
+
+    async def update_table_privileges_for_users(self, connection_id: int, schema_name: str, table_name: str, user_privileges: List[Dict[str, Any]], ) -> List[str]:
+        """Обновляет права SELECT, INSERT, UPDATE, DELETE, TRUNCATE на таблицу для указанных пользователей."""
+        connection = await self._get_connection(connection_id)
+        exists = await self._execute_query(connection, "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'r';", schema_name, table_name)
+        if not exists:
+            raise ValueError(f"Таблица '{table_name}' в схеме '{schema_name}' не существует.")
+        users_query = "SELECT rolname FROM pg_roles WHERE rolcanlogin = true;"
+        valid_users = {row["rolname"] for row in await self._execute_query(connection, users_query)}
+        updated_users = []
+        for item in user_privileges:
+            username = item["username"]
+            if username not in valid_users:
+                raise ValueError(f"Пользователь '{username}' не существует или не является логин-ролью.")
+            updated_users.append(username)
+            if '"' in schema_name or '"' in table_name or '"' in username:
+                raise ValueError("Имена схемы, таблицы или пользователя не должны содержать кавычки")
+            target_privileges = ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"]
+            current_privs = set()
+            acl_rows = await self._execute_query(
+                connection,
+                """
+                SELECT (aclexplode(relacl)).grantee AS grantee_oid,
+                       (aclexplode(relacl)).privilege_type
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'r';
+                """,
+                schema_name,
+                table_name
+            )
+            user_oid = await self._execute_query(connection, "SELECT oid FROM pg_roles WHERE rolname = $1", username)
+            if not user_oid:
+                continue
+            user_oid = user_oid[0]["oid"]
+            for row in acl_rows:
+                if row["grantee_oid"] == user_oid:
+                    current_privs.add(row["privilege_type"])
+            for priv in target_privileges:
+                desired = item[priv.lower()]
+                current = priv in current_privs
+                if desired and not current:
+                    await self._execute_query(connection, f'GRANT {priv} ON TABLE "{schema_name}"."{table_name}" TO "{username}";')
+                elif not desired and current:
+                    await self._execute_query(connection, f'REVOKE {priv} ON TABLE "{schema_name}"."{table_name}" FROM "{username}";')
+        return updated_users
