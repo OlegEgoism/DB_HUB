@@ -9,7 +9,7 @@ from backend.schemas.db_schema_schemas import (
     PaginatedSchemasWithTablesResponse,
     PaginatedTemporaryTablesResponse,
     PaginatedViewsResponse,
-    PaginatedMaterializedViewsResponse, PaginatedFunctionsResponse, PaginatedIndexesResponse
+    PaginatedMaterializedViewsResponse, PaginatedFunctionsResponse, PaginatedIndexesResponse, SchemaPrivilegesResponse, SchemaPrivilegesUpdateResponse, SchemaPrivilegesUpdateRequest, SchemaPrivilegesGroupsUpdateResponse, SchemaPrivilegesGroupsUpdateRequest
 )
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
@@ -127,3 +127,62 @@ async def get_indexes(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении индексов: {str(e)}")
+
+
+@router.get("/connection/{connection_id}/schema_privileges_users", response_model=SchemaPrivilegesResponse)
+async def get_schema_privileges_for_users(connection_id: int, db: AsyncSession = Depends(get_db), ):
+    try:
+        service = DBSchemaService(db)
+        result = await service.get_schema_privileges_for_users(connection_id=connection_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий схем: {str(e)}")
+
+
+@router.post("/connection/{connection_id}/schema_privileges_users", response_model=SchemaPrivilegesUpdateResponse, status_code=status.HTTP_200_OK)
+async def update_schema_privileges_for_users(connection_id: int, request: SchemaPrivilegesUpdateRequest, db: AsyncSession = Depends(get_db), ):
+    """Обновить права CREATE и USAGE на схему для указанных пользователей"""
+    try:
+        service = DBSchemaService(db)
+        updated = await service.update_schema_privileges_for_users(
+            connection_id=connection_id,
+            schema_name=request.schema_name,
+            user_privileges=[{"username": u.username, "create": u.create, "usage": u.usage} for u in request.users],
+        )
+        return SchemaPrivilegesUpdateResponse(message="Права успешно обновлены", updated_users=updated)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав: {str(e)}")
+
+
+@router.get("/connection/{connection_id}/schema_privileges_groups", response_model=SchemaPrivilegesResponse)
+async def get_schema_privileges_for_groups(connection_id: int, db: AsyncSession = Depends(get_db), ):
+    """Получить права доступа **только групп** к схемам: CREATE и USAGE."""
+    try:
+        service = DBSchemaService(db)
+        result = await service.get_schema_privileges_for_groups(connection_id=connection_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении привилегий групп: {str(e)}")
+
+
+@router.post("/connection/{connection_id}/schema_privileges_groups", response_model=SchemaPrivilegesGroupsUpdateResponse, status_code=status.HTTP_200_OK)
+async def update_schema_privileges_for_groups(connection_id: int, request: SchemaPrivilegesGroupsUpdateRequest, db: AsyncSession = Depends(get_db), ):
+    """Обновить права CREATE и USAGE на схему для указанных групп"""
+    try:
+        service = DBSchemaService(db)
+        updated = await service.update_schema_privileges_for_groups(
+            connection_id=connection_id,
+            schema_name=request.schema_name,
+            group_privileges=[{"groupname": g.groupname, "create": g.create, "usage": g.usage} for g in request.groups],
+        )
+        return SchemaPrivilegesGroupsUpdateResponse(message="Права для групп успешно обновлены", updated_groups=updated)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав для групп: {str(e)}")

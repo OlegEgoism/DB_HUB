@@ -553,3 +553,199 @@ class DBSchemaService:
             "indexes": indexes,
         }
 
+    async def get_schema_privileges_for_users(self, connection_id: int) -> Dict[str, Any]:
+        """Получить права доступа **только пользователей** (не групп) к схемам: CREATE и USAGE"""
+        connection = await self._get_connection(connection_id)
+        users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true;"
+        user_rows = await self._execute_query(connection, users_query)
+        user_oids = {row["oid"] for row in user_rows}
+        oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
+        all_schemas_query = """
+        SELECT
+            nspname AS schema_name,
+            pg_get_userbyid(nspowner) AS owner,
+            pg_catalog.obj_description(oid, 'pg_namespace') AS description
+        FROM pg_catalog.pg_namespace
+        WHERE nspname NOT LIKE 'pg_%'
+          AND nspname != 'information_schema'
+        ORDER BY nspname;
+        """
+        all_schemas_rows = await self._execute_query(connection, all_schemas_query)
+        all_schemas = {
+            row["schema_name"]: {
+                "owner": row["owner"],
+                "description": row["description"],
+                "privileges": {}
+            }
+            for row in all_schemas_rows
+        }
+        privileges_query = """
+        SELECT
+            nspname AS schema_name,
+            (aclexplode(nspacl)).grantee AS grantee_oid,
+            (aclexplode(nspacl)).privilege_type
+        FROM pg_catalog.pg_namespace
+        WHERE nspname NOT LIKE 'pg_%'
+          AND nspname != 'information_schema'
+          AND nspacl IS NOT NULL;
+        """
+        privilege_rows = await self._execute_query(connection, privileges_query)
+        for row in privilege_rows:
+            schema = row["schema_name"]
+            grantee_oid = row["grantee_oid"]
+            privilege = row["privilege_type"]
+            if grantee_oid not in user_oids:
+                continue
+            rolname = oid_to_rolname[grantee_oid]
+            if rolname not in all_schemas[schema]["privileges"]:
+                all_schemas[schema]["privileges"][rolname] = {"CREATE": False, "USAGE": False}
+            if privilege in ("CREATE", "USAGE"):
+                all_schemas[schema]["privileges"][rolname][privilege] = True
+        result = []
+        for name, info in all_schemas.items():
+            schema_entry = {
+                "schema_name": name,
+                "owner": info["owner"],
+                "description": info["description"],
+                "role_privileges": [
+                    {
+                        "role": role,
+                        "create": priv["CREATE"],
+                        "usage": priv["USAGE"]
+                    }
+                    for role, priv in info["privileges"].items()
+                ]
+            }
+            result.append(schema_entry)
+
+        return {
+            "connection_id": connection.id,
+            "connection_name": connection.name,
+            "schema_privileges": result
+        }
+
+    async def update_schema_privileges_for_users(self, connection_id: int, schema_name: str, user_privileges: List[Dict[str, Any]], ) -> List[str]:
+        connection = await self._get_connection(connection_id)
+        check_schema_query = "SELECT 1 FROM pg_namespace WHERE nspname = $1;"
+        exists = await self._execute_query(connection, check_schema_query, schema_name)
+        if not exists:
+            raise ValueError(f"Схема '{schema_name}' не существует.")
+        users_query = "SELECT rolname FROM pg_roles WHERE rolcanlogin = true;"
+        valid_users = {row["rolname"] for row in await self._execute_query(connection, users_query)}
+        updated_users = []
+        for item in user_privileges:
+            username = item["username"]
+            create = item["create"]
+            usage = item["usage"]
+            if username not in valid_users:
+                raise ValueError(f"Пользователь '{username}' не существует или не является логин-ролью.")
+            updated_users.append(username)
+            if '"' in schema_name or '"' in username:
+                raise ValueError("Имя схемы или пользователя не должно содержать кавычки")
+            if usage:
+                await self._execute_query(connection, f'GRANT USAGE ON SCHEMA "{schema_name}" TO "{username}";')
+            else:
+                await self._execute_query(connection, f'REVOKE USAGE ON SCHEMA "{schema_name}" FROM "{username}";')
+            if create:
+                await self._execute_query(connection, f'GRANT CREATE ON SCHEMA "{schema_name}" TO "{username}";')
+            else:
+                await self._execute_query(connection, f'REVOKE CREATE ON SCHEMA "{schema_name}" FROM "{username}";')
+        return updated_users
+
+    async def get_schema_privileges_for_groups(self, connection_id: int) -> Dict[str, Any]:
+        """Получить права доступа **только групп** (не пользователей) к схемам: CREATE и USAGE"""
+        connection = await self._get_connection(connection_id)
+        groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false;"
+        group_rows = await self._execute_query(connection, groups_query)
+        group_oids = {row["oid"] for row in group_rows}
+        oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
+        all_schemas_query = """
+        SELECT
+            nspname AS schema_name,
+            pg_get_userbyid(nspowner) AS owner,
+            pg_catalog.obj_description(oid, 'pg_namespace') AS description
+        FROM pg_catalog.pg_namespace
+        WHERE nspname NOT LIKE 'pg_%'
+          AND nspname != 'information_schema'
+        ORDER BY nspname;
+        """
+        all_schemas_rows = await self._execute_query(connection, all_schemas_query)
+        all_schemas = {
+            row["schema_name"]: {
+                "owner": row["owner"],
+                "description": row["description"],
+                "privileges": {}
+            }
+            for row in all_schemas_rows
+        }
+        privileges_query = """
+        SELECT
+            nspname AS schema_name,
+            (aclexplode(nspacl)).grantee AS grantee_oid,
+            (aclexplode(nspacl)).privilege_type
+        FROM pg_catalog.pg_namespace
+        WHERE nspname NOT LIKE 'pg_%'
+          AND nspname != 'information_schema'
+          AND nspacl IS NOT NULL;
+        """
+        privilege_rows = await self._execute_query(connection, privileges_query)
+        for row in privilege_rows:
+            schema = row["schema_name"]
+            grantee_oid = row["grantee_oid"]
+            privilege = row["privilege_type"]
+            if grantee_oid not in group_oids:
+                continue
+            rolname = oid_to_rolname[grantee_oid]
+            if rolname not in all_schemas[schema]["privileges"]:
+                all_schemas[schema]["privileges"][rolname] = {"CREATE": False, "USAGE": False}
+            if privilege in ("CREATE", "USAGE"):
+                all_schemas[schema]["privileges"][rolname][privilege] = True
+        result = []
+        for name, info in all_schemas.items():
+            schema_entry = {
+                "schema_name": name,
+                "owner": info["owner"],
+                "description": info["description"],
+                "role_privileges": [
+                    {
+                        "role": role,
+                        "create": priv["CREATE"],
+                        "usage": priv["USAGE"]
+                    }
+                    for role, priv in info["privileges"].items()
+                ]
+            }
+            result.append(schema_entry)
+        return {
+            "connection_id": connection.id,
+            "connection_name": connection.name,
+            "schema_privileges": result
+        }
+
+    async def update_schema_privileges_for_groups(self, connection_id: int, schema_name: str, group_privileges: List[Dict[str, Any]], ) -> List[str]:
+        """Обновить права CREATE/USAGE на схему для групп"""
+        connection = await self._get_connection(connection_id)
+        exists = await self._execute_query(connection, "SELECT 1 FROM pg_namespace WHERE nspname = $1", schema_name)
+        if not exists:
+            raise ValueError(f"Схема '{schema_name}' не существует.")
+        groups_query = "SELECT rolname FROM pg_roles WHERE rolcanlogin = false;"
+        valid_groups = {row["rolname"] for row in await self._execute_query(connection, groups_query)}
+        updated_groups = []
+        for item in group_privileges:
+            groupname = item["groupname"]
+            create = item["create"]
+            usage = item["usage"]
+            if groupname not in valid_groups:
+                raise ValueError(f"Группа '{groupname}' не существует или не является группой (ожидается rolcanlogin = false).")
+            updated_groups.append(groupname)
+            if '"' in schema_name or '"' in groupname:
+                raise ValueError("Имя схемы или группы не должно содержать кавычки")
+            if usage:
+                await self._execute_query(connection, f'GRANT USAGE ON SCHEMA "{schema_name}" TO "{groupname}";')
+            else:
+                await self._execute_query(connection, f'REVOKE USAGE ON SCHEMA "{schema_name}" FROM "{groupname}";')
+            if create:
+                await self._execute_query(connection, f'GRANT CREATE ON SCHEMA "{schema_name}" TO "{groupname}";')
+            else:
+                await self._execute_query(connection, f'REVOKE CREATE ON SCHEMA "{schema_name}" FROM "{groupname}";')
+        return updated_groups
