@@ -749,3 +749,90 @@ class DBSchemaService:
             else:
                 await self._execute_query(connection, f'REVOKE CREATE ON SCHEMA "{schema_name}" FROM "{groupname}";')
         return updated_groups
+
+    async def get_table_privileges_for_users(self, connection_id: int) -> Dict[str, Any]:
+        """Получить права доступа **только пользователей (login-ролей)** к таблицам: SELECT, INSERT, UPDATE, DELETE, TRUNCATE"""
+        connection = await self._get_connection(connection_id)
+        users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true;"
+        user_rows = await self._execute_query(connection, users_query)
+        user_oids = {row["oid"] for row in user_rows}
+        oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
+        tables_query = """
+        SELECT
+            n.nspname AS schema_name,
+            c.relname AS table_name,
+            c.oid AS table_oid,
+            pg_get_userbyid(c.relowner) AS owner
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r'
+          AND n.nspname NOT LIKE 'pg_%'
+          AND n.nspname != 'information_schema'
+        ORDER BY n.nspname, c.relname;
+        """
+        table_rows = await self._execute_query(connection, tables_query)
+        table_info = {
+            row["table_oid"]: {
+                "schema_name": row["schema_name"],
+                "table_name": row["table_name"],
+                "owner": row["owner"],
+                "privileges": {}
+            }
+            for row in table_rows
+        }
+        acl_query = """
+        SELECT
+            c.oid AS table_oid,
+            (aclexplode(c.relacl)).grantee AS grantee_oid,
+            (aclexplode(c.relacl)).privilege_type
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r'
+          AND n.nspname NOT LIKE 'pg_%'
+          AND n.nspname != 'information_schema'
+          AND c.relacl IS NOT NULL;
+        """
+        acl_rows = await self._execute_query(connection, acl_query)
+        target_privileges = {"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"}
+        for row in acl_rows:
+            table_oid = row["table_oid"]
+            grantee_oid = row["grantee_oid"]
+            privilege = row["privilege_type"]
+            if grantee_oid not in user_oids:
+                continue
+            if privilege not in target_privileges:
+                continue
+            username = oid_to_rolname[grantee_oid]
+            if username not in table_info[table_oid]["privileges"]:
+                table_info[table_oid]["privileges"][username] = {
+                    "SELECT": False,
+                    "INSERT": False,
+                    "UPDATE": False,
+                    "DELETE": False,
+                    "TRUNCATE": False,
+                }
+            table_info[table_oid]["privileges"][username][privilege] = True
+        result = []
+        for info in table_info.values():
+            table_entry = {
+                "schema_name": info["schema_name"],
+                "table_name": info["table_name"],
+                "owner": info["owner"],
+                "user_privileges": [
+                    {
+                        "user": user,
+                        "select": priv["SELECT"],
+                        "insert": priv["INSERT"],
+                        "update": priv["UPDATE"],
+                        "delete": priv["DELETE"],
+                        "truncate": priv["TRUNCATE"],
+                    }
+                    for user, priv in info["privileges"].items()
+                ]
+            }
+            result.append(table_entry)
+        return {
+            "connection_id": connection.id,
+            "connection_name": connection.name,
+            "table_privileges": result
+        }

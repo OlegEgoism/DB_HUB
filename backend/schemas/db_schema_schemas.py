@@ -181,3 +181,26 @@ class SchemaPrivilegesGroupsUpdateRequest(BaseModel):
 class SchemaPrivilegesGroupsUpdateResponse(BaseModel):
     message: str
     updated_groups: List[str]
+
+
+class TableUserPrivilege(BaseModel):
+    user: str
+    select: bool
+    insert: bool
+    update: bool
+    delete: bool
+    truncate: bool
+
+
+class TablePrivilegeInfo(BaseModel):
+    schema_name: str
+    table_name: str
+    owner: str
+    user_privileges: List[TableUserPrivilege]
+
+
+class TablePrivilegesLimitedResponse(BaseModel):
+    connection_id: int
+    connection_name: str
+    table_privileges: List[TablePrivilegeInfo]
+    model_config = ConfigDict(from_attributes=True)

@@ -1,6 +1,5 @@
 # backend/api/v1/db_schemas.py
 import math
-
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
@@ -9,7 +8,15 @@ from backend.schemas.db_schema_schemas import (
     PaginatedSchemasWithTablesResponse,
     PaginatedTemporaryTablesResponse,
     PaginatedViewsResponse,
-    PaginatedMaterializedViewsResponse, PaginatedFunctionsResponse, PaginatedIndexesResponse, SchemaPrivilegesResponse, SchemaPrivilegesUpdateResponse, SchemaPrivilegesUpdateRequest, SchemaPrivilegesGroupsUpdateResponse, SchemaPrivilegesGroupsUpdateRequest
+    PaginatedMaterializedViewsResponse,
+    PaginatedFunctionsResponse,
+    PaginatedIndexesResponse,
+    SchemaPrivilegesResponse,
+    SchemaPrivilegesUpdateResponse,
+    SchemaPrivilegesUpdateRequest,
+    SchemaPrivilegesGroupsUpdateResponse,
+    SchemaPrivilegesGroupsUpdateRequest,
+    TablePrivilegesLimitedResponse
 )
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
@@ -186,3 +193,18 @@ async def update_schema_privileges_for_groups(connection_id: int, request: Schem
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав для групп: {str(e)}")
+
+
+@router.get("/connection/{connection_id}/table_privileges_users", response_model=TablePrivilegesLimitedResponse)
+async def get_table_privileges_for_users(connection_id: int, db: AsyncSession = Depends(get_db)):
+    """Получить права доступа пользователей к таблицам (только: SELECT, INSERT, UPDATE, DELETE, TRUNCATE)"""
+    try:
+        service = DBSchemaService(db)
+        result = await service.get_table_privileges_for_users(connection_id=connection_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий таблиц: {str(e)}")
+
+
