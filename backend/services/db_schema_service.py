@@ -561,13 +561,10 @@ class DBSchemaService:
             search: Optional[str] = None
     ) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
-
-        # Получаем все схемы и привилегии (как раньше)
         users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true;"
         user_rows = await self._execute_query(connection, users_query)
         user_oids = {row["oid"] for row in user_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
-
         all_schemas_query = """
         SELECT
             nspname AS schema_name,
@@ -579,7 +576,6 @@ class DBSchemaService:
         ORDER BY nspname;
         """
         all_schemas_rows = await self._execute_query(connection, all_schemas_query)
-
         all_schemas = {
             row["schema_name"]: {
                 "owner": row["owner"],
@@ -588,8 +584,6 @@ class DBSchemaService:
             }
             for row in all_schemas_rows
         }
-
-        # Получаем привилегии
         privileges_query = """
         SELECT
             nspname AS schema_name,
@@ -612,8 +606,6 @@ class DBSchemaService:
                 all_schemas[schema]["privileges"][rolname] = {"CREATE": False, "USAGE": False}
             if privilege in ("CREATE", "USAGE"):
                 all_schemas[schema]["privileges"][rolname][privilege] = True
-
-        # Преобразуем в список
         all_entries = []
         for name, info in all_schemas.items():
             schema_entry = {
@@ -630,11 +622,8 @@ class DBSchemaService:
                 ]
             }
             all_entries.append(schema_entry)
-
-        # Применяем поиск
         filtered_entries = []
         search_term = search.strip().lower() if search and search.strip() else None
-
         if not search_term:
             filtered_entries = all_entries
         else:
@@ -646,26 +635,20 @@ class DBSchemaService:
                 if schema_match:
                     filtered_entries.append(entry)
                     continue
-
                 role_match = any(
                     search_term in rp["role"].lower()
                     for rp in entry["role_privileges"]
                 )
                 if role_match:
                     filtered_entries.append(entry)
-
         total_schemas = len(all_entries)
         total_filtered = len(filtered_entries)
-
-        # Пагинация
         start = (page - 1) * size
         end = start + size
         paginated = filtered_entries[start:end]
-
         pages = (total_filtered + size - 1) // size if size > 0 else 1
         has_next = page < pages
         has_prev = page > 1
-
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
@@ -707,8 +690,7 @@ class DBSchemaService:
                 await self._execute_query(connection, f'REVOKE CREATE ON SCHEMA "{schema_name}" FROM "{username}";')
         return updated_users
 
-    async def get_schema_privileges_for_groups(self, connection_id: int) -> Dict[str, Any]:
-        """Получить права доступа **только групп** (не пользователей) к схемам: CREATE и USAGE"""
+    async def get_schema_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false;"
         group_rows = await self._execute_query(connection, groups_query)
@@ -755,7 +737,7 @@ class DBSchemaService:
                 all_schemas[schema]["privileges"][rolname] = {"CREATE": False, "USAGE": False}
             if privilege in ("CREATE", "USAGE"):
                 all_schemas[schema]["privileges"][rolname][privilege] = True
-        result = []
+        all_entries = []
         for name, info in all_schemas.items():
             schema_entry = {
                 "schema_name": name,
@@ -770,11 +752,45 @@ class DBSchemaService:
                     for role, priv in info["privileges"].items()
                 ]
             }
-            result.append(schema_entry)
+            all_entries.append(schema_entry)
+        search_term = search.strip().lower() if search and search.strip() else None
+        filtered_entries = []
+        if not search_term:
+            filtered_entries = all_entries
+        else:
+            for entry in all_entries:
+                schema_match = (
+                        search_term in entry["schema_name"].lower() or
+                        (entry["description"] and search_term in entry["description"].lower())
+                )
+                if schema_match:
+                    filtered_entries.append(entry)
+                    continue
+                role_match = any(
+                    search_term in rp["role"].lower()
+                    for rp in entry["role_privileges"]
+                )
+                if role_match:
+                    filtered_entries.append(entry)
+        total_schemas = len(all_entries)
+        total_filtered = len(filtered_entries)
+        start = (page - 1) * size
+        end = start + size
+        paginated = filtered_entries[start:end]
+        pages = (total_filtered + size - 1) // size if size > 0 else 1
+        has_next = page < pages
+        has_prev = page > 1
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
-            "schema_privileges": result
+            "total_schemas": total_schemas,
+            "total_filtered_schemas": total_filtered,
+            "page": page,
+            "size": size,
+            "pages": pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
+            "schema_privileges": paginated,
         }
 
     async def update_schema_privileges_for_groups(self, connection_id: int, schema_name: str, group_privileges: List[Dict[str, Any]], ) -> List[str]:

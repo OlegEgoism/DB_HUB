@@ -16,7 +16,7 @@ from backend.schemas.db_schema_schemas import (
     SchemaPrivilegesUpdateRequest,
     SchemaPrivilegesGroupsUpdateResponse,
     SchemaPrivilegesGroupsUpdateRequest,
-    TablePrivilegesLimitedResponse, PaginatedSchemaPrivilegesResponse
+    TablePrivilegesLimitedResponse, PaginatedSchemaPrivilegesResponse, PaginatedSchemaPrivilegesGroupsResponse
 )
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
@@ -171,17 +171,23 @@ async def update_schema_privileges_for_users(connection_id: int, request: Schema
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав: {str(e)}")
 
 
-@router.get("/connection/{connection_id}/schema_privileges_groups", response_model=SchemaPrivilegesResponse)
-async def get_schema_privileges_for_groups(connection_id: int, db: AsyncSession = Depends(get_db), ):
-    """Получить права доступа **только групп** к схемам: CREATE и USAGE."""
+@router.get("/connection/{connection_id}/schema_privileges_groups", response_model=PaginatedSchemaPrivilegesGroupsResponse)
+async def get_schema_privileges_for_groups(
+        connection_id: int,
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1, description="Номер страницы"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
+        search: str = Query(None, description="Поиск по schema_name, description или имени группы (role)"),
+):
+    """Получить права доступа **только групп** к схемам: CREATE и USAGE с поддержкой поиска и пагинации."""
     try:
         service = DBSchemaService(db)
-        result = await service.get_schema_privileges_for_groups(connection_id=connection_id)
+        result = await service.get_schema_privileges_for_groups(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении привилегий групп: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий групп: {str(e)}")
 
 
 @router.post("/connection/{connection_id}/schema_privileges_groups", response_model=SchemaPrivilegesGroupsUpdateResponse, status_code=status.HTTP_200_OK)
