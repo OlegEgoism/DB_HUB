@@ -553,13 +553,7 @@ class DBSchemaService:
             "indexes": indexes,
         }
 
-    async def get_schema_privileges_for_users(
-            self,
-            connection_id: int,
-            page: int = 1,
-            size: int = 20,
-            search: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def get_schema_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true;"
         user_rows = await self._execute_query(connection, users_query)
@@ -685,13 +679,7 @@ class DBSchemaService:
                 await self._execute_query(connection, f'REVOKE CREATE ON SCHEMA "{schema_name}" FROM "{username}";')
         return updated_users
 
-    async def get_schema_privileges_for_groups(
-            self,
-            connection_id: int,
-            page: int = 1,
-            size: int = 20,
-            search: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def get_schema_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false;"
         group_rows = await self._execute_query(connection, groups_query)
@@ -972,17 +960,12 @@ class DBSchemaService:
                     await self._execute_query(connection, f'REVOKE {priv} ON TABLE "{schema_name}"."{table_name}" FROM "{username}";')
         return updated_users
 
-    async def get_table_privileges_for_groups(
-            self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def get_table_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
-        # Получаем только группы (роли с rolcanlogin = false)
         groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false;"
         group_rows = await self._execute_query(connection, groups_query)
         group_oids = {row["oid"] for row in group_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
-
-        # Получаем все физические таблицы
         tables_query = """
         SELECT
             n.nspname AS schema_name,
@@ -1006,8 +989,6 @@ class DBSchemaService:
             }
             for row in table_rows
         }
-
-        # Получаем ACL (привилегии) на таблицы
         acl_query = """
         SELECT
             c.oid AS table_oid,
@@ -1022,7 +1003,6 @@ class DBSchemaService:
         """
         acl_rows = await self._execute_query(connection, acl_query)
         target_privileges = {"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"}
-
         for row in acl_rows:
             table_oid = row["table_oid"]
             grantee_oid = row["grantee_oid"]
@@ -1036,8 +1016,6 @@ class DBSchemaService:
                     "DELETE": False, "TRUNCATE": False
                 }
             table_info[table_oid]["privileges"][groupname][privilege] = True
-
-        # Формируем итоговые записи
         all_entries = []
         for info in table_info.values():
             entry = {
@@ -1057,8 +1035,6 @@ class DBSchemaService:
                 ]
             }
             all_entries.append(entry)
-
-        # Поиск
         search_term = search.strip().lower() if search and search.strip() else None
         filtered_entries = []
         if not search_term:
@@ -1073,18 +1049,14 @@ class DBSchemaService:
                 )
                 if matches:
                     filtered_entries.append(entry)
-
         total_tables = len(all_entries)
         total_filtered = len(filtered_entries)
-
-        # Пагинация
         start = (page - 1) * size
         end = start + size
         paginated = filtered_entries[start:end]
         pages = (total_filtered + size - 1) // size if size > 0 else 1
         has_next = page < pages
         has_prev = page > 1
-
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
@@ -1098,16 +1070,8 @@ class DBSchemaService:
             "table_privileges": paginated,
         }
 
-    async def update_table_privileges_for_groups(
-            self,
-            connection_id: int,
-            schema_name: str,
-            table_name: str,
-            group_privileges: List[Dict[str, Any]],
-    ) -> List[str]:
+    async def update_table_privileges_for_groups(self, connection_id: int, schema_name: str, table_name: str, group_privileges: List[Dict[str, Any]], ) -> List[str]:
         connection = await self._get_connection(connection_id)
-
-        # Проверяем существование таблицы
         exists = await self._execute_query(
             connection,
             "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
@@ -1117,24 +1081,17 @@ class DBSchemaService:
         )
         if not exists:
             raise ValueError(f"Таблица '{table_name}' в схеме '{schema_name}' не существует.")
-
-        # Получаем все группы
         groups_query = "SELECT rolname FROM pg_roles WHERE rolcanlogin = false;"
         valid_groups = {row["rolname"] for row in await self._execute_query(connection, groups_query)}
-
         updated_groups = []
         target_privileges = ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"]
-
         for item in group_privileges:
             groupname = item["groupname"]
             if groupname not in valid_groups:
                 raise ValueError(f"Группа '{groupname}' не существует или не является группой.")
             if '"' in schema_name or '"' in table_name or '"' in groupname:
                 raise ValueError("Имена не должны содержать кавычки")
-
             updated_groups.append(groupname)
-
-            # Получаем текущие привилегии группы на таблицу
             current_privs = set()
             acl_rows = await self._execute_query(
                 connection,
@@ -1148,21 +1105,16 @@ class DBSchemaService:
                 schema_name,
                 table_name
             )
-
             group_oid = await self._execute_query(connection, "SELECT oid FROM pg_roles WHERE rolname = $1", groupname)
             if not group_oid:
                 continue
             group_oid = group_oid[0]["oid"]
-
             for row in acl_rows:
                 if row["grantee_oid"] == group_oid:
                     current_privs.add(row["privilege_type"])
-
-            # GRANT / REVOKE по каждой привилегии
             for priv in target_privileges:
                 desired = item[priv.lower()]
                 current = priv in current_privs
-
                 if desired and not current:
                     await self._execute_query(
                         connection,
@@ -1173,5 +1125,4 @@ class DBSchemaService:
                         connection,
                         f'REVOKE {priv} ON TABLE "{schema_name}"."{table_name}" FROM "{groupname}";'
                     )
-
         return updated_groups

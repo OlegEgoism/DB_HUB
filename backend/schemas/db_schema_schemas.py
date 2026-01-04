@@ -261,6 +261,7 @@ class PaginatedTablePrivilegesUsersResponse(BaseModel):
     table_privileges: List[TablePrivilegeInfo]
     model_config = ConfigDict(from_attributes=True)
 
+
 class TablePrivilegeUpdateItem(BaseModel):
     username: str
     select: bool
@@ -269,10 +270,12 @@ class TablePrivilegeUpdateItem(BaseModel):
     delete: bool
     truncate: bool
 
+
 class TablePrivilegesUpdateRequest(BaseModel):
     schema_name: str
     table_name: str
     users: List[TablePrivilegeUpdateItem]
+
 
 class TablePrivilegesUpdateResponse(BaseModel):
     message: str
@@ -287,11 +290,13 @@ class TableGroupPrivilege(BaseModel):
     delete: bool
     truncate: bool
 
+
 class TablePrivilegeGroupInfo(BaseModel):
     schema_name: str
     table_name: str
     owner: str
     group_privileges: List[TableGroupPrivilege]
+
 
 class PaginatedTablePrivilegesGroupsResponse(BaseModel):
     connection_id: int
@@ -307,6 +312,7 @@ class PaginatedTablePrivilegesGroupsResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class TableGroupPrivilegeUpdateItem(BaseModel):
     groupname: str
     select: bool
@@ -315,10 +321,12 @@ class TableGroupPrivilegeUpdateItem(BaseModel):
     delete: bool
     truncate: bool
 
+
 class TablePrivilegesGroupsUpdateRequest(BaseModel):
     schema_name: str
     table_name: str
     groups: List[TableGroupPrivilegeUpdateItem]
+
 
 class TablePrivilegesGroupsUpdateResponse(BaseModel):
     message: str

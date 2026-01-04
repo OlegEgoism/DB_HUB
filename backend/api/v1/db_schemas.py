@@ -16,7 +16,12 @@ from backend.schemas.db_schema_schemas import (
     SchemaPrivilegesUpdateRequest,
     SchemaPrivilegesGroupsUpdateResponse,
     SchemaPrivilegesGroupsUpdateRequest,
-    TablePrivilegesLimitedResponse, PaginatedSchemaPrivilegesResponse, PaginatedSchemaPrivilegesGroupsResponse, PaginatedSchemaPrivilegesUsersResponse, TablePrivilegesUpdateResponse, TablePrivilegesUpdateRequest
+    TablePrivilegesLimitedResponse,
+    PaginatedSchemaPrivilegesResponse,
+    PaginatedSchemaPrivilegesGroupsResponse,
+    PaginatedSchemaPrivilegesUsersResponse,
+    TablePrivilegesUpdateResponse,
+    TablePrivilegesUpdateRequest
 )
 
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
@@ -282,11 +287,7 @@ async def get_table_privileges_for_groups(
 
 
 @router.post("/connection/{connection_id}/table_privileges_groups", response_model=TablePrivilegesGroupsUpdateResponse)
-async def update_table_privileges_for_groups(
-    connection_id: int,
-    request: TablePrivilegesGroupsUpdateRequest,
-    db: AsyncSession = Depends(get_db),
-):
+async def update_table_privileges_for_groups(    connection_id: int,    request: TablePrivilegesGroupsUpdateRequest,    db: AsyncSession = Depends(get_db),):
     """Обновить права SELECT/INSERT/UPDATE/DELETE/TRUNCATE на таблицу для указанных групп"""
     try:
         service = DBSchemaService(db)
