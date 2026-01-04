@@ -555,10 +555,11 @@ class DBSchemaService:
 
     async def get_schema_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
-        users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true;"
+        users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true ORDER BY rolname;"
         user_rows = await self._execute_query(connection, users_query)
         user_oids = {row["oid"] for row in user_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
+        all_usernames = sorted(oid_to_rolname.values())
         all_schemas_query = """
         SELECT
             nspname AS schema_name,
@@ -574,7 +575,10 @@ class DBSchemaService:
             row["schema_name"]: {
                 "owner": row["owner"],
                 "description": row["description"],
-                "privileges": {}
+                "privileges": {
+                    username: {"CREATE": False, "USAGE": False}
+                    for username in all_usernames
+                }
             }
             for row in all_schemas_rows
         }
@@ -593,13 +597,11 @@ class DBSchemaService:
             schema = row["schema_name"]
             grantee_oid = row["grantee_oid"]
             privilege = row["privilege_type"]
-            if grantee_oid not in user_oids:
+            if grantee_oid not in user_oids or privilege not in ("CREATE", "USAGE"):
                 continue
-            rolname = oid_to_rolname[grantee_oid]
-            if rolname not in all_schemas[schema]["privileges"]:
-                all_schemas[schema]["privileges"][rolname] = {"CREATE": False, "USAGE": False}
-            if privilege in ("CREATE", "USAGE"):
-                all_schemas[schema]["privileges"][rolname][privilege] = True
+            username = oid_to_rolname[grantee_oid]
+            if schema in all_schemas and username in all_schemas[schema]["privileges"]:
+                all_schemas[schema]["privileges"][username][privilege] = True
         all_entries = []
         for name, info in all_schemas.items():
             schema_entry = {
@@ -608,11 +610,11 @@ class DBSchemaService:
                 "description": info["description"],
                 "role_privileges": [
                     {
-                        "role": role,
+                        "role": user,
                         "create": priv["CREATE"],
                         "usage": priv["USAGE"]
                     }
-                    for role, priv in info["privileges"].items()
+                    for user, priv in info["privileges"].items()
                 ]
             }
             all_entries.append(schema_entry)
@@ -622,14 +624,22 @@ class DBSchemaService:
             filtered_entries = all_entries
         else:
             for entry in all_entries:
-                matches = (
+                matches_schema = (
                         search_term in entry["schema_name"].lower() or
                         (entry["description"] and search_term in entry["description"].lower()) or
-                        search_term in entry["owner"].lower() or
-                        any(search_term in rp["role"].lower() for rp in entry["role_privileges"])
+                        search_term in entry["owner"].lower()
                 )
-                if matches:
+                if matches_schema:
                     filtered_entries.append(entry)
+                    continue
+                matching_roles = [
+                    rp for rp in entry["role_privileges"]
+                    if search_term in rp["role"].lower()
+                ]
+                if matching_roles:
+                    entry_copy = entry.copy()
+                    entry_copy["role_privileges"] = matching_roles
+                    filtered_entries.append(entry_copy)
         total_schemas = len(all_entries)
         total_filtered = len(filtered_entries)
         start = (page - 1) * size
@@ -681,10 +691,11 @@ class DBSchemaService:
 
     async def get_schema_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
-        groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false;"
+        groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;"
         group_rows = await self._execute_query(connection, groups_query)
         group_oids = {row["oid"] for row in group_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
+        all_groupnames = sorted(oid_to_rolname.values())
         all_schemas_query = """
         SELECT
             nspname AS schema_name,
@@ -700,7 +711,10 @@ class DBSchemaService:
             row["schema_name"]: {
                 "owner": row["owner"],
                 "description": row["description"],
-                "privileges": {}
+                "privileges": {
+                    groupname: {"CREATE": False, "USAGE": False}
+                    for groupname in all_groupnames
+                }
             }
             for row in all_schemas_rows
         }
@@ -719,13 +733,11 @@ class DBSchemaService:
             schema = row["schema_name"]
             grantee_oid = row["grantee_oid"]
             privilege = row["privilege_type"]
-            if grantee_oid not in group_oids:
+            if grantee_oid not in group_oids or privilege not in ("CREATE", "USAGE"):
                 continue
-            rolname = oid_to_rolname[grantee_oid]
-            if rolname not in all_schemas[schema]["privileges"]:
-                all_schemas[schema]["privileges"][rolname] = {"CREATE": False, "USAGE": False}
-            if privilege in ("CREATE", "USAGE"):
-                all_schemas[schema]["privileges"][rolname][privilege] = True
+            groupname = oid_to_rolname[grantee_oid]
+            if schema in all_schemas and groupname in all_schemas[schema]["privileges"]:
+                all_schemas[schema]["privileges"][groupname][privilege] = True
         all_entries = []
         for name, info in all_schemas.items():
             schema_entry = {
@@ -734,11 +746,11 @@ class DBSchemaService:
                 "description": info["description"],
                 "role_privileges": [
                     {
-                        "role": role,
+                        "role": group,
                         "create": priv["CREATE"],
                         "usage": priv["USAGE"]
                     }
-                    for role, priv in info["privileges"].items()
+                    for group, priv in info["privileges"].items()
                 ]
             }
             all_entries.append(schema_entry)
@@ -748,14 +760,22 @@ class DBSchemaService:
             filtered_entries = all_entries
         else:
             for entry in all_entries:
-                matches = (
+                matches_schema = (
                         search_term in entry["schema_name"].lower() or
                         (entry["description"] and search_term in entry["description"].lower()) or
-                        search_term in entry["owner"].lower() or
-                        any(search_term in rp["role"].lower() for rp in entry["role_privileges"])
+                        search_term in entry["owner"].lower()
                 )
-                if matches:
+                if matches_schema:
                     filtered_entries.append(entry)
+                    continue
+                matching_roles = [
+                    rp for rp in entry["role_privileges"]
+                    if search_term in rp["role"].lower()
+                ]
+                if matching_roles:
+                    entry_copy = entry.copy()
+                    entry_copy["role_privileges"] = matching_roles
+                    filtered_entries.append(entry_copy)
         total_schemas = len(all_entries)
         total_filtered = len(filtered_entries)
         start = (page - 1) * size
@@ -807,10 +827,11 @@ class DBSchemaService:
 
     async def get_table_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
-        users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true;"
+        users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true ORDER BY rolname;"
         user_rows = await self._execute_query(connection, users_query)
         user_oids = {row["oid"] for row in user_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
+        all_usernames = sorted(oid_to_rolname.values())
         tables_query = """
         SELECT
             n.nspname AS schema_name,
@@ -830,7 +851,13 @@ class DBSchemaService:
                 "schema_name": row["schema_name"],
                 "table_name": row["table_name"],
                 "owner": row["owner"],
-                "privileges": {}
+                "privileges": {
+                    username: {
+                        "SELECT": False, "INSERT": False, "UPDATE": False,
+                        "DELETE": False, "TRUNCATE": False
+                    }
+                    for username in all_usernames
+                }
             }
             for row in table_rows
         }
@@ -855,11 +882,8 @@ class DBSchemaService:
             if grantee_oid not in user_oids or privilege not in target_privileges:
                 continue
             username = oid_to_rolname[grantee_oid]
-            if username not in table_info[table_oid]["privileges"]:
-                table_info[table_oid]["privileges"][username] = {
-                    "SELECT": False, "INSERT": False, "UPDATE": False, "DELETE": False, "TRUNCATE": False
-                }
-            table_info[table_oid]["privileges"][username][privilege] = True
+            if table_oid in table_info and username in table_info[table_oid]["privileges"]:
+                table_info[table_oid]["privileges"][username][privilege] = True
         all_entries = []
         for info in table_info.values():
             entry = {
@@ -885,14 +909,22 @@ class DBSchemaService:
             filtered_entries = all_entries
         else:
             for entry in all_entries:
-                matches = (
+                matches_table = (
                         search_term in entry["schema_name"].lower() or
                         search_term in entry["table_name"].lower() or
-                        search_term in entry["owner"].lower() or
-                        any(search_term in up["user"].lower() for up in entry["user_privileges"])
+                        search_term in entry["owner"].lower()
                 )
-                if matches:
+                if matches_table:
                     filtered_entries.append(entry)
+                    continue
+                matching_users = [
+                    up for up in entry["user_privileges"]
+                    if search_term in up["user"].lower()
+                ]
+                if matching_users:
+                    entry_copy = entry.copy()
+                    entry_copy["user_privileges"] = matching_users
+                    filtered_entries.append(entry_copy)
         total_tables = len(all_entries)
         total_filtered = len(filtered_entries)
         start = (page - 1) * size
@@ -962,10 +994,11 @@ class DBSchemaService:
 
     async def get_table_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
-        groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false;"
+        groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;"
         group_rows = await self._execute_query(connection, groups_query)
         group_oids = {row["oid"] for row in group_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
+        all_groupnames = sorted(oid_to_rolname.values())
         tables_query = """
         SELECT
             n.nspname AS schema_name,
@@ -985,7 +1018,13 @@ class DBSchemaService:
                 "schema_name": row["schema_name"],
                 "table_name": row["table_name"],
                 "owner": row["owner"],
-                "privileges": {}
+                "privileges": {
+                    groupname: {
+                        "SELECT": False, "INSERT": False, "UPDATE": False,
+                        "DELETE": False, "TRUNCATE": False
+                    }
+                    for groupname in all_groupnames
+                }
             }
             for row in table_rows
         }
@@ -1010,12 +1049,8 @@ class DBSchemaService:
             if grantee_oid not in group_oids or privilege not in target_privileges:
                 continue
             groupname = oid_to_rolname[grantee_oid]
-            if groupname not in table_info[table_oid]["privileges"]:
-                table_info[table_oid]["privileges"][groupname] = {
-                    "SELECT": False, "INSERT": False, "UPDATE": False,
-                    "DELETE": False, "TRUNCATE": False
-                }
-            table_info[table_oid]["privileges"][groupname][privilege] = True
+            if table_oid in table_info and groupname in table_info[table_oid]["privileges"]:
+                table_info[table_oid]["privileges"][groupname][privilege] = True
         all_entries = []
         for info in table_info.values():
             entry = {
@@ -1041,14 +1076,22 @@ class DBSchemaService:
             filtered_entries = all_entries
         else:
             for entry in all_entries:
-                matches = (
+                matches_table = (
                         search_term in entry["schema_name"].lower() or
                         search_term in entry["table_name"].lower() or
-                        search_term in entry["owner"].lower() or
-                        any(search_term in gp["group"].lower() for gp in entry["group_privileges"])
+                        search_term in entry["owner"].lower()
                 )
-                if matches:
+                if matches_table:
                     filtered_entries.append(entry)
+                    continue
+                matching_groups = [
+                    gp for gp in entry["group_privileges"]
+                    if search_term in gp["group"].lower()
+                ]
+                if matching_groups:
+                    entry_copy = entry.copy()
+                    entry_copy["group_privileges"] = matching_groups
+                    filtered_entries.append(entry_copy)
         total_tables = len(all_entries)
         total_filtered = len(filtered_entries)
         start = (page - 1) * size

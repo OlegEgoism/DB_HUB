@@ -144,11 +144,11 @@ class SchemaPrivilegeInfo(BaseModel):
     role_privileges: List[SchemaRolePrivilege]
 
 
-class SchemaPrivilegesResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    schema_privileges: List[SchemaPrivilegeInfo]
-    model_config = ConfigDict(from_attributes=True)
+# class SchemaPrivilegesResponse(BaseModel):
+#     connection_id: int
+#     connection_name: str
+#     schema_privileges: List[SchemaPrivilegeInfo]
+#     model_config = ConfigDict(from_attributes=True)
 
 
 class SchemaPrivilegeUpdateItem(BaseModel):
@@ -199,25 +199,25 @@ class TablePrivilegeInfo(BaseModel):
     user_privileges: List[TableUserPrivilege]
 
 
-class TablePrivilegesLimitedResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    table_privileges: List[TablePrivilegeInfo]
-    model_config = ConfigDict(from_attributes=True)
+# class TablePrivilegesLimitedResponse(BaseModel):
+#     connection_id: int
+#     connection_name: str
+#     table_privileges: List[TablePrivilegeInfo]
+#     model_config = ConfigDict(from_attributes=True)
 
 
-class PaginatedSchemaPrivilegesResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    total_schemas: int
-    total_filtered_schemas: int
-    page: int
-    size: int
-    pages: int
-    has_next: bool
-    has_prev: bool
-    schema_privileges: List[SchemaPrivilegeInfo]
-    model_config = ConfigDict(from_attributes=True)
+# class PaginatedSchemaPrivilegesResponse(BaseModel):
+#     connection_id: int
+#     connection_name: str
+#     total_schemas: int
+#     total_filtered_schemas: int
+#     page: int
+#     size: int
+#     pages: int
+#     has_next: bool
+#     has_prev: bool
+#     schema_privileges: List[SchemaPrivilegeInfo]
+#     model_config = ConfigDict(from_attributes=True)
 
 
 class PaginatedSchemaPrivilegesUsersResponse(BaseModel):
