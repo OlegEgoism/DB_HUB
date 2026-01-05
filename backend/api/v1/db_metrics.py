@@ -5,7 +5,7 @@ from sqlalchemy import select
 from backend.database.session import get_db
 from backend.models.db import DB_Connection
 from backend.schemas.db_metrics_schemas import AllDatabaseMetricsResponse
-from backend.services.db_metrics_service import DBMetricsService
+from backend.services.db_metrics_services import DBMetricsService
 
 router = APIRouter(prefix="/db_metrics", tags=["DB METRIC"])
 

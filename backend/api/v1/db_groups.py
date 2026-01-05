@@ -6,8 +6,8 @@ from typing import Optional
 from datetime import datetime
 import math
 from backend.database.session import get_db
-from backend.services.db_group_service import DBGroupService
-from backend.schemas.db_group_schemas import (
+from backend.services.db_groups_services import DBGroupService
+from backend.schemas.db_groups_schemas import (
     UpdateGroupRequest,
     CreateGroupRequest,
     GroupInfo,

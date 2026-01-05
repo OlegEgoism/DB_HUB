@@ -1,4 +1,4 @@
-# backend/api/v1/db_connection.py
+# backend/api/v1/db_connections.py
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +8,7 @@ from backend.database.session import get_db
 from backend.models.db import DB_Connection
 from backend.models.user import User
 from backend.core.security import encrypt_password, decrypt_password
-from backend.schemas.db_connection_schemas import (
+from backend.schemas.db_connections_schemas import (
     ConnectionCreate,
     ConnectionOut,
     ConnectionUpdate,
@@ -16,7 +16,7 @@ from backend.schemas.db_connection_schemas import (
     PaginatedActiveConnectionsResponse,
     TerminateConnectionRequest
 )
-from backend.services.db_connection_service import DBConnectionService
+from backend.services.db_connections_services import DBConnectionService
 
 router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 

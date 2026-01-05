@@ -1,4 +1,4 @@
-# backend/schemas/agreement_schemas.py
+# backend/schemas/agreements_schemas.py
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional

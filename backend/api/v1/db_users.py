@@ -7,8 +7,8 @@ from typing import Optional
 
 from backend.database.session import get_db
 from backend.models import DB_User, DB_Connection
-from backend.services.db_user_service import DBUserService
-from backend.schemas.db_user_schemas import DBUsersResponse, DBUserCreateRequest, DBUserUpdateRequest, AddRemoveUserToGroupRequest
+from backend.services.db_users_services import DBUserService
+from backend.schemas.db_users_schemas import DBUsersResponse, DBUserCreateRequest, DBUserUpdateRequest, AddRemoveUserToGroupRequest
 
 router = APIRouter(prefix="/db_users", tags=["DB USERS"])
 

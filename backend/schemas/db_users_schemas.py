@@ -1,4 +1,4 @@
-# backend/schemas/db_user_schemas.py
+# backend/schemas/db_users_schemas.py
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta

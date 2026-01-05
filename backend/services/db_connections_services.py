@@ -1,4 +1,4 @@
-# backend/services/db_connection_service.py
+# backend/services/db_connections_services.py
 import asyncpg
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -6,7 +6,7 @@ from backend.models.db import DB_Connection
 from backend.core.security import decrypt_password
 import math
 from typing import Optional
-from backend.schemas.db_connection_schemas import PaginatedActiveConnectionsResponse
+from backend.schemas.db_connections_schemas import PaginatedActiveConnectionsResponse
 
 
 class DBConnectionService:

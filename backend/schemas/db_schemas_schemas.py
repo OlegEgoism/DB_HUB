@@ -1,4 +1,4 @@
-# backend/schemas/db_schema_schemas.py
+# backend/schemas/db_schemas_schemas.py
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 

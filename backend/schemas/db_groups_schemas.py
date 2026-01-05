@@ -1,4 +1,4 @@
-# backend/schemas/db_group_schemas.py
+# backend/schemas/db_groups_schemas.py
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime

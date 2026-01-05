@@ -1,10 +1,10 @@
-# backend/api/v1/agreement.py
+# backend/api/v1/agreements.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from backend.database.session import get_db
 from backend.models.agreement import Agreement
-from backend.schemas.agreement_schemas import AgreementResponse
+from backend.schemas.agreements_schemas import AgreementResponse
 from sqlalchemy import select
 
 router = APIRouter(prefix="/agreements", tags=["AGREEMENTS"])

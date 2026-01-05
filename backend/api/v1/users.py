@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_, func
 from backend.database.session import get_db
 from backend.models.user import User
-from backend.services.user_service import UserService
-from backend.schemas.user_schemas import (
+from backend.services.users_services import UserService
+from backend.schemas.users_schemas import (
     UserResponse,
     UserCreate,
     UserUpdate,

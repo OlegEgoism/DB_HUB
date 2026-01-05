@@ -1,4 +1,4 @@
-# backend/services/db_schema_service.py
+# backend/services/db_schemas_services.py
 import asyncpg
 import math
 from typing import List, Dict, Any, Optional

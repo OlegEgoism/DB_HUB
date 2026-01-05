@@ -1,4 +1,4 @@
-# backend/schemas/db_connection_schemas.py
+# backend/schemas/db_connections_schemas.py
 from datetime import datetime
 from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, validator, ConfigDict

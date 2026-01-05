@@ -2,8 +2,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
-from backend.services.db_schema_service import DBSchemaService
-from backend.schemas.db_schema_schemas import (
+from backend.services.db_schemas_services import DBSchemaService
+from backend.schemas.db_schemas_schemas import (
     PaginatedSchemasWithTablesResponse,
     PaginatedTemporaryTablesResponse,
     PaginatedViewsResponse,
@@ -207,7 +207,7 @@ async def update_schema_privileges_for_groups(connection_id: int, request: Schem
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав для групп: {str(e)}")
 
 
-from backend.schemas.db_schema_schemas import PaginatedTablePrivilegesUsersResponse
+from backend.schemas.db_schemas_schemas import PaginatedTablePrivilegesUsersResponse
 
 
 @router.get("/connection/{connection_id}/table_privileges_users", response_model=PaginatedTablePrivilegesUsersResponse)
@@ -257,7 +257,7 @@ async def update_table_privileges_for_users(connection_id: int, request: TablePr
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав: {str(e)}")
 
 
-from backend.schemas.db_schema_schemas import (
+from backend.schemas.db_schemas_schemas import (
     PaginatedTablePrivilegesGroupsResponse,
     TablePrivilegesGroupsUpdateRequest,
     TablePrivilegesGroupsUpdateResponse
