@@ -1,5 +1,4 @@
 # backend/api/v1/db_schemas.py
-import math
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
@@ -11,13 +10,10 @@ from backend.schemas.db_schema_schemas import (
     PaginatedMaterializedViewsResponse,
     PaginatedFunctionsResponse,
     PaginatedIndexesResponse,
-    # SchemaPrivilegesResponse,
     SchemaPrivilegesUpdateResponse,
     SchemaPrivilegesUpdateRequest,
     SchemaPrivilegesGroupsUpdateResponse,
     SchemaPrivilegesGroupsUpdateRequest,
-    # TablePrivilegesLimitedResponse,
-    # PaginatedSchemaPrivilegesResponse,
     PaginatedSchemaPrivilegesGroupsResponse,
     PaginatedSchemaPrivilegesUsersResponse,
     TablePrivilegesUpdateResponse,
@@ -267,13 +263,14 @@ from backend.schemas.db_schema_schemas import (
     TablePrivilegesGroupsUpdateResponse
 )
 
+
 @router.get("/connection/{connection_id}/table_privileges_groups", response_model=PaginatedTablePrivilegesGroupsResponse)
 async def get_table_privileges_for_groups(
-    connection_id: int,
-    db: AsyncSession = Depends(get_db),
-    page: int = Query(1, ge=1, description="Номер страницы"),
-    size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
-    search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени группы (group)"),
+        connection_id: int,
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1, description="Номер страницы"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
+        search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени группы (group)"),
 ):
     """Получить права доступа групп к таблицам с поддержкой поиска и пагинации."""
     try:
@@ -287,7 +284,7 @@ async def get_table_privileges_for_groups(
 
 
 @router.post("/connection/{connection_id}/table_privileges_groups", response_model=TablePrivilegesGroupsUpdateResponse)
-async def update_table_privileges_for_groups(    connection_id: int,    request: TablePrivilegesGroupsUpdateRequest,    db: AsyncSession = Depends(get_db),):
+async def update_table_privileges_for_groups(connection_id: int, request: TablePrivilegesGroupsUpdateRequest, db: AsyncSession = Depends(get_db), ):
     """Обновить права SELECT/INSERT/UPDATE/DELETE/TRUNCATE на таблицу для указанных групп"""
     try:
         service = DBSchemaService(db)
@@ -315,3 +312,29 @@ async def update_table_privileges_for_groups(    connection_id: int,    request:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав групп: {str(e)}")
+
+
+from fastapi import Query
+from typing import List
+
+
+@router.get("/connection/{connection_id}/table_privileges_groups_filtered", response_model=PaginatedTablePrivilegesGroupsResponse)
+async def get_table_privileges_for_selected_groups(
+        connection_id: int,
+        groups: List[str] = Query(..., description="Список имён групп (например: ?groups=analysts&groups=reporters)"),
+        db: AsyncSession = Depends(get_db),
+        page: int = Query(1, ge=1, description="Номер страницы"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
+        search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени группы"),
+):
+    """Получить привилегии указанных групп на ВСЕ таблицы."""
+    if not groups:
+        raise HTTPException(status_code=400, detail="Параметр 'groups' обязателен и не может быть пустым")
+    try:
+        service = DBSchemaService(db)
+        result = await service.get_table_privileges_for_selected_groups(connection_id=connection_id, group_names=groups, page=page, size=size, search=search)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")

@@ -1169,3 +1169,156 @@ class DBSchemaService:
                         f'REVOKE {priv} ON TABLE "{schema_name}"."{table_name}" FROM "{groupname}";'
                     )
         return updated_groups
+
+    async def get_table_privileges_for_selected_groups(
+            self,
+            connection_id: int,
+            group_names: List[str],
+            page: int = 1,
+            size: int = 20,
+            search: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Возвращает все таблицы и привилегии только для указанных групп.
+        """
+        connection = await self._get_connection(connection_id)
+
+        # Проверяем, что все указанные группы существуют как группы (rolcanlogin = false)
+        all_groups_query = "SELECT rolname FROM pg_roles WHERE rolcanlogin = false;"
+        valid_groups = {row["rolname"] for row in await self._execute_query(connection, all_groups_query)}
+        requested_groups = set(group_names)
+        invalid_groups = requested_groups - valid_groups
+        if invalid_groups:
+            raise ValueError(f"Следующие имена не являются группами: {sorted(invalid_groups)}")
+
+        # Получаем все таблицы
+        tables_query = """
+        SELECT
+            n.nspname AS schema_name,
+            c.relname AS table_name,
+            c.oid AS table_oid,
+            pg_get_userbyid(c.relowner) AS owner
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r'
+          AND n.nspname NOT LIKE 'pg_%'
+          AND n.nspname != 'information_schema'
+        ORDER BY n.nspname, c.relname;
+        """
+        table_rows = await self._execute_query(connection, tables_query)
+        table_info = {
+            row["table_oid"]: {
+                "schema_name": row["schema_name"],
+                "table_name": row["table_name"],
+                "owner": row["owner"],
+                "privileges": {
+                    group: {"SELECT": False, "INSERT": False, "UPDATE": False, "DELETE": False, "TRUNCATE": False}
+                    for group in requested_groups
+                }
+            }
+            for row in table_rows
+        }
+
+        # Получаем ACL
+        acl_query = """
+        SELECT
+            c.oid AS table_oid,
+            (aclexplode(c.relacl)).grantee AS grantee_oid,
+            (aclexplode(c.relacl)).privilege_type
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r'
+          AND n.nspname NOT LIKE 'pg_%'
+          AND n.nspname != 'information_schema'
+          AND c.relacl IS NOT NULL;
+        """
+        acl_rows = await self._execute_query(connection, acl_query)
+        target_privileges = {"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"}
+
+        # Получаем OID для запрошенных групп
+        if not requested_groups:
+            oid_map = {}
+        else:
+            placeholders = ", ".join(f"${i + 1}" for i in range(len(requested_groups)))
+            oids_query = f"SELECT oid, rolname FROM pg_roles WHERE rolname IN ({placeholders}) AND rolcanlogin = false;"
+            oid_rows = await self._execute_query(connection, oids_query, *sorted(requested_groups))
+            oid_map = {row["oid"]: row["rolname"] for row in oid_rows}
+
+        for row in acl_rows:
+            table_oid = row["table_oid"]
+            grantee_oid = row["grantee_oid"]
+            privilege = row["privilege_type"]
+            if grantee_oid not in oid_map or privilege not in target_privileges:
+                continue
+            groupname = oid_map[grantee_oid]
+            if table_oid in table_info and groupname in table_info[table_oid]["privileges"]:
+                table_info[table_oid]["privileges"][groupname][privilege] = True
+
+        # Формируем записи
+        all_entries = []
+        for info in table_info.values():
+            entry = {
+                "schema_name": info["schema_name"],
+                "table_name": info["table_name"],
+                "owner": info["owner"],
+                "group_privileges": [
+                    {
+                        "group": group,
+                        "select": priv["SELECT"],
+                        "insert": priv["INSERT"],
+                        "update": priv["UPDATE"],
+                        "delete": priv["DELETE"],
+                        "truncate": priv["TRUNCATE"],
+                    }
+                    for group, priv in info["privileges"].items()
+                ]
+            }
+            all_entries.append(entry)
+
+        # Поиск
+        search_term = search.strip().lower() if search and search.strip() else None
+        filtered_entries = []
+        if not search_term:
+            filtered_entries = all_entries
+        else:
+            for entry in all_entries:
+                matches_table = (
+                        search_term in entry["schema_name"].lower() or
+                        search_term in entry["table_name"].lower() or
+                        search_term in entry["owner"].lower()
+                )
+                if matches_table:
+                    filtered_entries.append(entry)
+                    continue
+                matching_groups = [
+                    gp for gp in entry["group_privileges"]
+                    if search_term in gp["group"].lower()
+                ]
+                if matching_groups:
+                    entry_copy = entry.copy()
+                    entry_copy["group_privileges"] = matching_groups
+                    filtered_entries.append(entry_copy)
+
+        total_tables = len(all_entries)
+        total_filtered = len(filtered_entries)
+
+        start = (page - 1) * size
+        end = start + size
+        paginated = filtered_entries[start:end]
+        pages = (total_filtered + size - 1) // size if size > 0 else 1
+        has_next = page < pages
+        has_prev = page > 1
+
+        return {
+            "connection_id": connection.id,
+            "connection_name": connection.name,
+            "requested_groups": sorted(requested_groups),
+            "total_tables": total_tables,
+            "total_filtered_tables": total_filtered,
+            "page": page,
+            "size": size,
+            "pages": pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
+            "table_privileges": paginated,
+        }
