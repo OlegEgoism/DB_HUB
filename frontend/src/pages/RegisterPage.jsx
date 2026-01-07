@@ -123,7 +123,7 @@ const RegisterPage = () => {
                     </div>
 
                     {errors.form && (
-                        <div className="alert alert-danger">
+                        <div className="alert">
                             <p>{errors.form}</p>
                         </div>
                     )}
@@ -171,7 +171,7 @@ const RegisterPage = () => {
                                                 }
                                             }}
                                         >
-                                            <span className="custom-select-value">{formData.role}</span>
+                                            <span>{formData.role}</span>
                                             <i className={`fas fa-chevron-${roleOpen ? 'up' : 'down'}`}></i>
                                         </div>
                                         {roleOpen && (
@@ -359,7 +359,7 @@ const RegisterPage = () => {
                 )}
             </section>
 
-            <Footer />
+            <Footer/>
         </>
     );
 };

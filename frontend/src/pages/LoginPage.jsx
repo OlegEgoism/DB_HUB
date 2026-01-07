@@ -73,7 +73,6 @@ const LoginPage = () => {
                     <div className="login-header">
                         <h1>Вход в DB HUB</h1>
                     </div>
-
                     {error && (
                         <div className="alert alert-danger">
                             <p>{error}</p>
