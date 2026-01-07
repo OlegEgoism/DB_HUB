@@ -151,7 +151,6 @@ const ProfilePage = () => {
                                     </div>
                                 </div>
 
-
                                 {user.last_login && (
                                     <div className="form-group">
                                         <label className="form-label">
@@ -164,6 +163,19 @@ const ProfilePage = () => {
                                 )}
                             </div>
                         </div>
+
+                        {/* Кнопка редактирования — только для активных пользователей */}
+                        {user.is_active && (
+                            <div className="form-actions" style={{marginTop: '24px', textAlign: 'center'}}>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => navigate('/profile/edit')}
+                                >
+                                    <i className="fas fa-edit"></i> Редактировать
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>

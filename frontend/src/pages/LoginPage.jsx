@@ -200,7 +200,7 @@ const LoginPage = () => {
                         <div className="form-actions">
                             <button
                                 type="submit"
-                                className={`btn btn-primary btn-large ${loading ? 'btn-loading' : ''}`}
+                                className={`btn btn-primary ${loading ? 'btn-loading' : ''}`}
                                 disabled={loading}
                             >
                                 {loading ? '' : (
@@ -218,7 +218,7 @@ const LoginPage = () => {
                             </h2>
                             <button
                                 type="button"
-                                className="btn btn-primary btn-large"
+                                className="btn btn-primary"
                                 onClick={() => navigate('/register')}
                             >
                                 <i className="fas fa-user-plus"></i>

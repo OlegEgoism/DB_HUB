@@ -272,7 +272,7 @@ const RegisterPage = () => {
 
                             <div className="form-group">
                                 <label className="form-label">
-                                    <i className="fas fa-user"></i>
+                                    <i className="fas fa-signature"></i>
                                     ФИО
                                 </label>
                                 <input
@@ -307,7 +307,7 @@ const RegisterPage = () => {
                         <div className="form-actions">
                             <button
                                 type="submit"
-                                className={`btn btn-primary btn-large ${loading ? 'btn-loading' : ''}`}
+                                className={`btn btn-primary ${loading ? 'btn-loading' : ''}`}
                                 disabled={loading}
                             >
                                 {loading ? '' : (
@@ -325,7 +325,7 @@ const RegisterPage = () => {
                             </h2>
                             <button
                                 type="button"
-                                className="btn btn-primary btn-large"
+                                className="btn btn-primary"
                                 onClick={() => navigate('/login')}
                             >
                                 <i className="fas fa-sign-in-alt"></i>
@@ -345,7 +345,7 @@ const RegisterPage = () => {
                             <h3>Ожидайте подтверждения регистрации администратором.</h3>
                             <div className="form-actions">
                                 <button
-                                    className="btn btn-primary btn-large"
+                                    className="btn btn-primary"
                                     onClick={() => {
                                         setShowModal(false);
                                         navigate('/login');

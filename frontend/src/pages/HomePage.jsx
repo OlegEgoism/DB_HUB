@@ -76,7 +76,7 @@ const HomePage = () => {
                                 <i className="fas fa-search"></i>
                                 <input type="text" placeholder="Поиск подключений..." disabled/>
                             </div>
-                            <div className="btn btn-primary btn-large">
+                            <div className="btn btn-primary">
                                 <button className="btn btn-primary" disabled>
                                     <i className="fas fa-plus"></i> Создать подключение
                                 </button>
