@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     email: EmailStr
     fio: Optional[str] = Field(None, max_length=100)
     role: str = Field(default="Пользователь")
-    is_active: Optional[bool] = True
+    is_active: Optional[bool] = False
     is_superuser: Optional[bool] = False
 
     @field_validator('role')
@@ -21,8 +21,21 @@ class UserBase(BaseModel):
         return v
 
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    fio: Optional[str] = Field(None, max_length=100)
+    role: str = Field(default="Пользователь")
     password: str
+
+    @field_validator('role')
+    @classmethod
+    def validate_role(cls, v):
+        if v not in ROLE_CHOICES:
+            raise ValueError(f"Роль должна быть одной из: {', '.join(ROLE_CHOICES)}")
+        return v
+
+
 
 
 class UserUpdate(BaseModel):

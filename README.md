@@ -95,3 +95,14 @@ python -c "import sys; sys.path_importer_cache.clear()"
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
+
+<h3 style="color: #24b59a; text-align: center">
+Запуск frontend приложения DB_HUB
+</h3>
+
+```bash
+cd frontend
+```
+```bash
+npm start
+```

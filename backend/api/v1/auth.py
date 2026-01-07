@@ -25,9 +25,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     """Вход пользователя и получение токена"""
     user_service = UserService(db)
+    user = await user_service.get_user_by_username(form_data.username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный логин или пароль", headers={"WWW-Authenticate": "Bearer"})
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Учетная запись не активирована. Обратитесь к администратору.", headers={"WWW-Authenticate": "Bearer"})
     result = await user_service.login_user(form_data.username, form_data.password)
     if not result:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный логин или пароль", headers={"WWW-Authenticate": "Bearer"}, )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный логин или пароль", headers={"WWW-Authenticate": "Bearer"})
     return UserLoginResponse(user=result["user"], token=Token(access_token=result["access_token"], token_type=result["token_type"]))
 
 

@@ -69,7 +69,7 @@ class UserService:
             hashed_password=hashed_password,
             fio=user_data.fio,
             role=user_data.role,
-            is_active=True,
+            is_active=False,
             is_superuser=False
         )
         self.db.add(user)
