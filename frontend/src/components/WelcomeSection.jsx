@@ -2,10 +2,10 @@
 // import { Link } from 'react-router-dom';
 //
 // const WelcomeSection = () => (
-//   <section className="welcome-section">
+//   <section className="dashboard-section">
 //     <div className="welcome-icon"><i className="fas fa-database"></i></div>
 //     <h1 className="welcome-title">Добро пожаловать в DB HUB</h1>
-//     <p className="welcome-subtitle">
+//     <p className=".profile-subtitle">
 //       Современная платформа для управления базами данных с централизованным доступом,
 //       мониторингом и администрированием. Упрощайте работу с различными СУБД через единый интерфейс.
 //     </p>

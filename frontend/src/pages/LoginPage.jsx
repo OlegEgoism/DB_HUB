@@ -131,7 +131,7 @@ const LoginPage = () => {
             <section className="login-section">
                 <div className="login-container">
                     <div className="login-header">
-                        <h1>Вход в DB HUB</h1>
+                        <h1>Авторизация</h1>
                     </div>
 
                     {/* Общая ошибка */}

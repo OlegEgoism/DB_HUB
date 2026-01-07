@@ -119,7 +119,7 @@ const RegisterPage = () => {
             <section className="register-section">
                 <div className="register-container">
                     <div className="register-header">
-                        <h1>Регистрация в DB HUB</h1>
+                        <h1>Регистрация</h1>
                     </div>
 
                     {errors.form && (
