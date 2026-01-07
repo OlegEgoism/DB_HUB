@@ -11,11 +11,46 @@ const LoginPage = () => {
         password: '',
         remember: false
     });
-    const [error, setError] = useState('');
+    const [errors, setErrors] = useState({
+        username: '',
+        password: '',
+        general: ''
+    });
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const navigate = useNavigate();
+
+    // Валидация формы
+    const validateForm = () => {
+        const newErrors = {
+            username: '',
+            password: '',
+            general: ''
+        };
+        let isValid = true;
+
+        // Проверка логина
+        if (!formData.username.trim()) {
+            newErrors.username = 'Пожалуйста, введите логин';
+            isValid = false;
+        } else if (formData.username.trim().length < 3) {
+            newErrors.username = 'Логин должен содержать минимум 3 символа';
+            isValid = false;
+        }
+
+        // Проверка пароля
+        if (!formData.password) {
+            newErrors.password = 'Пожалуйста, введите пароль';
+            isValid = false;
+        } else if (formData.password.length < 4) {
+            newErrors.password = 'Пароль должен содержать минимум 4 символа';
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
 
     const handleChange = (e) => {
         const {name, value, type, checked} = e.target;
@@ -23,7 +58,15 @@ const LoginPage = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
-        if (error) setError('');
+
+        // Очистка ошибки для конкретного поля при изменении
+        if (errors[name] || errors.general) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: '',
+                general: ''
+            }));
+        }
     };
 
     const togglePasswordVisibility = () => {
@@ -32,12 +75,18 @@ const LoginPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Валидация формы перед отправкой
+        if (!validateForm()) {
+            return;
+        }
+
         setLoading(true);
-        setError('');
+        setErrors(prev => ({...prev, general: ''}));
 
         try {
             const response = await axios.post('http://localhost:8000/api/v1/auth/login', {
-                username: formData.username,
+                username: formData.username.trim(),
                 password: formData.password
             }, {
                 headers: {
@@ -56,9 +105,20 @@ const LoginPage = () => {
             navigate('/');
         } catch (err) {
             if (err.response?.data?.detail) {
-                setError(err.response.data.detail);
+                setErrors(prev => ({
+                    ...prev,
+                    general: err.response.data.detail
+                }));
+            } else if (err.code === 'ERR_NETWORK') {
+                setErrors(prev => ({
+                    ...prev,
+                    general: 'Ошибка подключения к серверу. Проверьте соединение.'
+                }));
             } else {
-                setError('Ошибка при входе. Проверьте подключение к серверу.');
+                setErrors(prev => ({
+                    ...prev,
+                    general: 'Ошибка при входе. Пожалуйста, попробуйте еще раз.'
+                }));
             }
         } finally {
             setLoading(false);
@@ -73,9 +133,11 @@ const LoginPage = () => {
                     <div className="login-header">
                         <h1>Вход в DB HUB</h1>
                     </div>
-                    {error && (
-                        <div className="alert alert-danger">
-                            <p>{error}</p>
+
+                    {/* Общая ошибка */}
+                    {errors.general && (
+                        <div className="alert">
+                            <p>{errors.general}</p>
                         </div>
                     )}
 
@@ -93,8 +155,15 @@ const LoginPage = () => {
                                     name="username"
                                     value={formData.username}
                                     onChange={handleChange}
+                                    className={errors.username ? 'error' : ''}
                                     required
                                 />
+                                {errors.username && (
+                                    <div className="error-message">
+                                        <i className="fas fa-exclamation-circle"></i>
+                                        {errors.username}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="form-group">
@@ -108,6 +177,7 @@ const LoginPage = () => {
                                         name="password"
                                         value={formData.password}
                                         onChange={handleChange}
+                                        className={errors.password ? 'error' : ''}
                                         required
                                     />
                                     <button
@@ -118,6 +188,12 @@ const LoginPage = () => {
                                         <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                                     </button>
                                 </div>
+                                {errors.password && (
+                                    <div className="error-message">
+                                        <i className="fas fa-exclamation-circle"></i>
+                                        {errors.password}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -151,7 +227,6 @@ const LoginPage = () => {
                         </div>
                     </form>
                 </div>
-
             </section>
             <Footer/>
         </>

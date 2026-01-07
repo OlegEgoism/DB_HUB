@@ -116,248 +116,248 @@ const RegisterPage = () => {
     return (
         <>
             <Header/>
-                <section className="register-section">
-                    <div className="register-container">
-                        <div className="register-header">
-                            <h1>Регистрация в DB HUB</h1>
+            <section className="register-section">
+                <div className="register-container">
+                    <div className="register-header">
+                        <h1>Регистрация в DB HUB</h1>
+                    </div>
+
+                    {errors.form && (
+                        <div className="alert">
+                            <p>{errors.form}</p>
                         </div>
+                    )}
 
-                        {errors.form && (
-                            <div className="alert">
-                                <p>{errors.form}</p>
-                            </div>
-                        )}
+                    <form className="register-form" onSubmit={handleSubmit} noValidate>
+                        <div className="form-section">
+                            <h2 className="section-title">Поля для ввода (* обязательные)</h2>
 
-                        <form className="register-form" onSubmit={handleSubmit} noValidate>
-                            <div className="form-section">
-                                <h2 className="section-title">Поля для ввода (* обязательные)</h2>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            <i className="fas fa-user"></i>
-                                            Логин*
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="username"
-                                            value={formData.username}
-                                            onChange={handleChange}
-                                            className={errors.username ? 'error' : ''}
-                                        />
-                                        {errors.username ? (
-                                            <div className="error-message">
-                                                <i className="fas fa-exclamation-circle"></i>
-                                                {errors.username}
-                                            </div>
-                                        ) : (
-                                            <div className="form-hint">Латинские буквы, цифры и подчеркивания</div>
-                                        )}
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            <i className="fas fa-briefcase"></i>
-                                            Роль
-                                        </label>
-                                        <div className="custom-select-wrapper">
-                                            <div
-                                                className="custom-select"
-                                                onClick={() => setRoleOpen(!roleOpen)}
-                                                tabIndex={0}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' || e.key === ' ') {
-                                                        setRoleOpen(!roleOpen);
-                                                    }
-                                                }}
-                                            >
-                                                <span>{formData.role}</span>
-                                                <i className={`fas fa-chevron-${roleOpen ? 'up' : 'down'}`}></i>
-                                            </div>
-                                            {roleOpen && (
-                                                <ul className="custom-select-options">
-                                                    {ROLES.map((role) => (
-                                                        <li
-                                                            key={role}
-                                                            className={`custom-select-option ${formData.role === role ? 'active' : ''}`}
-                                                            onClick={() => {
-                                                                setFormData(prev => ({...prev, role}));
-                                                                setRoleOpen(false);
-                                                                if (errors.role) {
-                                                                    setErrors(prev => ({...prev, role: ''}));
-                                                                }
-                                                            }}
-                                                        >
-                                                            {role}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                        <div className="form-hint">Укажите свою должность</div>
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            <i className="fas fa-lock"></i>
-                                            Пароль*
-                                        </label>
-                                        <div className="password-wrapper">
-                                            <input
-                                                type={showPassword1 ? 'text' : 'password'}
-                                                name="password"
-                                                value={formData.password}
-                                                onChange={handleChange}
-                                                className={errors.password ? 'error' : ''}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="toggle-password"
-                                                onClick={() => togglePassword('password1')}
-                                            >
-                                                <i className={showPassword1 ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
-                                            </button>
-                                        </div>
-                                        {errors.password ? (
-                                            <div className="error-message">
-                                                <i className="fas fa-exclamation-circle"></i>
-                                                {errors.password}
-                                            </div>
-                                        ) : formData.password && (
-                                            <div className="password-strength">
-                                                <div className="strength-bar">
-                                                    {[...Array(4)].map((_, i) => (
-                                                        <div
-                                                            key={i}
-                                                            className={`strength-segment ${i < (strength.class === 'weak' ? 1 : strength.class === 'medium' ? 2 : 4) ? strength.class : ''}`}
-                                                        ></div>
-                                                    ))}
-                                                </div>
-                                                <div className="strength-text">{strength.text}</div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            <i className="fas fa-lock"></i>
-                                            Подтверждение пароля*
-                                        </label>
-                                        <div className="password-wrapper">
-                                            <input
-                                                type={showPassword2 ? 'text' : 'password'}
-                                                name="password2"
-                                                value={formData.password2}
-                                                onChange={handleChange}
-                                                className={errors.password2 ? 'error' : ''}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="toggle-password"
-                                                onClick={() => togglePassword('password2')}
-                                            >
-                                                <i className={showPassword2 ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
-                                            </button>
-                                        </div>
-                                        {errors.password2 && (
-                                            <div className="error-message">
-                                                <i className="fas fa-exclamation-circle"></i>
-                                                {errors.password2}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
+                            <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">
                                         <i className="fas fa-user"></i>
-                                        ФИО
+                                        Логин*
                                     </label>
                                     <input
                                         type="text"
-                                        name="fio"
-                                        value={formData.fio}
+                                        name="username"
+                                        value={formData.username}
                                         onChange={handleChange}
+                                        className={errors.username ? 'error' : ''}
                                     />
+                                    {errors.username ? (
+                                        <div className="error-message">
+                                            <i className="fas fa-exclamation-circle"></i>
+                                            {errors.username}
+                                        </div>
+                                    ) : (
+                                        <div className="form-hint">Латинские буквы, цифры и подчеркивания</div>
+                                    )}
                                 </div>
 
                                 <div className="form-group">
                                     <label className="form-label">
-                                        <i className="fas fa-envelope"></i>
-                                        Электронная почта*
+                                        <i className="fas fa-briefcase"></i>
+                                        Роль
                                     </label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        className={errors.email ? 'error' : ''}
-                                    />
-                                    {errors.email && (
+                                    <div className="custom-select-wrapper">
+                                        <div
+                                            className="custom-select"
+                                            onClick={() => setRoleOpen(!roleOpen)}
+                                            tabIndex={0}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    setRoleOpen(!roleOpen);
+                                                }
+                                            }}
+                                        >
+                                            <span>{formData.role}</span>
+                                            <i className={`fas fa-chevron-${roleOpen ? 'up' : 'down'}`}></i>
+                                        </div>
+                                        {roleOpen && (
+                                            <ul className="custom-select-options">
+                                                {ROLES.map((role) => (
+                                                    <li
+                                                        key={role}
+                                                        className={`custom-select-option ${formData.role === role ? 'active' : ''}`}
+                                                        onClick={() => {
+                                                            setFormData(prev => ({...prev, role}));
+                                                            setRoleOpen(false);
+                                                            if (errors.role) {
+                                                                setErrors(prev => ({...prev, role: ''}));
+                                                            }
+                                                        }}
+                                                    >
+                                                        {role}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                    <div className="form-hint">Укажите свою должность</div>
+                                </div>
+                            </div>
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <i className="fas fa-lock"></i>
+                                        Пароль*
+                                    </label>
+                                    <div className="password-wrapper">
+                                        <input
+                                            type={showPassword1 ? 'text' : 'password'}
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            className={errors.password ? 'error' : ''}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="toggle-password"
+                                            onClick={() => togglePassword('password1')}
+                                        >
+                                            <i className={showPassword1 ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
+                                        </button>
+                                    </div>
+                                    {errors.password ? (
                                         <div className="error-message">
                                             <i className="fas fa-exclamation-circle"></i>
-                                            {errors.email}
+                                            {errors.password}
+                                        </div>
+                                    ) : formData.password && (
+                                        <div className="password-strength">
+                                            <div className="strength-bar">
+                                                {[...Array(4)].map((_, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className={`strength-segment ${i < (strength.class === 'weak' ? 1 : strength.class === 'medium' ? 2 : 4) ? strength.class : ''}`}
+                                                    ></div>
+                                                ))}
+                                            </div>
+                                            <div className="strength-text">{strength.text}</div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <i className="fas fa-lock"></i>
+                                        Подтверждение пароля*
+                                    </label>
+                                    <div className="password-wrapper">
+                                        <input
+                                            type={showPassword2 ? 'text' : 'password'}
+                                            name="password2"
+                                            value={formData.password2}
+                                            onChange={handleChange}
+                                            className={errors.password2 ? 'error' : ''}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="toggle-password"
+                                            onClick={() => togglePassword('password2')}
+                                        >
+                                            <i className={showPassword2 ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
+                                        </button>
+                                    </div>
+                                    {errors.password2 && (
+                                        <div className="error-message">
+                                            <i className="fas fa-exclamation-circle"></i>
+                                            {errors.password2}
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="form-actions">
-                                <button
-                                    type="submit"
-                                    className={`btn btn-primary btn-large ${loading ? 'btn-loading' : ''}`}
-                                    disabled={loading}
-                                >
-                                    {loading ? '' : (
-                                        <>
-                                            <i className="fas fa-user-plus"></i>
-                                            Зарегистрироваться
-                                        </>
-                                    )}
-                                </button>
+                            <div className="form-group">
+                                <label className="form-label">
+                                    <i className="fas fa-user"></i>
+                                    ФИО
+                                </label>
+                                <input
+                                    type="text"
+                                    name="fio"
+                                    value={formData.fio}
+                                    onChange={handleChange}
+                                />
                             </div>
 
-                            <div>
-                                <h2 className="section-title">
-                                    Есть аккаунт?
-                                </h2>
-                                <button
-                                    type="button"
-                                    className="btn btn-primary btn-large"
-                                    onClick={() => navigate('/login')}
-                                >
-                                    <i className="fas fa-sign-in-alt"></i>
-                                    Войти
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    {/* Модальное окно */}
-                    {showModal && (
-                        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                                <div className="modal-icon">
-                                    <i className="fas fa-hourglass-half"></i>
-                                </div>
-                                <h3>Ожидайте подтверждения регистрации администратором.</h3>
-                                <div className="form-actions">
-                                    <button
-                                        className="btn btn-primary btn-large"
-                                        onClick={() => {
-                                            setShowModal(false);
-                                            navigate('/login');
-                                        }}
-                                    >
-                                        Понятно
-                                    </button>
-                                </div>
+                            <div className="form-group">
+                                <label className="form-label">
+                                    <i className="fas fa-envelope"></i>
+                                    Электронная почта*
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className={errors.email ? 'error' : ''}
+                                />
+                                {errors.email && (
+                                    <div className="error-message">
+                                        <i className="fas fa-exclamation-circle"></i>
+                                        {errors.email}
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    )}
-                </section>
+
+                        <div className="form-actions">
+                            <button
+                                type="submit"
+                                className={`btn btn-primary btn-large ${loading ? 'btn-loading' : ''}`}
+                                disabled={loading}
+                            >
+                                {loading ? '' : (
+                                    <>
+                                        <i className="fas fa-user-plus"></i>
+                                        Зарегистрироваться
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        <div>
+                            <h2 className="section-title">
+                                Есть аккаунт?
+                            </h2>
+                            <button
+                                type="button"
+                                className="btn btn-primary btn-large"
+                                onClick={() => navigate('/login')}
+                            >
+                                <i className="fas fa-sign-in-alt"></i>
+                                Авторизоваться
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {/* Модальное окно */}
+                {showModal && (
+                    <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-icon">
+                                <i className="fas fa-hourglass-half"></i>
+                            </div>
+                            <h3>Ожидайте подтверждения регистрации администратором.</h3>
+                            <div className="form-actions">
+                                <button
+                                    className="btn btn-primary btn-large"
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        navigate('/login');
+                                    }}
+                                >
+                                    Понятно
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </section>
             <Footer/>
         </>
     );
