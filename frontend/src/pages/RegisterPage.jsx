@@ -1,6 +1,6 @@
 // src/pages/RegisterPage.jsx
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, {useState, useEffect, useRef} from 'react';
+import {useNavigate} from 'react-router-dom';
 import axios from 'axios';
 import Header from '../components/Header';
 import Footer from "../components/Footer";
@@ -49,15 +49,15 @@ const RegisterPage = () => {
     }, [roleOpen]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
         if (name === 'username') {
             if (value && !/^[a-zA-Z0-9_]*$/.test(value)) {
                 return;
             }
         }
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({...prev, [name]: value}));
         if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
+            setErrors(prev => ({...prev, [name]: ''}));
         }
     };
 
@@ -111,29 +111,29 @@ const RegisterPage = () => {
             if (err.response?.data?.detail) {
                 msg = err.response.data.detail;
             }
-            setErrors({ form: msg });
+            setErrors({form: msg});
         } finally {
             setLoading(false);
         }
     };
 
     const getPasswordStrength = (password) => {
-        if (password.length < 4) return { text: 'Слишком короткий', class: 'weak' };
+        if (password.length < 4) return {text: 'Слишком короткий', class: 'weak'};
         let score = 0;
         if (password.length >= 6) score++;
         if (/[A-Z]/.test(password)) score++;
         if (/\d/.test(password)) score++;
         if (/[!@#$%^&*]/.test(password)) score++;
-        if (score <= 1) return { text: 'Слабый', class: 'weak' };
-        if (score === 2) return { text: 'Средний', class: 'medium' };
-        return { text: 'Хороший', class: 'strong' };
+        if (score <= 1) return {text: 'Слабый', class: 'weak'};
+        if (score === 2) return {text: 'Средний', class: 'medium'};
+        return {text: 'Хороший', class: 'strong'};
     };
 
     const strength = getPasswordStrength(formData.password);
 
     return (
         <>
-            <Header />
+            <Header/>
             <section className="register-section">
                 <div className="register-container">
                     <div className="register-header">
@@ -199,10 +199,10 @@ const RegisterPage = () => {
                                                         key={role}
                                                         className={`custom-select-option ${formData.role === role ? 'active' : ''}`}
                                                         onClick={() => {
-                                                            setFormData(prev => ({ ...prev, role }));
+                                                            setFormData(prev => ({...prev, role}));
                                                             setRoleOpen(false);
                                                             if (errors.role) {
-                                                                setErrors(prev => ({ ...prev, role: '' }));
+                                                                setErrors(prev => ({...prev, role: ''}));
                                                             }
                                                         }}
                                                     >
@@ -376,7 +376,7 @@ const RegisterPage = () => {
                     </div>
                 )}
             </section>
-            <Footer />
+            <Footer/>
         </>
     );
 };
