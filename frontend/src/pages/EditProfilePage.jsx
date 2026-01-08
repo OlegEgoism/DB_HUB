@@ -1,5 +1,5 @@
 // src/pages/EditProfilePage.jsx
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -18,13 +18,31 @@ const EditProfilePage = () => {
         fio: '',
         role: ''
     });
-    const [user, setUser] = useState(null); // полный объект пользователя
+    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [roleOpen, setRoleOpen] = useState(false);
     const navigate = useNavigate();
+    const selectRef = useRef(null); // Реф для обертки селекта
+
+    // Закрытие выпадающего списка при клике вне его
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (selectRef.current && !selectRef.current.contains(event.target)) {
+                setRoleOpen(false);
+            }
+        };
+
+        if (roleOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [roleOpen]);
 
     // Загрузка данных пользователя
     useEffect(() => {
@@ -98,7 +116,6 @@ const EditProfilePage = () => {
         const storedUser = JSON.parse(localStorage.getItem('user'));
         const userId = storedUser.id;
 
-        // PUT требует полный объект согласно вашему API
         const payload = {
             email: formData.email,
             fio: formData.fio || null,
@@ -113,7 +130,7 @@ const EditProfilePage = () => {
 
         try {
             const response = await fetch(`http://localhost:8000/api/v1/users/${userId}`, {
-                method: 'PUT', // ✅ ИСПРАВЛЕНО: теперь PUT
+                method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -128,7 +145,6 @@ const EditProfilePage = () => {
 
             const updatedUser = await response.json();
 
-            // Обновляем localStorage
             const newStoredUser = {...storedUser, ...updatedUser};
             localStorage.setItem('user', JSON.stringify(newStoredUser));
 
@@ -207,7 +223,7 @@ const EditProfilePage = () => {
                                 <label className="form-label">
                                     <i className="fas fa-briefcase"></i> Роль
                                 </label>
-                                <div className="custom-select-wrapper">
+                                <div className="custom-select-wrapper" ref={selectRef}>
                                     <div
                                         className="custom-select"
                                         onClick={() => setRoleOpen(!roleOpen)}
@@ -269,7 +285,6 @@ const EditProfilePage = () => {
                                     </div>
                                 )}
                             </div>
-
                         </div>
 
                         <div
@@ -278,9 +293,7 @@ const EditProfilePage = () => {
                         >
                             <button
                                 type="submit"
-                                className={`btn btn-primary ${
-                                    submitting ? 'btn-loading' : ''
-                                }`}
+                                className={`btn btn-primary ${submitting ? 'btn-loading' : ''}`}
                                 disabled={submitting}
                             >
                                 {submitting ? '' : 'Сохранить'}
