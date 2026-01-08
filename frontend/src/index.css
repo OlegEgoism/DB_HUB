@@ -46,7 +46,8 @@ body {
 .dashboard-footer::before,
 .register-container::before,
 .login-container::before,
-.profile-section::before {
+.profile-section::before,
+.agreement-container::before {
     content: '';
     position: absolute;
     top: 0;
@@ -595,6 +596,52 @@ body {
     margin-right: auto;
     line-height: 1.6;
 }
+/*-----------------------------------------------------------------------*/
+
+
+/*-----------------------------------------------------------------------*/
+/*AgreementPage*/
+.agreement-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.agreement-container {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid var(--gray-200);
+    padding: 40px;
+    width: 100%;
+    max-width: 1600px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.agreement-item {
+    margin-bottom: 40px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 18px;
+    background-color: #fafafa;
+    margin-top: 10px;
+    line-height: 1.6;   /* ← увеличенный межстрочный интервал */
+}
+
+
+
+.text-danger {
+  color: #dc3545;
+  font-weight: 500;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+
+
 
 
 
