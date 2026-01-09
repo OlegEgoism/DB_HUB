@@ -1,5 +1,5 @@
 // src/pages/HomePage.jsx
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -10,10 +10,18 @@ const HomePage = () => {
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all');
     const [favorites, setFavorites] = useState(new Set());
-    const connectedCount = connections.filter(conn => conn.status === 'connected').length;
+    const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8); // ← по умолчанию 8
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [connectionToDelete, setConnectionToDelete] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
+
+    const connectedCount = connections.filter(conn => conn.status === 'connected').length;
+
+    // ========== Функции ==========
 
     const openDeleteModal = (conn) => {
         setConnectionToDelete(conn);
@@ -32,7 +40,7 @@ const HomePage = () => {
         try {
             const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionToDelete.id}`, {
                 method: 'DELETE',
-                headers: {'Authorization': `Bearer ${token}`},
+                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             if (!response.ok) {
@@ -77,7 +85,7 @@ const HomePage = () => {
     };
 
     const formatDbSize = (sizeMb) => {
-        if (sizeMb === null || sizeMb === undefined) return '-';
+        if (sizeMb === null || sizeMb === undefined) return '—';
         if (sizeMb >= 1024) {
             return `${(sizeMb / 1024).toFixed(2)} ГБ`;
         }
@@ -107,7 +115,7 @@ const HomePage = () => {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({is_favorite: !isCurrentlyFavorite}),
+                body: JSON.stringify({ is_favorite: !isCurrentlyFavorite }),
             });
 
             if (!response.ok) {
@@ -131,7 +139,53 @@ const HomePage = () => {
         return false;
     });
 
-    // Debounced fetch с параметром поиска
+    // ========== Загрузка данных с пагинацией и поиском ==========
+
+    const fetchConnections = async (page, size, search) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const token = localStorage.getItem('access_token');
+            const url = new URL('http://localhost:8000/api/v1/db_connections/');
+            url.searchParams.set('page', page);
+            url.searchParams.set('size', size);
+            if (search?.trim()) {
+                url.searchParams.set('search', search.trim());
+            }
+
+            const response = await fetch(url.toString(), {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setConnections(data.items || []);
+            setTotalPages(data.pages || 1);
+            setTotalCount(data.total || 0);
+
+            const initialFavorites = new Set();
+            data.items?.forEach(conn => {
+                if (conn.is_favorite) {
+                    initialFavorites.add(conn.id);
+                }
+            });
+            setFavorites(initialFavorites);
+        } catch (err) {
+            console.error('Failed to fetch connections:', err);
+            setError(err.message || 'Не удалось загрузить подключения');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Debounced search + pagination effect
     useEffect(() => {
         if (!isAuthenticated) {
             setLoading(false);
@@ -139,56 +193,41 @@ const HomePage = () => {
         }
 
         const delayDebounce = setTimeout(() => {
-            const fetchConnections = async () => {
-                setLoading(true);
-                setError(null);
-
-                try {
-                    const token = localStorage.getItem('access_token');
-                    const url = new URL('http://localhost:8000/api/v1/db_connections/');
-                    if (searchQuery.trim()) {
-                        url.searchParams.set('search', searchQuery.trim());
-                    }
-
-                    const response = await fetch(url.toString(), {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    setConnections(data.items || []);
-
-                    const initialFavorites = new Set();
-                    data.items?.forEach(conn => {
-                        if (conn.is_favorite) {
-                            initialFavorites.add(conn.id);
-                        }
-                    });
-                    setFavorites(initialFavorites);
-                } catch (err) {
-                    console.error('Failed to fetch connections:', err);
-                    setError(err.message || 'Не удалось загрузить подключения');
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            fetchConnections();
+            fetchConnections(currentPage, pageSize, searchQuery);
         }, 300);
 
         return () => clearTimeout(delayDebounce);
-    }, [isAuthenticated, searchQuery]);
+    }, [isAuthenticated, searchQuery, currentPage, pageSize]);
 
+    // Сброс страницы при смене поиска
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+
+    // ========== Вспомогательные функции ==========
+
+    const truncateDescription = (desc, length = 30) => {
+        if (!desc) return 'Не заполнено';
+        return desc.length > length ? desc.substring(0, length) + '...' : desc;
+    };
+
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
+    const handlePageSizeChange = (e) => {
+        const newSize = parseInt(e.target.value, 10);
+        setPageSize(newSize);
+        setCurrentPage(1);
+    };
+
+    // ========== Неавторизованный пользователь ==========
     if (!isAuthenticated) {
         return (
             <>
-                <Header isAuthenticated={false}/>
+                <Header isAuthenticated={false} />
                 <main>
                     <section className="dashboard-section">
                         <h1 className="welcome-title">Зарегистрируйтесь или авторизуйтесь в DB HUB</h1>
@@ -235,20 +274,15 @@ const HomePage = () => {
                         </div>
                     </section>
                 </main>
-                <Footer/>
+                <Footer />
             </>
         );
     }
 
-    // Вспомогательная функция для обрезки описания
-    const truncateDescription = (desc, length = 30) => {
-        if (!desc) return 'Нет описания';
-        return desc.length > length ? desc.substring(0, length) + '...' : desc;
-    };
-
+    // ========== Авторизованный пользователь ==========
     return (
         <>
-            <Header isAuthenticated={true}/>
+            <Header isAuthenticated={true} />
             <main>
                 <section className="connections-section">
                     <div className="section-header">
@@ -266,7 +300,7 @@ const HomePage = () => {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <button className="btn btn-primary" disabled>
+                            <button className="btn btn-primary"  >
                                 <i className="fas fa-plus"></i> Создать подключение
                             </button>
                         </div>
@@ -322,129 +356,171 @@ const HomePage = () => {
                             <i className="fas fa-exclamation-circle"></i> Ошибка загрузки: {error}
                         </div>
                     ) : (
-                        <div className="connections-grid">
-                            {filteredConnections.length === 0 ? (
-                                <div className="loading-message">
-                                    Нет подключений, соответствующих выбранному фильтру.
-                                </div>
-                            ) : (
-                                filteredConnections.map((conn, index) => (
-                                    <div key={conn.id} className="connection-card" style={{animationDelay: `${index * 0.1}s`}}>
-                                        <div className="card-header">
-                                            <div className="connection-title-container">
-                                                <div className="connection-subtitle">
-                                                    <div className="connection-meta-row">
-                                                        <div className="db-type">
-                                                            <div className="db-icon-container">
-                                                                <i className={`fas ${getDatabaseIconClass(conn.database_type)}`}></i>
-                                                                <div className={`${getStatusClass(conn.status)} status-overlay-dot`}>
-                                                                    <span className="status-dot"></span>
+                        <>
+                            <div className="connections-grid">
+                                {filteredConnections.length === 0 ? (
+                                    <div className="loading-message">
+                                        Нет подключений, соответствующих выбранному фильтру.
+                                    </div>
+                                ) : (
+                                    filteredConnections.map((conn, index) => (
+                                        <div key={conn.id} className="connection-card" style={{ animationDelay: `${index * 0.1}s` }}>
+                                            <div className="card-header">
+                                                <div className="connection-title-container">
+                                                    <div className="connection-subtitle">
+                                                        <div className="connection-meta-row">
+                                                            <div className="db-type">
+                                                                <div className="db-icon-container">
+                                                                    <i className={`fas ${getDatabaseIconClass(conn.database_type)}`}></i>
+                                                                    <div className={`${getStatusClass(conn.status)} status-overlay-dot`}>
+                                                                        <span className="status-dot"></span>
+                                                                    </div>
                                                                 </div>
+                                                                <span>{conn.database_type?.toUpperCase() || 'UNKNOWN'}</span>
                                                             </div>
-                                                            <span>{conn.database_type?.toUpperCase() || 'UNKNOWN'}</span>
+                                                        </div>
+                                                        <div className="connection-meta-row">
+                                                            <div className={`env-badge-inline ${conn.environment || 'development'}`}>
+                                                                {conn.environment === 'production' ? 'ПРОДАКШЕН' :
+                                                                    conn.environment === 'testing' ? 'ТЕСТИРОВАНИЕ' :
+                                                                        conn.environment === 'analytics' ? 'АНАЛИТИКА' : 'РАЗРАБОТКА'}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div className="connection-meta-row">
-                                                        <div className={`env-badge-inline ${conn.environment || 'development'}`}>
-                                                            {conn.environment === 'production' ? 'ПРОДАКШЕН' :
-                                                                conn.environment === 'testing' ? 'ТЕСТИРОВАНИЕ' :
-                                                                    conn.environment === 'analytics' ? 'АНАЛИТИКА' : 'РАЗРАБОТКА'}
+                                                    <h2 className="connection-title">{conn.name || 'Без названия'}</h2>
+                                                    <h2
+                                                        className="connection-description"
+                                                        title={conn.description || 'Не заполнено'}
+                                                    >
+                                                        Описание: {truncateDescription(conn.description)}
+                                                    </h2>
+                                                </div>
+                                            </div>
+
+                                            <div className="card-content">
+                                                <div className="info-grid">
+                                                    <div className="info-item">
+                                                        <div className="info-label">БАЗА ДАННЫХ</div>
+                                                        <div className="info-value">
+                                                            <i className="fas fa-database"></i>
+                                                            <span>{conn.database_name || '—'}</span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <h2 className="connection-title">{conn.name || 'Без названия'}</h2>
-                                                <h2
-                                                    className="connection-description"
-                                                    title={conn.description || 'Нет описания'}
-                                                >
-                                                    Описание: {truncateDescription(conn.description)}
-                                                </h2>
+
+                                                <div className="info-grid">
+                                                    <div className="info-item">
+                                                        <div className="info-label">ПОЛЬЗОВАТЕЛЬ</div>
+                                                        <div className="info-value">
+                                                            <i className="fas fa-user"></i>
+                                                            <span>{conn.username || '—'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="info-grid">
+                                                    <div className="info-item">
+                                                        <div className="info-label">ХОСТ</div>
+                                                        <div className="info-value">
+                                                            <i className="fas fa-server"></i>
+                                                            <span>{conn.host || '—'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="info-grid">
+                                                    <div className="info-item">
+                                                        <div className="info-label">ПОРТ</div>
+                                                        <div className="info-value">
+                                                            <i className="fas fa-plug"></i>
+                                                            <span>{conn.port || '—'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="card-footer">
+                                                <div className="info-grid">
+                                                    <div className="info-item">
+                                                        <div className="info-label">РАЗМЕР</div>
+                                                        <div className="info-value">
+                                                            <i className="fas fa-hdd"></i>
+                                                            <span>{formatDbSize(conn.db_size_mb)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="card-actions">
+                                                    <button
+                                                        className={`favorite-btn ${favorites.has(conn.id) ? 'active' : ''}`}
+                                                        onClick={() => toggleFavorite(conn.id)}
+                                                        title={favorites.has(conn.id) ? 'Убрать из избранного' : 'Добавить в избранное'}
+                                                    >
+                                                        <i className="fas fa-star"></i>
+                                                    </button>
+                                                    <button className="action-btn" disabled title="Мониторинг">
+                                                        <i className="fas fa-chart-bar"></i>
+                                                    </button>
+                                                    <button
+                                                        className="action-btn"
+                                                        // onClick={() => handleEditConnection(conn)}
+                                                        title="Редактировать подключение"
+                                                    >
+                                                        <i className="fas fa-edit"></i>
+                                                    </button>
+                                                    <button
+                                                        className="action-btn delete"
+                                                        onClick={() => openDeleteModal(conn)}
+                                                        title="Удалить"
+                                                    >
+                                                        <i className="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
+                                    ))
+                                )}
+                            </div>
 
-                                        <div className="card-content">
-                                            <div className="info-grid">
-                                                <div className="info-item">
-                                                    <div className="info-label">БАЗА ДАННЫХ</div>
-                                                    <div className="info-value">
-                                                        <i className="fas fa-database"></i>
-                                                        <span>{conn.database_name || '—'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="info-grid">
-                                                <div className="info-item">
-                                                    <div className="info-label">ПОЛЬЗОВАТЕЛЬ</div>
-                                                    <div className="info-value">
-                                                        <i className="fas fa-user"></i>
-                                                        <span>{conn.username || '—'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="info-grid">
-                                                <div className="info-item">
-                                                    <div className="info-label">ХОСТ</div>
-                                                    <div className="info-value">
-                                                        <i className="fas fa-server"></i>
-                                                        <span>{conn.host || '—'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="info-grid">
-                                                <div className="info-item">
-                                                    <div className="info-label">ПОРТ</div>
-                                                    <div className="info-value">
-                                                        <i className="fas fa-plug"></i>
-                                                        <span>{conn.port || '—'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="card-footer">
-                                            <div className="info-grid">
-                                                <div className="info-item">
-                                                    <div className="info-label">РАЗМЕР</div>
-                                                    <div className="info-value">
-                                                        <i className="fas fa-hdd"></i>
-                                                        <span>{formatDbSize(conn.db_size_mb)}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="card-actions">
-                                                <button
-                                                    className={`favorite-btn ${favorites.has(conn.id) ? 'active' : ''}`}
-                                                    onClick={() => toggleFavorite(conn.id)}
-                                                    title={favorites.has(conn.id) ? 'Убрать из избранного' : 'Добавить в избранное'}
-                                                >
-                                                    <i className="fas fa-star"></i>
-                                                </button>
-                                                <button className="action-btn" disabled title="Мониторинг">
-                                                    <i className="fas fa-chart-bar"></i>
-                                                </button>
-                                                <button
-                                                    className="action-btn"
-                                                    // onClick={() => handleEditConnection(conn)}
-                                                    title="Редактировать подключение"
-                                                >
-                                                    <i className="fas fa-edit"></i>
-                                                </button>
-                                                <button
-                                                    className="action-btn delete"
-                                                    onClick={() => openDeleteModal(conn)}
-                                                    title="Удалить"
-                                                >
-                                                    <i className="fas fa-trash"></i>
-                                                </button>
-                                            </div>
+                            {/* Пагинация */}
+                            {totalPages > 1 && (
+                                <div className="pagination-container">
+                                    <div className="pagination-info">
+                                        Показано {filteredConnections.length} из {totalCount} подключений
+                                    </div>
+                                    <div className="pagination-controls">
+                                        <select
+                                            value={pageSize}
+                                            onChange={handlePageSizeChange}
+                                            className="pagination-select"
+                                        >
+                                            <option value={4}>4 на странице</option>
+                                            <option value={8}>8 на странице</option>
+                                            <option value={16}>16 на странице</option>
+                                            <option value={32}>32 на странице</option>
+                                        </select>
+                                        <div className="pagination-buttons">
+                                            <button
+                                                className="btn btn-ghost"
+                                                onClick={() => handlePageChange(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                            >
+                                                <i className="fas fa-chevron-left"></i>
+                                            </button>
+                                            <span className="pagination-page-info">
+                                                Страница {currentPage} из {totalPages}
+                                            </span>
+                                            <button
+                                                className="btn btn-ghost"
+                                                onClick={() => handlePageChange(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                            >
+                                                <i className="fas fa-chevron-right"></i>
+                                            </button>
                                         </div>
                                     </div>
-                                ))
+                                </div>
                             )}
-                        </div>
+                        </>
                     )}
                 </section>
             </main>
@@ -479,7 +555,7 @@ const HomePage = () => {
                 </div>
             )}
 
-            <Footer/>
+            <Footer />
         </>
     );
 };

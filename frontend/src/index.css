@@ -959,12 +959,11 @@ body {
 }
 
 .connections-count {
-    background: var(--success);
-    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    background: var(--primary);
     color: white;
     font-size: 14px;
     font-weight: 600;
-    padding: 6px 12px;
+    padding: 6px 18px;
     border-radius: 20px;
     min-width: 30px;
     text-align: center;
@@ -1782,7 +1781,51 @@ body {
     }
 }
 
+/* ===== Пагинация ===== */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--gray-200);
+    flex-wrap: wrap;
+    gap: 16px;
+}
 
+.pagination-info {
+    font-size: 14px;
+    color: var(--gray-600);
+    min-width: 180px;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.pagination-select {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    background: white;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.pagination-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-page-info {
+    font-size: 14px;
+    color: var(--gray-700);
+    font-weight: 500;
+    white-space: nowrap;
+}
 
 
 
