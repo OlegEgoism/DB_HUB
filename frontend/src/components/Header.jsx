@@ -22,13 +22,13 @@ const Header = ({isAuthenticated}) => {
 
             {isAuthenticated ? (
                 <div className="header-actions">
-                    <Link to="/audit" className="btn btn-primary ">
+                    <Link to="/audit" className="btn btn-primary">
                         <i className="fas fa-clipboard-list"></i> Аудит
                     </Link>
-                    <Link to="/settings" className="btn btn-primary ">
+                    <Link to="/settings" className="btn btn-primary">
                         <i className="fas fa-cog"></i> Настройки
                     </Link>
-                    <Link to="/profile" className="btn btn-primary ">
+                    <Link to="/profile" className="btn btn-primary">
                         <i className="fas fa-user"></i> Профиль
                     </Link>
                     <button onClick={handleLogout} className="btn btn-danger">

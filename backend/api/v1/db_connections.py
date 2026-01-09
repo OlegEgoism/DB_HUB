@@ -14,7 +14,7 @@ from backend.schemas.db_connections_schemas import (
     ConnectionUpdate,
     PaginatedConnectionResponse,
     PaginatedActiveConnectionsResponse,
-    TerminateConnectionRequest
+    TerminateConnectionRequest, ConnectionFavoriteUpdate
 )
 from backend.services.db_connections_services import DBConnectionService
 
@@ -210,3 +210,25 @@ async def terminate_active_connection(connection_id: int, request: TerminateConn
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при завершении процесса: {str(e)}")
+
+
+@router.patch("/{connection_id}/favorite", response_model=ConnectionOut)
+async def update_connection_favorite(connection_id: int, favorite_update: ConnectionFavoriteUpdate, db: AsyncSession = Depends(get_db)):
+    """Обновить только флаг 'избранное' для подключения."""
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+    db_connection = result.scalar_one_or_none()
+    if not db_connection:
+        raise HTTPException(status_code=404, detail="Подключение не найдено")
+    db_connection.is_favorite = favorite_update.is_favorite
+    await db.commit()
+    await db.refresh(db_connection)
+    owner_result = await db.execute(select(User.username).where(User.id == db_connection.owner_id))
+    owner_username = owner_result.scalar_one()
+    status_conn, size = await get_db_status_and_size(db_connection)
+    connection_dict = {
+        **db_connection.__dict__,
+        "status": status_conn,
+        "db_size_mb": size,
+        "owner_username": owner_username
+    }
+    return ConnectionOut(**connection_dict)

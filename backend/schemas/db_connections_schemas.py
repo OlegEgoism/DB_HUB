@@ -96,3 +96,7 @@ class PaginatedActiveConnectionsResponse(BaseModel):
 
 class TerminateConnectionRequest(BaseModel):
     pid: int = Field(..., gt=0, description="PID процесса, который нужно завершить")
+
+
+class ConnectionFavoriteUpdate(BaseModel):
+    is_favorite: bool
