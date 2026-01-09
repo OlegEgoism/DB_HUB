@@ -77,7 +77,7 @@ const HomePage = () => {
     };
 
     const formatDbSize = (sizeMb) => {
-        if (sizeMb === null || sizeMb === undefined) return '—';
+        if (sizeMb === null || sizeMb === undefined) return '-';
         if (sizeMb >= 1024) {
             return `${(sizeMb / 1024).toFixed(2)} ГБ`;
         }
@@ -407,7 +407,7 @@ const HomePage = () => {
                                         <div className="card-footer">
                                             <div className="info-grid">
                                                 <div className="info-item">
-                                                    <div className="info-label">РАЗМЕР БАЗЫ ДАННЫХ</div>
+                                                    <div className="info-label">РАЗМЕР</div>
                                                     <div className="info-value">
                                                         <i className="fas fa-hdd"></i>
                                                         <span>{formatDbSize(conn.db_size_mb)}</span>
@@ -420,10 +420,17 @@ const HomePage = () => {
                                                     onClick={() => toggleFavorite(conn.id)}
                                                     title={favorites.has(conn.id) ? 'Убрать из избранного' : 'Добавить в избранное'}
                                                 >
-                                                    <i className={`fas fa-star`}></i>
+                                                    <i className="fas fa-star"></i>
                                                 </button>
                                                 <button className="action-btn" disabled title="Мониторинг">
                                                     <i className="fas fa-chart-bar"></i>
+                                                </button>
+                                                <button
+                                                    className="action-btn"
+                                                    // onClick={() => handleEditConnection(conn)}
+                                                    title="Редактировать подключение"
+                                                >
+                                                    <i className="fas fa-edit"></i>
                                                 </button>
                                                 <button
                                                     className="action-btn delete"
