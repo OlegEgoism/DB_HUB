@@ -1,10 +1,106 @@
 // src/pages/HomePage.jsx
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const HomePage = () => {
     const isAuthenticated = !!localStorage.getItem('access_token');
+    const [connections, setConnections] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [filter, setFilter] = useState('all');
+    const [favorites, setFavorites] = useState(new Set());
+    const connectedCount = connections.filter(conn => conn.status === 'connected').length;
+    const getDatabaseIconClass = (type) => {
+        switch (type?.toLowerCase()) {
+            case 'postgresql':
+                return 'fa-database';
+            default:
+                return 'fa-database';
+        }
+    };
+
+    const getStatusClass = (status) => {
+        switch (status) {
+            case 'connected':
+                return 'status-connected';
+            case 'connecting':
+                return 'status-connecting';
+            default:
+                return 'status-disconnected';
+        }
+    };
+
+
+    const formatDbSize = (sizeMb) => {
+        if (sizeMb === null || sizeMb === undefined) return '—';
+        if (sizeMb >= 1024) {
+            return `${(sizeMb / 1024).toFixed(2)} ГБ`;
+        }
+        return `${sizeMb.toFixed(2)} МБ`;
+    };
+
+    const toggleFavorite = (connectionId) => {
+        const newFavorites = new Set(favorites);
+        if (newFavorites.has(connectionId)) {
+            newFavorites.delete(connectionId);
+        } else {
+            newFavorites.add(connectionId);
+        }
+        setFavorites(newFavorites);
+    };
+
+    const filteredConnections = connections.filter((conn) => {
+        if (filter === 'all') return true;
+        if (filter === 'production' && conn.environment === 'production') return true;
+        if (filter === 'development' && conn.environment === 'development') return true;
+        if (filter === 'testing' && conn.environment === 'testing') return true;
+        if (filter === 'analytics' && conn.environment === 'analytics') return true;
+        if (filter === 'favorite' && favorites.has(conn.id)) return true;
+        return false;
+    });
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setLoading(false);
+            return;
+        }
+
+        const fetchConnections = async () => {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('http://localhost:8000/api/v1/db_connections/', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                setConnections(data.items || []);
+
+                // Инициализируем избранные из данных
+                const initialFavorites = new Set();
+                data.items?.forEach(conn => {
+                    if (conn.is_favorite) {
+                        initialFavorites.add(conn.id);
+                    }
+                });
+                setFavorites(initialFavorites);
+            } catch (err) {
+                console.error('Failed to fetch connections:', err);
+                setError(err.message || 'Не удалось загрузить подключения');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchConnections();
+    }, [isAuthenticated]);
 
     if (!isAuthenticated) {
         return (
@@ -69,34 +165,182 @@ const HomePage = () => {
                     <div className="section-header">
                         <div className="section-title-container">
                             <h2>Активные подключения</h2>
-                            <div className="connections-count">0</div>
+                            <div className="connections-count">{connectedCount}</div>
                         </div>
                         <div className="section-controls">
                             <div className="section-search-bar">
                                 <i className="fas fa-search"></i>
-                                <input type="text" placeholder="Поиск подключений..." disabled/>
+                                <input type="text" placeholder="Поиск подключений..."/>
                             </div>
-                            <div className="btn btn-primary">
-                                <button className="btn btn-primary" disabled>
-                                    <i className="fas fa-plus"></i> Создать подключение
-                                </button>
-                            </div>
+                            <button className="btn btn-primary" disabled>
+                                <i className="fas fa-plus"></i> Создать подключение
+                            </button>
                         </div>
                     </div>
 
                     <div className="filters-container">
                         <div className="filter-tabs">
-                            <button className="tab active" disabled>Все</button>
-                            <button className="tab" disabled>Продакшн</button>
-                            <button className="tab" disabled>Разработка</button>
-                            <button className="tab" disabled>MySQL</button>
-                            <button className="tab" disabled>Избранные</button>
+                            <button
+                                className={`tab ${filter === 'all' ? 'active' : ''}`}
+                                onClick={() => setFilter('all')}
+                            >
+                                Все
+                            </button>
+                            <button
+                                className={`tab ${filter === 'production' ? 'active' : ''}`}
+                                onClick={() => setFilter('production')}
+                            >
+                                Продакшн
+                            </button>
+                            <button
+                                className={`tab ${filter === 'development' ? 'active' : ''}`}
+                                onClick={() => setFilter('development')}
+                            >
+                                Разработка
+                            </button>
+                            <button
+                                className={`tab ${filter === 'testing' ? 'active' : ''}`}
+                                onClick={() => setFilter('testing')}
+                            >
+                                Тестирование
+                            </button>
+                            <button
+                                className={`tab ${filter === 'analytics' ? 'active' : ''}`}
+                                onClick={() => setFilter('analytics')}
+                            >
+                                Аналитика
+                            </button>
+                            <button
+                                className={`tab ${filter === 'favorite' ? 'active' : ''}`}
+                                onClick={() => setFilter('favorite')}
+                            >
+                                Избранные
+                            </button>
                         </div>
                     </div>
 
-                    <div className="connections-grid">
-                        <p>Подключения к базам данных будут отображаться здесь после реализации.</p>
-                    </div>
+                    {loading ? (
+                        <div className="loading-message">
+                            <i className="fas fa-spinner fa-spin"></i> Загрузка подключений...
+                        </div>
+                    ) : error ? (
+                        <div className="error-message">
+                            <i className="fas fa-exclamation-circle"></i> Ошибка загрузки: {error}
+                        </div>
+                    ) : (
+                        <div className="connections-grid">
+                            {filteredConnections.length === 0 ? (
+                                <div className="loading-message">
+                                    Нет подключений, соответствующих выбранному фильтру.
+                                </div>
+                            ) : (
+                                filteredConnections.map((conn, index) => (
+                                    <div key={conn.id} className="connection-card" style={{animationDelay: `${index * 0.1}s`}}>
+
+
+                                        <div className="card-header">
+                                            <div className="connection-title-container">
+
+                                                <div className="connection-subtitle">
+                                                    <div className="connection-meta-row">
+                                                        <div className="db-type">
+                                                            <div className="db-icon-container">
+                                                                <i className={`fas ${getDatabaseIconClass(conn.database_type)}`}></i>
+                                                                <div className={`${getStatusClass(conn.status)} status-overlay-dot`}>
+                                                                    <span className="status-dot"></span>
+                                                                </div>
+                                                            </div>
+                                                            <span>{conn.database_type?.toUpperCase() || 'UNKNOWN'}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="connection-meta-row">
+                                                        <div className={`env-badge-inline ${conn.environment || 'development'}`}>
+                                                            {conn.environment === 'production' ? 'ПРОДАКШЕН' :
+                                                                conn.environment === 'testing' ? 'ТЕСТИРОВАНИЕ' :
+                                                                    conn.environment === 'analytics' ? 'АНАЛИТИКА' : 'РАЗРАБОТКА'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <h2 className="connection-title">{conn.name || 'Без названия'}</h2>
+                                            </div>
+                                        </div>
+
+
+                                        <div className="card-content">
+                                            <div className="info-grid">
+                                                <div className="info-item">
+                                                    <div className="info-label">БАЗА ДАННЫХ</div>
+                                                    <div className="info-value">
+                                                        <i className="fas fa-database"></i>
+                                                        <span>{conn.database_name || '—'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="info-grid">
+                                                <div className="info-item">
+                                                    <div className="info-label">ПОЛЬЗОВАТЕЛЬ</div>
+                                                    <div className="info-value">
+                                                        <i className="fas fa-user"></i>
+                                                        <span>{conn.username || '—'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="info-grid">
+                                                <div className="info-item">
+                                                    <div className="info-label">ХОСТ</div>
+                                                    <div className="info-value">
+                                                        <i className="fas fa-server"></i>
+                                                        <span>{conn.host || '—'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="info-grid">
+                                                <div className="info-item">
+                                                    <div className="info-label">ПОРТ</div>
+                                                    <div className="info-value">
+                                                        <i className="fas fa-plug"></i>
+                                                        <span>{conn.port || '—'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="info-grid">
+                                                <div className="info-item">
+                                                    <div className="info-label">РАЗМЕР БАЗЫ ДАННЫХ</div>
+                                                    <div className="info-value">
+                                                        <i className="fas fa-hdd"></i>
+                                                        <span>{formatDbSize(conn.db_size_mb)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="card-footer">
+
+                                            <div className="card-actions">
+                                                <button
+                                                    className={`favorite-btn ${favorites.has(conn.id) ? 'active' : ''}`}
+                                                    onClick={() => toggleFavorite(conn.id)}
+                                                    title={favorites.has(conn.id) ? 'Убрать из избранного' : 'Добавить в избранное'}
+                                                >
+                                                    <i className={`fas ${favorites.has(conn.id) ? 'fa-star' : 'fa-star'}`}></i>
+                                                </button>
+                                                <button className="action-btn" disabled title="Мониторинг">
+                                                    <i className="fas fa-chart-bar"></i>
+                                                </button>
+                                                <button className="action-btn delete" disabled title="Удалить">
+                                                    <i className="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    )}
                 </section>
             </main>
             <Footer/>

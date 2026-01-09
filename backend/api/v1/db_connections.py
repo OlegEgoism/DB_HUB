@@ -47,7 +47,7 @@ async def list_connections(
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
         search: Optional[str] = Query(None, description="""Поиск по нескольким полям одновременно"""),
         database_type: Optional[str] = Query(None, description="Фильтр по типу СУБД (например: postgresql)"),
-        environment: Optional[str] = Query(None, description="Фильтр по окружению (production, development, staging, analytics)"),
+        environment: Optional[str] = Query(None, description="Фильтр по окружению (production, development, testing, analytics)"),
         is_favorite: Optional[bool] = Query(None, description="Фильтр по избранному (true/false)"),
         sort_by: str = Query("name", description="Поле для сортировки (name, created_at, updated_at, database_name)"),
         sort_order: str = Query("asc", description="Порядок сортировки (asc или desc)")

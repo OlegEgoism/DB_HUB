@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, validator, ConfigDict
 
-Environment = Literal['production', 'development', 'staging', 'analytics']
+Environment = Literal['production', 'development', 'testing', 'analytics']
 DatabaseType = Literal['postgresql']
 
 

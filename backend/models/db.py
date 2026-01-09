@@ -7,7 +7,7 @@ from backend.models.base_mixin import DateTimeMixin
 ENVIRONMENT_CHOICES = [
     ('production', 'Продакшн'),
     ('development', 'Разработка'),
-    ('staging', 'Тестирование'),
+    ('testing', 'Тестирование'),
     ('analytics', 'Аналитика'),
 ]
 
