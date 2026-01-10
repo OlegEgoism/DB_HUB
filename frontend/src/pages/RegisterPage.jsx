@@ -29,7 +29,7 @@ const RegisterPage = () => {
     const [showModal, setShowModal] = useState(false);
     const [roleOpen, setRoleOpen] = useState(false);
     const navigate = useNavigate();
-    const selectRef = useRef(null); // Реф для обертки селекта
+    const selectRef = useRef(null);
 
     // Закрытие выпадающего списка при клике вне области
     useEffect(() => {
