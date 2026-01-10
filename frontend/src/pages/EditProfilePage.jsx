@@ -287,10 +287,7 @@ const EditProfilePage = () => {
                             </div>
                         </div>
 
-                        <div
-                            className="form-actions"
-                            style={{display: 'flex', gap: '12px', marginTop: '20px'}}
-                        >
+                        <div className="header-actions">
                             <button
                                 type="submit"
                                 className={`btn btn-primary ${submitting ? 'btn-loading' : ''}`}

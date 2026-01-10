@@ -166,7 +166,7 @@ const ProfilePage = () => {
 
                         {/* Кнопка редактирования — только для активных пользователей */}
                         {user.is_active && (
-                            <div className="form-actions" >
+                            <div  >
                                 <button
                                     type="button"
                                     className="btn btn-primary"
