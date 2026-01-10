@@ -303,16 +303,7 @@
 /*    border-radius: 2px;*/
 /*}*/
 
-/*.connections-count {*/
-/*    background: var(--primary);*/
-/*    color: white;*/
-/*    font-size: 14px;*/
-/*    font-weight: 600;*/
-/*    padding: 6px 18px;*/
-/*    border-radius: 20px;*/
-/*    min-width: 30px;*/
-/*    text-align: center;*/
-/*}*/
+
 
 /*.section-controls {*/
 /*    display: flex;*/
@@ -322,10 +313,7 @@
 
 /*}*/
 
-/*.section-search-bar {*/
-/*    position: relative;*/
-/*    min-width: 300px;*/
-/*}*/
+
 
 /*.section-search-bar input {*/
 /*    padding: 12px 16px 12px 44px;*/
@@ -1030,12 +1018,7 @@
 /*  justify-content: center;*/
 /*}*/
 
-/*.status-overlay-dot .status-dot {*/
-/*  width: 16px;*/
-/*  height: 16px;*/
-/*  border-radius: 50%;*/
-/*  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);*/
-/*}*/
+
 
 /*!* ===== Модальное окно (Modal) ===== *!*/
 /*.modal-overlay {*/
@@ -1126,48 +1109,3 @@
 /*    }*/
 /*}*/
 
-/*!* ===== Пагинация ===== *!*/
-/*.pagination-container {*/
-/*    display: flex;*/
-/*    justify-content: space-between;*/
-/*    align-items: center;*/
-/*    margin-top: 30px;*/
-/*    padding-top: 20px;*/
-/*    border-top: 1px solid var(--gray-200);*/
-/*    flex-wrap: wrap;*/
-/*    gap: 16px;*/
-/*}*/
-
-/*.pagination-info {*/
-/*    font-size: 14px;*/
-/*    color: var(--gray-600);*/
-/*    min-width: 180px;*/
-/*}*/
-
-/*.pagination-controls {*/
-/*    display: flex;*/
-/*    align-items: center;*/
-/*    gap: 16px;*/
-/*}*/
-
-/*.pagination-select {*/
-/*    padding: 8px 12px;*/
-/*    border: 1px solid var(--gray-300);*/
-/*    border-radius: 8px;*/
-/*    background: white;*/
-/*    font-size: 14px;*/
-/*    color: var(--text-primary);*/
-/*}*/
-
-/*.pagination-buttons {*/
-/*    display: flex;*/
-/*    align-items: center;*/
-/*    gap: 8px;*/
-/*}*/
-
-/*.pagination-page-info {*/
-/*    font-size: 14px;*/
-/*    color: var(--gray-700);*/
-/*    font-weight: 500;*/
-/*    white-space: nowrap;*/
-/*}*/

@@ -31,18 +31,15 @@ const RegisterPage = () => {
     const navigate = useNavigate();
     const selectRef = useRef(null);
 
-    // Закрытие выпадающего списка при клике вне области
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (selectRef.current && !selectRef.current.contains(event.target)) {
                 setRoleOpen(false);
             }
         };
-
         if (roleOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
-
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
@@ -93,7 +90,6 @@ const RegisterPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validate()) return;
-
         setLoading(true);
         const payload = {
             username: formData.username,
@@ -102,7 +98,6 @@ const RegisterPage = () => {
             role: formData.role,
             password: formData.password
         };
-
         try {
             await axios.post('http://localhost:8000/api/v1/users/', payload);
             setShowModal(true);
@@ -139,9 +134,7 @@ const RegisterPage = () => {
                     <div className="register-header">
                         <h1>Регистрация</h1>
                     </div>
-
                     {errors.form && (<div className="alert">{errors.form}</div>)}
-
                     <form className="register-form" onSubmit={handleSubmit} noValidate>
                         <div className="form-section">
                             <h2 className="section-title">Поля для ввода (* обязательные)</h2>
@@ -172,7 +165,7 @@ const RegisterPage = () => {
                                 <div className="form-group">
                                     <label className="form-label">
                                         <i className="fas fa-briefcase"></i>
-                                        Роль
+                                        Роль*
                                     </label>
                                     <div className="custom-select-wrapper" ref={selectRef}>
                                         <div
@@ -244,7 +237,7 @@ const RegisterPage = () => {
                                             <div className="strength-text">{strength.text}</div>
                                         </div>
                                     )}
-                                    <div className="form-hint">Пароль минимум 4 символа</div>
+                                    <div className="form-hint">Минимум 4 символа</div>
                                 </div>
 
                                 <div className="form-group">

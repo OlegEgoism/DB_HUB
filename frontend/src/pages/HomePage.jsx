@@ -236,7 +236,7 @@ const HomePage = () => {
             <>
                 <Header isAuthenticated={false}/>
                 <main>
-                    <section className="dashboard-section">
+                    <section className="connections-section">
                         <h1 className="welcome-title">Зарегистрируйтесь или авторизуйтесь в DB HUB</h1>
                         <p className="profile-subtitle">
                             Современная платформа управления базами данных с централизованным доступом и администрированием.
