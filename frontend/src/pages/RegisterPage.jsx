@@ -140,11 +140,7 @@ const RegisterPage = () => {
                         <h1>Регистрация</h1>
                     </div>
 
-                    {errors.form && (
-                        <div className="alert">
-                            <p>{errors.form}</p>
-                        </div>
-                    )}
+                    {errors.form && (<div className="alert">{errors.form}</div>)}
 
                     <form className="register-form" onSubmit={handleSubmit} noValidate>
                         <div className="form-section">
@@ -245,17 +241,10 @@ const RegisterPage = () => {
                                         </div>
                                     ) : formData.password && (
                                         <div className="password-strength">
-                                            <div className="strength-bar">
-                                                {[...Array(4)].map((_, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className={`strength-segment ${i < (strength.class === 'weak' ? 1 : strength.class === 'medium' ? 2 : 4) ? strength.class : ''}`}
-                                                    ></div>
-                                                ))}
-                                            </div>
                                             <div className="strength-text">{strength.text}</div>
                                         </div>
                                     )}
+                                    <div className="form-hint">Пароль минимум 4 символа</div>
                                 </div>
 
                                 <div className="form-group">
@@ -322,7 +311,7 @@ const RegisterPage = () => {
                             </div>
                         </div>
 
-                        <div className="form-actions">
+                        <div>
                             <button
                                 type="submit"
                                 className={`btn btn-primary ${loading ? 'btn-loading' : ''}`}
@@ -361,7 +350,7 @@ const RegisterPage = () => {
                                 <i className="fas fa-hourglass-half"></i>
                             </div>
                             <h3>Ожидайте подтверждения регистрации администратором.</h3>
-                            <div className="form-actions">
+                            <div>
                                 <button
                                     className="btn btn-primary"
                                     onClick={() => {

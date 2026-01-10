@@ -115,7 +115,6 @@ body {
 .dashboard-header .header-actions a:active {
     text-decoration: none !important;
 }
-
 /*-----------------------------------------------------------------------*/
 
 
@@ -180,16 +179,6 @@ body {
     margin-bottom: 30px;
 }
 
-.alert {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    color: var(--danger);
-    padding: 12px 16px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    font-size: 14px;
-}
-
 .register-form {
     display: flex;
     flex-direction: column;
@@ -231,10 +220,26 @@ body {
     background: rgba(16, 185, 129, 0.05);
 }
 
+.alert {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
 .form-section {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
 }
 
 .form-group {
@@ -252,6 +257,12 @@ body {
     gap: 6px;
 }
 
+.form-hint {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
 .error-message {
     font-size: 12px;
     color: var(--danger);
@@ -261,11 +272,36 @@ body {
     gap: 6px;
 }
 
-.form-hint {
+.password-wrapper {
+    position: relative;
+}
+
+.password-strength {
+    margin-top: 8px;
+}
+
+.strength-text {
     font-size: 12px;
     color: var(--gray-500);
-    margin-top: 4px;
+    font-weight: 500;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 .custom-select-wrapper {
     position: relative;
@@ -295,10 +331,10 @@ body {
     outline: none;
 }
 
-.custom-select i {
-    color: var(--gray-400);
-    transition: transform 0.2s ease;
-}
+/*.custom-select i {*/
+/*    color: var(--gray-400);*/
+/*    transition: transform 0.2s ease;*/
+/*}*/
 
 .custom-select-options {
     position: absolute;
@@ -336,9 +372,6 @@ body {
     font-weight: 600;
 }
 
-.password-wrapper {
-    position: relative;
-}
 
 .toggle-password {
     position: absolute;
@@ -360,29 +393,16 @@ body {
     background: var(--gray-100);
 }
 
-.password-strength {
-    margin-top: 8px;
-}
 
-.strength-bar {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 6px;
-}
+/*.strength-bar {*/
+/*    display: flex;*/
+/*    gap: 6px;*/
+/*    margin-bottom: 6px;*/
+/*}*/
 
-.strength-segment {
-    flex: 1;
-    height: 4px;
-    background: var(--gray-200);
-    border-radius: 2px;
-    transition: all 0.3s ease;
-}
 
-.strength-text {
-    font-size: 12px;
-    color: var(--gray-500);
-    font-weight: 500;
-}
+
+
 
 .section-title {
     font-size: 18px;
@@ -556,7 +576,6 @@ body {
     border-top-color: transparent;
     animation: spin 1s linear infinite;
 }
-
 /*-----------------------------------------------------------------------*/
 
 
