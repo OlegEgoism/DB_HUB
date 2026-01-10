@@ -9,12 +9,14 @@ import EditProfilePage from './pages/EditProfilePage';
 import AgreementPage from './pages/AgreementPage';
 import EditConnectionPage from "./pages/EditConnectionPage";
 import ConnectionMonitoringPage from "./pages/ConnectionMonitoringPage";
+import CreateConnectionPage from "./pages/CreateConnectionPage";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/connections/create" element={<CreateConnectionPage />} />
         <Route path="/connections/:id/edit" element={<EditConnectionPage />} />
         <Route path="/connections/:id/monitoring" element={<ConnectionMonitoringPage />} />
         <Route path="/register" element={<RegisterPage />} />

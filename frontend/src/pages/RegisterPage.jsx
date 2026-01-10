@@ -137,7 +137,7 @@ const RegisterPage = () => {
                     {errors.form && (<div className="alert">{errors.form}</div>)}
                     <form className="register-form" onSubmit={handleSubmit} noValidate>
                         <div className="form-section">
-                            <h2 className="section-title">Поля для ввода (* обязательные)</h2>
+                            <h2 className="section-title">Поля для ввода (* обязательные поля)</h2>
 
                             <div className="form-row">
                                 <div className="form-group">
@@ -329,7 +329,7 @@ const RegisterPage = () => {
                                 onClick={() => navigate('/login')}
                             >
                                 <i className="fas fa-sign-in-alt"></i>
-                                Авторизоваться
+                                Войти
                             </button>
                         </div>
                     </form>

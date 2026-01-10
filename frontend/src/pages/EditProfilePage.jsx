@@ -217,7 +217,7 @@ const EditProfilePage = () => {
 
                     <form className="register-form" onSubmit={handleSubmit}>
                         <div className="form-section">
-                            <h2 className="section-title">Основная информация</h2>
+                            <h2 className="section-title">Основная информация (* обязательные поля)</h2>
 
                             <div className="form-group">
                                 <label className="form-label">

@@ -1,6 +1,6 @@
-// src/pages/EditConnectionPage.jsx
+// src/pages/CreateConnectionPage.jsx
 import React, {useState, useEffect, useRef} from 'react';
-import {useNavigate, useParams} from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -15,10 +15,8 @@ const DATABASE_TYPES = [
     "postgresql"
 ];
 
-const EditConnectionPage = () => {
-    const {id} = useParams(); // connection_id из URL
+const CreateConnectionPage = () => {
     const navigate = useNavigate();
-
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -33,10 +31,11 @@ const EditConnectionPage = () => {
         owner_id: null
     });
 
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
 
     const envSelectRef = useRef(null);
     const dbTypeSelectRef = useRef(null);
@@ -58,9 +57,9 @@ const EditConnectionPage = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Загрузка данных подключения
+    // Получение ID текущего пользователя
     useEffect(() => {
-        const loadConnection = async () => {
+        const getCurrentUser = async () => {
             const token = localStorage.getItem('access_token');
             if (!token) {
                 navigate('/login');
@@ -68,46 +67,57 @@ const EditConnectionPage = () => {
             }
 
             try {
-                const response = await fetch(`http://localhost:8000/api/v1/db_connections/${id}`, {
+                // Попробуем получить информацию о пользователе из localStorage
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    const userData = JSON.parse(userStr);
+                    setCurrentUser(userData);
+                    setFormData(prev => ({
+                        ...prev,
+                        owner_id: userData.id
+                    }));
+                    setLoading(false);
+                    return;
+                }
+
+                // Если нет в localStorage, запрашиваем с сервера
+                const response = await fetch('http://localhost:8000/api/v1/users/me', {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
 
-                if (!response.ok) {
-                    const err = await response.json().catch(() => ({}));
-                    throw new Error(err.detail || 'Не удалось загрузить подключение');
+                if (response.ok) {
+                    const userData = await response.json();
+                    setCurrentUser(userData);
+                    setFormData(prev => ({
+                        ...prev,
+                        owner_id: userData.id
+                    }));
+                    localStorage.setItem('user', JSON.stringify(userData));
+                } else {
+                    console.error('Не удалось получить информацию о пользователе');
                 }
-
-                const data = await response.json();
-                setFormData({
-                    name: data.name || '',
-                    description: data.description || '',
-                    database_type: data.database_type || 'postgresql',
-                    environment: data.environment || 'development',
-                    is_favorite: data.is_favorite || false,
-                    host: data.host || '',
-                    port: data.port || 5432,
-                    database_name: data.database_name || '',
-                    username: data.username || '',
-                    password: '', //
-                    owner_id: data.owner_id
-                });
             } catch (err) {
-                setError(err.message);
-                console.error('Ошибка загрузки подключения:', err);
+                console.error('Ошибка получения пользователя:', err);
             } finally {
                 setLoading(false);
             }
         };
 
-        loadConnection();
-    }, [id, navigate]);
+        getCurrentUser();
+    }, [navigate]);
 
     const handleChange = (e) => {
-        const {name, value} = e.target;
-        if (name === 'port') {
+        const {name, value, type, checked} = e.target;
+
+        if (type === 'checkbox') {
+            setFormData(prev => ({
+                ...prev,
+                [name]: checked
+            }));
+        } else if (name === 'port') {
             const numericValue = value.replace(/[^0-9]/g, '');
             if (numericValue.length > 5) return;
             setFormData(prev => ({
@@ -153,8 +163,16 @@ const EditConnectionPage = () => {
             setError('Имя пользователя обязательно');
             return false;
         }
-        if (isNaN(Number(formData.port)) || formData.port <= 0) {
-            setError('Порт должен быть положительным числом');
+        if (!formData.password.trim()) {
+            setError('Пароль обязателен');
+            return false;
+        }
+        if (isNaN(Number(formData.port)) || formData.port <= 0 || formData.port > 65535) {
+            setError('Порт должен быть числом от 1 до 65535');
+            return false;
+        }
+        if (!formData.owner_id) {
+            setError('Не удалось определить владельца подключения. Пожалуйста, перезайдите в систему.');
             return false;
         }
         return true;
@@ -165,27 +183,36 @@ const EditConnectionPage = () => {
         if (!validate()) return;
 
         const token = localStorage.getItem('access_token');
+        if (!token) {
+            setError('Требуется авторизация');
+            navigate('/login');
+            return;
+        }
+
         setSubmitting(true);
         setError('');
         setSuccess(false);
 
         try {
+            // Подготавливаем payload с правильными типами данных
             const payload = {
-                name: formData.name,
-                description: formData.description,
+                name: formData.name.trim(),
+                description: formData.description.trim() || null, // Если пустое, отправляем null
                 database_type: formData.database_type,
                 environment: formData.environment,
-                is_favorite: formData.is_favorite,
-                host: formData.host,
+                is_favorite: Boolean(formData.is_favorite),
+                host: formData.host.trim(),
                 port: parseInt(formData.port, 10),
-                database_name: formData.database_name,
-                username: formData.username,
-                password: formData.password || undefined, // отправляем только если указан
-                owner_id: formData.owner_id
+                database_name: formData.database_name.trim(),
+                username: formData.username.trim(),
+                password: formData.password,
+                owner_id: parseInt(formData.owner_id, 10) // Убедимся, что это число
             };
 
-            const response = await fetch(`http://localhost:8000/api/v1/db_connections/${id}`, {
-                method: 'PUT',
+            console.log('Отправляемые данные:', payload); // Для отладки
+
+            const response = await fetch('http://localhost:8000/api/v1/db_connections/', {
+                method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -195,48 +222,26 @@ const EditConnectionPage = () => {
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.detail || 'Ошибка при обновлении подключения');
+                console.error('Детали ошибки от сервера:', errData); // Для отладки
+                throw new Error(errData.detail || `Ошибка при создании подключения: ${response.status}`);
             }
 
+            const result = await response.json();
+            console.log('Успешный ответ:', result); // Для отладки
             setSuccess(true);
+
+            // Перенаправление на домашнюю страницу через 2 секунды
             setTimeout(() => {
-                navigate('/'); // или '/connections', если у вас есть отдельная страница
-            }, 1500);
+                navigate('/');
+            }, 2000);
+
         } catch (err) {
-            setError(err.message);
-            console.error('Ошибка обновления:', err);
+            console.error('Полная ошибка создания подключения:', err);
+            setError(err.message || 'Неизвестная ошибка при создании подключения');
         } finally {
             setSubmitting(false);
         }
     };
-
-    if (loading) {
-        return (
-            <>
-                <Header isAuthenticated={true}/>
-                <section className="register-section">
-                    <div className="register-container">
-                        <p>Загрузка подключения...</p>
-                    </div>
-                </section>
-                <Footer/>
-            </>
-        );
-    }
-
-    if (error && !formData.name) {
-        return (
-            <>
-                <Header isAuthenticated={true}/>
-                <section className="register-section">
-                    <div className="register-container">
-                        <p className="text-danger">Ошибка: {error}</p>
-                    </div>
-                </section>
-                <Footer/>
-            </>
-        );
-    }
 
     // Вспомогательные функции для отображения
     const getEnvLabel = (env) => {
@@ -254,38 +259,84 @@ const EditConnectionPage = () => {
         }
     };
 
+    const handleCancel = () => {
+        if (window.confirm('Вы уверены? Все несохранённые изменения будут потеряны.')) {
+            navigate(-1);
+        }
+    };
+
+    // Показываем индикатор загрузки, если ещё не определили пользователя
+    if (loading) {
+        return (
+            <>
+                <Header isAuthenticated={true}/>
+                <section className="register-section">
+                    <div className="register-container">
+                        <div className="loading-message">
+                            <i className="fas fa-spinner fa-spin"></i> Загрузка...
+                        </div>
+                    </div>
+                </section>
+                <Footer/>
+            </>
+        );
+    }
+
+    // Проверяем, что у нас есть ID пользователя
+    if (!formData.owner_id && !loading) {
+        return (
+            <>
+                <Header isAuthenticated={true}/>
+                <section className="register-section">
+                    <div className="register-container">
+                        <div className="alert alert-error">
+                            <i className="fas fa-exclamation-circle"></i>
+                            <p>Не удалось определить ваши данные. Пожалуйста, перезайдите в систему.</p>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => {
+                                    localStorage.removeItem('access_token');
+                                    localStorage.removeItem('user');
+                                    navigate('/login');
+                                }}
+                            >
+                                Войти снова
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                <Footer/>
+            </>
+        );
+    }
+
     return (
         <>
             <Header isAuthenticated={true}/>
             <section className="register-section">
                 <div className="register-container">
                     <div className="register-header">
-                        <h1>Редактирование подключения</h1>
+                        <h1>Создание нового подключения</h1>
+
                     </div>
 
                     {error && (
-                        <div className="alert">
+                        <div className="alert alert-error">
+                            <i className="fas fa-exclamation-circle"></i>
                             <p>{error}</p>
                         </div>
                     )}
 
                     {success && (
-                        <div
-                            className="alert"
-                            style={{
-                                background: 'rgba(16, 185, 129, 0.1)',
-                                borderColor: 'rgba(16, 185, 129, 0.3)',
-                                color: '#10b981'
-                            }}
-                        >
-                            <p>Подключение успешно обновлено!</p>
+                        <div className="alert alert-success">
+                            <i className="fas fa-check-circle"></i>
+                            <p>Подключение успешно создано! Перенаправление на главную страницу...</p>
                         </div>
                     )}
 
                     <form className="register-form" onSubmit={handleSubmit}>
                         <div className="form-section">
                             <h2 className="section-title">Основная информация (* обязательные поля)</h2>
-
                             <div className="form-group">
                                 <label className="form-label">
                                     <i className="fas fa-tag"></i> Название подключения*
@@ -296,6 +347,7 @@ const EditConnectionPage = () => {
                                     value={formData.name}
                                     onChange={handleChange}
                                     required
+                                    disabled={submitting}
                                 />
                             </div>
 
@@ -320,13 +372,14 @@ const EditConnectionPage = () => {
                                     <div className="custom-select-wrapper" ref={dbTypeSelectRef}>
                                         <div
                                             className="custom-select"
-                                            onClick={() => setDbTypeOpen(!dbTypeOpen)}
+                                            onClick={() => !submitting && setDbTypeOpen(!dbTypeOpen)}
                                             tabIndex={0}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                if (!submitting && (e.key === 'Enter' || e.key === ' ')) {
                                                     setDbTypeOpen(!dbTypeOpen);
                                                 }
                                             }}
+                                            style={{cursor: submitting ? 'not-allowed' : 'pointer'}}
                                         >
                                             <span>{formData.database_type.toUpperCase()}</span>
                                             <i className={`fas fa-chevron-${dbTypeOpen ? 'up' : 'down'}`}></i>
@@ -339,7 +392,8 @@ const EditConnectionPage = () => {
                                                         className={`custom-select-option ${
                                                             formData.database_type === type ? 'active' : ''
                                                         }`}
-                                                        onClick={() => handleDbTypeSelect(type)}
+                                                        onClick={() => !submitting && handleDbTypeSelect(type)}
+                                                        style={{cursor: submitting ? 'not-allowed' : 'pointer'}}
                                                     >
                                                         {type.toUpperCase()}
                                                     </li>
@@ -348,6 +402,7 @@ const EditConnectionPage = () => {
                                         )}
                                     </div>
                                 </div>
+
                                 <div className="form-group">
                                     <label className="form-label">
                                         <i className="fas fa-layer-group"></i> Среда*
@@ -355,13 +410,14 @@ const EditConnectionPage = () => {
                                     <div className="custom-select-wrapper" ref={envSelectRef}>
                                         <div
                                             className="custom-select"
-                                            onClick={() => setEnvOpen(!envOpen)}
+                                            onClick={() => !submitting && setEnvOpen(!envOpen)}
                                             tabIndex={0}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                if (!submitting && (e.key === 'Enter' || e.key === ' ')) {
                                                     setEnvOpen(!envOpen);
                                                 }
                                             }}
+                                            style={{cursor: submitting ? 'not-allowed' : 'pointer'}}
                                         >
                                             <span>{getEnvLabel(formData.environment)}</span>
                                             <i className={`fas fa-chevron-${envOpen ? 'up' : 'down'}`}></i>
@@ -374,7 +430,8 @@ const EditConnectionPage = () => {
                                                         className={`custom-select-option ${
                                                             formData.environment === env ? 'active' : ''
                                                         }`}
-                                                        onClick={() => handleEnvSelect(env)}
+                                                        onClick={() => !submitting && handleEnvSelect(env)}
+                                                        style={{cursor: submitting ? 'not-allowed' : 'pointer'}}
                                                     >
                                                         {getEnvLabel(env)}
                                                     </li>
@@ -400,6 +457,7 @@ const EditConnectionPage = () => {
                                         value={formData.host}
                                         onChange={handleChange}
                                         required
+                                        disabled={submitting}
                                     />
                                 </div>
 
@@ -410,15 +468,16 @@ const EditConnectionPage = () => {
                                     <input
                                         type="text"
                                         name="port"
-                                        value={formData.port === '' ? '' : formData.port}
+                                        value={formData.port}
                                         onChange={handleChange}
-                                        placeholder="Напр. 5432"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
+                                        min="1"
+                                        max="65535"
                                         required
+                                        disabled={submitting}
                                     />
                                 </div>
                             </div>
+
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">
@@ -430,6 +489,7 @@ const EditConnectionPage = () => {
                                         value={formData.database_name}
                                         onChange={handleChange}
                                         required
+                                        disabled={submitting}
                                     />
                                 </div>
 
@@ -443,50 +503,66 @@ const EditConnectionPage = () => {
                                         value={formData.username}
                                         onChange={handleChange}
                                         required
+                                        disabled={submitting}
                                     />
                                 </div>
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">
-                                    <i className="fas fa-key"></i> Пароль
+                                    <i className="fas fa-key"></i> Пароль*
                                 </label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                />
-                                <div className="form-hint">Укажите новый пароль только при изменении</div>
-                            </div>
-
-
-                            <div className="form-section">
-                            <h2 className="section-title">Избранное</h2>
-                                <label className="form-label">
+                                <div className="password-input-wrapper">
                                     <input
-                                        type="checkbox"
-                                        name="is_favorite"
-                                        checked={formData.is_favorite}
+                                        type="password"
+                                        name="password"
+                                        value={formData.password}
                                         onChange={handleChange}
+                                        required
+                                        disabled={submitting}
                                     />
-                                    Добавить в избранное
-                                </label>
+                                </div>
+                                <div className="form-hint">Пароль шифруется перед сохранением</div>
                             </div>
                         </div>
+
+                        <div className="form-section">
+                            <h2 className="section-title">Избранное</h2>
+                            <label className="form-label">
+                                <input
+                                    type="checkbox"
+                                    name="is_favorite"
+                                    checked={formData.is_favorite}
+                                    onChange={handleChange}
+                                    disabled={submitting}
+                                />
+                                <i className="fas fa-star"></i>
+                                Добавить в избранное
+                            </label>
+                        </div>
+
 
                         <div className="header-actions">
                             <button
                                 type="submit"
                                 className={`btn btn-primary ${submitting ? 'btn-loading' : ''}`}
-                                disabled={submitting}
+                                disabled={submitting || loading}
                             >
-                                {submitting ? 'Сохранение...' : 'Сохранить'}
+                                {submitting ? (
+                                    <>
+                                        <i className="fas fa-spinner fa-spin"></i> Создание...
+                                    </>
+                                ) : (
+                                    <>
+                                        Сохранить
+                                    </>
+                                )}
                             </button>
+
                             <button
                                 type="button"
                                 className="btn btn-danger"
-                                onClick={() => navigate(-1)}
+                                onClick={handleCancel}
                                 disabled={submitting}
                             >
                                 Отмена
@@ -500,4 +576,4 @@ const EditConnectionPage = () => {
     );
 };
 
-export default EditConnectionPage;
+export default CreateConnectionPage;
