@@ -1,12 +1,11 @@
 // src/pages/HomePage.jsx
-import React, {useState, useEffect, useCallback} from 'react';
-import {useNavigate} from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const HomePage = () => {
     const navigate = useNavigate();
-
     const isAuthenticated = !!localStorage.getItem('access_token');
     const [connections, setConnections] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -15,17 +14,78 @@ const HomePage = () => {
     const [favorites, setFavorites] = useState(new Set());
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(8); // ← по умолчанию 8
+    const [pageSize, setPageSize] = useState(8);
+    const [totalConnections, setTotalConnections] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
-
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [connectionToDelete, setConnectionToDelete] = useState(null);
 
+    // === Количество подключённых ===
     const connectedCount = connections.filter(conn => conn.status === 'connected').length;
 
-    // ========== Функции ==========
+    // === Функция загрузки подключений с бэкенда ===
+    const fetchConnections = async (page = currentPage, size = pageSize, search = searchQuery, envFilter = filter) => {
+        setLoading(true);
+        setError(null);
 
+        try {
+            const token = localStorage.getItem('access_token');
+            const url = new URL('http://localhost:8000/api/v1/db_connections/');
+            
+            // Параметры запроса для бэкенда
+            url.searchParams.set('page', page);
+            url.searchParams.set('size', size);
+            
+            // Передаем поисковый запрос на бэкенд
+            if (search && search.trim()) {
+                url.searchParams.set('search', search);
+            }
+            
+            // Передаем фильтр по окружению (если выбран не "all")
+            if (envFilter && envFilter !== 'all' && envFilter !== 'favorite') {
+                url.searchParams.set('environment', envFilter);
+            }
+            
+            // Для фильтра "favorite" передаем отдельный параметр
+            if (envFilter === 'favorite') {
+                url.searchParams.set('is_favorite', 'true');
+            }
+
+            const response = await fetch(url.toString(), {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            setConnections(data.items || []);
+            setTotalConnections(data.total || 0);
+            setTotalPages(data.pages || 1);
+            setCurrentPage(data.page || 1);
+
+            // Инициализация избранного
+            const initialFavorites = new Set();
+            data.items.forEach(conn => {
+                if (conn.is_favorite) {
+                    initialFavorites.add(conn.id);
+                }
+            });
+            setFavorites(initialFavorites);
+        } catch (err) {
+            console.error('Failed to fetch connections:', err);
+            setError(err.message || 'Не удалось загрузить подключения');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // === Удаление подключения ===
     const openDeleteModal = (conn) => {
         setConnectionToDelete(conn);
         setShowDeleteModal(true);
@@ -43,7 +103,7 @@ const HomePage = () => {
         try {
             const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionToDelete.id}`, {
                 method: 'DELETE',
-                headers: {'Authorization': `Bearer ${token}`},
+                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             if (!response.ok) {
@@ -51,13 +111,9 @@ const HomePage = () => {
                 throw new Error(errorData.detail || `Ошибка: ${response.status}`);
             }
 
-            setConnections(prev => prev.filter(c => c.id !== connectionToDelete.id));
-            setFavorites(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(connectionToDelete.id);
-                return newSet;
-            });
-
+            // После удаления перезагружаем данные
+            await fetchConnections();
+            
             setShowDeleteModal(false);
             setConnectionToDelete(null);
         } catch (err) {
@@ -67,10 +123,72 @@ const HomePage = () => {
         }
     };
 
+    // === Редактирование ===
     const handleEditConnection = useCallback((connectionId) => {
         navigate(`/connections/${connectionId}/edit`);
     }, [navigate]);
 
+    // === Избранное ===
+    const toggleFavorite = async (connectionId) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            console.warn('Попытка изменения избранного без авторизации');
+            return;
+        }
+
+        const isCurrentlyFavorite = favorites.has(connectionId);
+        const newFavorites = new Set(favorites);
+        if (isCurrentlyFavorite) {
+            newFavorites.delete(connectionId);
+        } else {
+            newFavorites.add(connectionId);
+        }
+        setFavorites(newFavorites);
+
+        try {
+            const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionId}/favorite`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ is_favorite: !isCurrentlyFavorite }),
+            });
+
+            if (!response.ok) {
+                setFavorites(favorites); // откат
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `Ошибка: ${response.status}`);
+            }
+            
+            // Если мы находимся в фильтре "Избранные", обновляем список
+            if (filter === 'favorite') {
+                await fetchConnections(1, pageSize, searchQuery, filter);
+            }
+        } catch (err) {
+            console.error('Не удалось обновить избранное:', err);
+            setError(`Не удалось обновить избранное: ${err.message}`);
+            setFavorites(favorites); // откат
+        }
+    };
+
+    // === Загрузка при монтировании и при изменении параметров ===
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchConnections();
+        } else {
+            setLoading(false);
+        }
+    }, [isAuthenticated]);
+
+    // === Обновление данных при изменении фильтра или поиска ===
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchConnections(1, pageSize, searchQuery, filter);
+        }
+    }, [searchQuery, filter, pageSize]);
+
+    // === Вспомогательные функции ===
     const getDatabaseIconClass = (type) => {
         switch (type?.toLowerCase()) {
             case 'postgresql':
@@ -99,120 +217,6 @@ const HomePage = () => {
         return `${sizeMb.toFixed(2)} МБ`;
     };
 
-    const toggleFavorite = async (connectionId) => {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            console.warn('Попытка изменения избранного без авторизации');
-            return;
-        }
-
-        const newFavorites = new Set(favorites);
-        const isCurrentlyFavorite = newFavorites.has(connectionId);
-        if (isCurrentlyFavorite) {
-            newFavorites.delete(connectionId);
-        } else {
-            newFavorites.add(connectionId);
-        }
-        setFavorites(newFavorites);
-
-        try {
-            const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionId}/favorite`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({is_favorite: !isCurrentlyFavorite}),
-            });
-
-            if (!response.ok) {
-                setFavorites(favorites);
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Ошибка: ${response.status}`);
-            }
-        } catch (err) {
-            console.error('Не удалось обновить избранное:', err);
-            setError(`Не удалось обновить избранное: ${err.message}`);
-        }
-    };
-
-    const filteredConnections = connections.filter((conn) => {
-        if (filter === 'all') return true;
-        if (filter === 'production' && conn.environment === 'production') return true;
-        if (filter === 'development' && conn.environment === 'development') return true;
-        if (filter === 'testing' && conn.environment === 'testing') return true;
-        if (filter === 'analytics' && conn.environment === 'analytics') return true;
-        if (filter === 'favorite' && favorites.has(conn.id)) return true;
-        return false;
-    });
-
-    // ========== Загрузка данных с пагинацией и поиском ==========
-
-    const fetchConnections = async (page, size, search) => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const token = localStorage.getItem('access_token');
-            const url = new URL('http://localhost:8000/api/v1/db_connections/');
-            url.searchParams.set('page', page);
-            url.searchParams.set('size', size);
-            if (search?.trim()) {
-                url.searchParams.set('search', search.trim());
-            }
-
-            const response = await fetch(url.toString(), {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            setConnections(data.items || []);
-            setTotalPages(data.pages || 1);
-            setTotalCount(data.total || 0);
-
-            const initialFavorites = new Set();
-            data.items?.forEach(conn => {
-                if (conn.is_favorite) {
-                    initialFavorites.add(conn.id);
-                }
-            });
-            setFavorites(initialFavorites);
-        } catch (err) {
-            console.error('Failed to fetch connections:', err);
-            setError(err.message || 'Не удалось загрузить подключения');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Debounced search + pagination effect
-    useEffect(() => {
-        if (!isAuthenticated) {
-            setLoading(false);
-            return;
-        }
-
-        const delayDebounce = setTimeout(() => {
-            fetchConnections(currentPage, pageSize, searchQuery);
-        }, 300);
-
-        return () => clearTimeout(delayDebounce);
-    }, [isAuthenticated, searchQuery, currentPage, pageSize]);
-
-    // Сброс страницы при смене поиска
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery]);
-
-    // ========== Вспомогательные функции ==========
-
     const truncateDescription = (desc, length = 30) => {
         if (!desc) return 'Не заполнено';
         return desc.length > length ? desc.substring(0, length) + '...' : desc;
@@ -221,20 +225,26 @@ const HomePage = () => {
     const handlePageChange = (page) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
+            fetchConnections(page, pageSize, searchQuery, filter);
         }
     };
 
     const handlePageSizeChange = (e) => {
         const newSize = parseInt(e.target.value, 10);
         setPageSize(newSize);
-        setCurrentPage(1);
+        fetchConnections(1, newSize, searchQuery, filter);
     };
 
-    // ========== Неавторизованный пользователь ==========
+    // === Обработчик создания нового подключения ===
+    const handleCreateConnection = () => {
+        navigate('/connections/create');
+    };
+
+    // === Неавторизованный пользователь ===
     if (!isAuthenticated) {
         return (
             <>
-                <Header isAuthenticated={false}/>
+                <Header isAuthenticated={false} />
                 <main>
                     <section className="connections-section">
                         <h1 className="welcome-title">Зарегистрируйтесь или авторизуйтесь в DB HUB</h1>
@@ -281,15 +291,15 @@ const HomePage = () => {
                         </div>
                     </section>
                 </main>
-                <Footer/>
+                <Footer />
             </>
         );
     }
 
-    // ========== Авторизованный пользователь ==========
+    // === Авторизованный пользователь ===
     return (
         <>
-            <Header isAuthenticated={true}/>
+            <Header isAuthenticated={true} />
             <main>
                 <section className="connections-section">
                     <div className="section-header">
@@ -307,7 +317,7 @@ const HomePage = () => {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <button className="btn btn-primary">
+                            <button className="btn btn-primary" onClick={handleCreateConnection}>
                                 <i className="fas fa-plus"></i> Создать подключение
                             </button>
                         </div>
@@ -365,13 +375,13 @@ const HomePage = () => {
                     ) : (
                         <>
                             <div className="connections-grid">
-                                {filteredConnections.length === 0 ? (
+                                {connections.length === 0 ? (
                                     <div className="loading-message">
                                         Нет подключений, соответствующих выбранному фильтру.
                                     </div>
                                 ) : (
-                                    filteredConnections.map((conn, index) => (
-                                        <div key={conn.id} className="connection-card" style={{animationDelay: `${index * 0.1}s`}}>
+                                    connections.map((conn, index) => (
+                                        <div key={conn.id} className="connection-card" style={{ animationDelay: `${index * 0.1}s` }}>
                                             <div className="card-header">
                                                 <div className="connection-title-container">
                                                     <div className="connection-subtitle">
@@ -494,11 +504,11 @@ const HomePage = () => {
                                 )}
                             </div>
 
-                            {/* Пагинация */}
-                            {totalPages > 1 && (
+                            {/* Пагинация — всегда отображаем, если есть данные */}
+                            {totalConnections > 0 && (
                                 <div className="pagination-container">
                                     <div className="pagination-info">
-                                        Показано {filteredConnections.length} из {totalCount} подключений
+                                        Показано {connections.length} из {totalConnections} подключений
                                     </div>
                                     <div className="pagination-controls">
                                         <select
@@ -568,7 +578,7 @@ const HomePage = () => {
                 </div>
             )}
 
-            <Footer/>
+            <Footer />
         </>
     );
 };
