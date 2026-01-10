@@ -197,7 +197,7 @@ const LoginPage = () => {
                             </div>
                         </div>
 
-                        <div className="form-actions">
+                        <div>
                             <button
                                 type="submit"
                                 className={`btn btn-primary ${loading ? 'btn-loading' : ''}`}
