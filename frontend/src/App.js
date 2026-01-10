@@ -7,12 +7,16 @@ import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
 import EditProfilePage from './pages/EditProfilePage';
 import AgreementPage from './pages/AgreementPage';
+import EditConnectionPage from "./pages/EditConnectionPage";
+import ConnectionMonitoringPage from "./pages/ConnectionMonitoringPage";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/connections/:id/edit" element={<EditConnectionPage />} />
+        <Route path="/connections/:id/monitoring" element={<ConnectionMonitoringPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/profile" element={<ProfilePage />} />

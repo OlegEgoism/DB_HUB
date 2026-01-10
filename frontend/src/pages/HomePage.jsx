@@ -1,9 +1,12 @@
 // src/pages/HomePage.jsx
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
+import {useNavigate} from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const HomePage = () => {
+    const navigate = useNavigate();
+
     const isAuthenticated = !!localStorage.getItem('access_token');
     const [connections, setConnections] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -40,7 +43,7 @@ const HomePage = () => {
         try {
             const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionToDelete.id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
+                headers: {'Authorization': `Bearer ${token}`},
             });
 
             if (!response.ok) {
@@ -63,6 +66,10 @@ const HomePage = () => {
             setShowDeleteModal(false);
         }
     };
+
+    const handleEditConnection = useCallback((connectionId) => {
+        navigate(`/connections/${connectionId}/edit`);
+    }, [navigate]);
 
     const getDatabaseIconClass = (type) => {
         switch (type?.toLowerCase()) {
@@ -115,7 +122,7 @@ const HomePage = () => {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ is_favorite: !isCurrentlyFavorite }),
+                body: JSON.stringify({is_favorite: !isCurrentlyFavorite}),
             });
 
             if (!response.ok) {
@@ -227,7 +234,7 @@ const HomePage = () => {
     if (!isAuthenticated) {
         return (
             <>
-                <Header isAuthenticated={false} />
+                <Header isAuthenticated={false}/>
                 <main>
                     <section className="dashboard-section">
                         <h1 className="welcome-title">Зарегистрируйтесь или авторизуйтесь в DB HUB</h1>
@@ -274,7 +281,7 @@ const HomePage = () => {
                         </div>
                     </section>
                 </main>
-                <Footer />
+                <Footer/>
             </>
         );
     }
@@ -282,7 +289,7 @@ const HomePage = () => {
     // ========== Авторизованный пользователь ==========
     return (
         <>
-            <Header isAuthenticated={true} />
+            <Header isAuthenticated={true}/>
             <main>
                 <section className="connections-section">
                     <div className="section-header">
@@ -300,7 +307,7 @@ const HomePage = () => {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <button className="btn btn-primary"  >
+                            <button className="btn btn-primary">
                                 <i className="fas fa-plus"></i> Создать подключение
                             </button>
                         </div>
@@ -364,7 +371,7 @@ const HomePage = () => {
                                     </div>
                                 ) : (
                                     filteredConnections.map((conn, index) => (
-                                        <div key={conn.id} className="connection-card" style={{ animationDelay: `${index * 0.1}s` }}>
+                                        <div key={conn.id} className="connection-card" style={{animationDelay: `${index * 0.1}s`}}>
                                             <div className="card-header">
                                                 <div className="connection-title-container">
                                                     <div className="connection-subtitle">
@@ -457,12 +464,18 @@ const HomePage = () => {
                                                     >
                                                         <i className="fas fa-star"></i>
                                                     </button>
-                                                    <button className="action-btn" disabled title="Мониторинг">
-                                                        <i className="fas fa-chart-bar"></i>
-                                                    </button>
+
                                                     <button
                                                         className="action-btn"
-                                                        // onClick={() => handleEditConnection(conn)}
+                                                        onClick={() => navigate(`/connections/${conn.id}/monitoring`)}
+                                                        title="Мониторинг подключения"
+                                                    >
+                                                        <i className="fas fa-chart-bar"></i>
+                                                    </button>
+
+                                                    <button
+                                                        className="action-btn"
+                                                        onClick={() => handleEditConnection(conn.id)}
                                                         title="Редактировать подключение"
                                                     >
                                                         <i className="fas fa-edit"></i>
@@ -470,7 +483,7 @@ const HomePage = () => {
                                                     <button
                                                         className="action-btn delete"
                                                         onClick={() => openDeleteModal(conn)}
-                                                        title="Удалить"
+                                                        title="Удалить подключение"
                                                     >
                                                         <i className="fas fa-trash"></i>
                                                     </button>
@@ -555,7 +568,7 @@ const HomePage = () => {
                 </div>
             )}
 
-            <Footer />
+            <Footer/>
         </>
     );
 };
