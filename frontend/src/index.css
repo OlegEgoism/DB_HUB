@@ -38,6 +38,7 @@ body {
     display: flex;
     flex-direction: column;
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -226,6 +227,7 @@ body {
     margin-top: 0.25rem;
     display: block;
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -245,6 +247,7 @@ body {
     height: 4px;
     background: linear-gradient(90deg, var(--primary), var(--primary-light));
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -301,6 +304,7 @@ body {
 .dashboard-header .header-actions a:active {
     text-decoration: none !important;
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -336,6 +340,7 @@ body {
     text-align: left;
     transition: color 0.2s ease;
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -367,6 +372,7 @@ body {
     margin-top: 10px;
     line-height: 1.6;
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -565,6 +571,7 @@ body {
     border-color: var(--danger);
     background: rgba(239, 68, 68, 0.05);
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -948,6 +955,7 @@ body {
     color: #f5c60b;
     border: 1px solid rgba(200, 163, 14, 0.2);
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -997,6 +1005,7 @@ body {
     font-weight: 500;
     white-space: nowrap;
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -1088,6 +1097,7 @@ body {
     justify-content: flex-end;
     gap: 12px;
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -1113,6 +1123,7 @@ body {
     background: rgba(239, 68, 68, 0.05);
     border: 1px solid rgba(239, 68, 68, 0.1);
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -1120,6 +1131,32 @@ body {
 /*Поиск*/
 .section-search-bar {
     position: relative;
+    display: flex;
+    align-items: center;
+    max-width: 400px;
+}
+
+.section-search-bar i {
+    position: absolute;
+    left: 12px;
+    color: #9ca3af;
+    z-index: 1;
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 40px;
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 1;
 }
 
 .section-search-bar input {
@@ -1146,6 +1183,7 @@ body {
     transform: translateY(-50%);
     color: var(--gray-400);
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -1234,6 +1272,7 @@ body {
     color: var(--primary);
     background: var(--gray-100);
 }
+
 /*-----------------------------------------------------------------------*/
 
 
@@ -1254,6 +1293,7 @@ body {
 .alert i {
     margin-top: 2px;
 }
+
 /*-----------------------------------------------------------------------*/
 
 

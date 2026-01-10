@@ -181,6 +181,12 @@ const HomePage = () => {
         }
     };
 
+    // === Функция для очистки поиска ===
+    const clearSearch = () => {
+        setSearchQuery('');
+        // Поиск автоматически очистится в useEffect
+    };
+
     // === Загрузка при монтировании ===
     useEffect(() => {
         isMounted.current = true;
@@ -332,6 +338,16 @@ const HomePage = () => {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
+                                {searchQuery && (
+                                    <button
+                                        type="button"
+                                        className="search-clear-btn"
+                                        onClick={clearSearch}
+                                        title="Очистить поиск"
+                                    >
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                )}
                             </div>
                             <button className="btn btn-primary" onClick={handleCreateConnection}>
                                 <i className="fas fa-plus"></i> Создать подключение
@@ -393,7 +409,7 @@ const HomePage = () => {
                             <div className="connections-grid">
                                 {connections.length === 0 ? (
                                     <div className="loading-message">
-                                        Нет подключений.
+                                        {searchQuery ? `Нет подключений по запросу: "${searchQuery}"` : 'Нет подключений.'}
                                     </div>
                                 ) : (
                                     connections.map((conn, index) => (

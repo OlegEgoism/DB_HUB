@@ -329,8 +329,7 @@ const CreateConnectionPage = () => {
 
                     {success && (
                         <div className="alert alert-success">
-                            <i className="fas fa-check-circle"></i>
-                            <p>Подключение успешно создано! Перенаправление на главную страницу...</p>
+                            <p>Подключение успешно создано!</p>
                         </div>
                     )}
 

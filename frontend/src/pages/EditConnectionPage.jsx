@@ -106,8 +106,15 @@ const EditConnectionPage = () => {
     }, [id, navigate]);
 
     const handleChange = (e) => {
-        const {name, value} = e.target;
-        if (name === 'port') {
+        const {name, value, type, checked} = e.target;
+
+        if (type === 'checkbox') {
+            // Обработка чекбокса
+            setFormData(prev => ({
+                ...prev,
+                [name]: checked
+            }));
+        } else if (name === 'port') {
             const numericValue = value.replace(/[^0-9]/g, '');
             if (numericValue.length > 5) return;
             setFormData(prev => ({
@@ -175,7 +182,7 @@ const EditConnectionPage = () => {
                 description: formData.description,
                 database_type: formData.database_type,
                 environment: formData.environment,
-                is_favorite: formData.is_favorite,
+                is_favorite: formData.is_favorite, // Это уже boolean значение
                 host: formData.host,
                 port: parseInt(formData.port, 10),
                 database_name: formData.database_name,
@@ -270,14 +277,7 @@ const EditConnectionPage = () => {
                     )}
 
                     {success && (
-                        <div
-                            className="alert"
-                            style={{
-                                background: 'rgba(16, 185, 129, 0.1)',
-                                borderColor: 'rgba(16, 185, 129, 0.3)',
-                                color: '#10b981'
-                            }}
-                        >
+                        <div className="alert alert-success">
                             <p>Подключение успешно обновлено!</p>
                         </div>
                     )}
@@ -296,6 +296,7 @@ const EditConnectionPage = () => {
                                     value={formData.name}
                                     onChange={handleChange}
                                     required
+                                    disabled={submitting}
                                 />
                             </div>
 
@@ -320,13 +321,14 @@ const EditConnectionPage = () => {
                                     <div className="custom-select-wrapper" ref={dbTypeSelectRef}>
                                         <div
                                             className="custom-select"
-                                            onClick={() => setDbTypeOpen(!dbTypeOpen)}
+                                            onClick={() => !submitting && setDbTypeOpen(!dbTypeOpen)}
                                             tabIndex={0}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                if (!submitting && (e.key === 'Enter' || e.key === ' ')) {
                                                     setDbTypeOpen(!dbTypeOpen);
                                                 }
                                             }}
+                                            style={{cursor: submitting ? 'not-allowed' : 'pointer'}}
                                         >
                                             <span>{formData.database_type.toUpperCase()}</span>
                                             <i className={`fas fa-chevron-${dbTypeOpen ? 'up' : 'down'}`}></i>
@@ -339,7 +341,8 @@ const EditConnectionPage = () => {
                                                         className={`custom-select-option ${
                                                             formData.database_type === type ? 'active' : ''
                                                         }`}
-                                                        onClick={() => handleDbTypeSelect(type)}
+                                                        onClick={() => !submitting && handleDbTypeSelect(type)}
+                                                        style={{cursor: submitting ? 'not-allowed' : 'pointer'}}
                                                     >
                                                         {type.toUpperCase()}
                                                     </li>
@@ -355,13 +358,14 @@ const EditConnectionPage = () => {
                                     <div className="custom-select-wrapper" ref={envSelectRef}>
                                         <div
                                             className="custom-select"
-                                            onClick={() => setEnvOpen(!envOpen)}
+                                            onClick={() => !submitting && setEnvOpen(!envOpen)}
                                             tabIndex={0}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                if (!submitting && (e.key === 'Enter' || e.key === ' ')) {
                                                     setEnvOpen(!envOpen);
                                                 }
                                             }}
+                                            style={{cursor: submitting ? 'not-allowed' : 'pointer'}}
                                         >
                                             <span>{getEnvLabel(formData.environment)}</span>
                                             <i className={`fas fa-chevron-${envOpen ? 'up' : 'down'}`}></i>
@@ -374,7 +378,8 @@ const EditConnectionPage = () => {
                                                         className={`custom-select-option ${
                                                             formData.environment === env ? 'active' : ''
                                                         }`}
-                                                        onClick={() => handleEnvSelect(env)}
+                                                        onClick={() => !submitting && handleEnvSelect(env)}
+                                                        style={{cursor: submitting ? 'not-allowed' : 'pointer'}}
                                                     >
                                                         {getEnvLabel(env)}
                                                     </li>
@@ -400,6 +405,7 @@ const EditConnectionPage = () => {
                                         value={formData.host}
                                         onChange={handleChange}
                                         required
+                                        disabled={submitting}
                                     />
                                 </div>
 
@@ -416,6 +422,7 @@ const EditConnectionPage = () => {
                                         inputMode="numeric"
                                         pattern="[0-9]*"
                                         required
+                                        disabled={submitting}
                                     />
                                 </div>
                             </div>
@@ -430,6 +437,7 @@ const EditConnectionPage = () => {
                                         value={formData.database_name}
                                         onChange={handleChange}
                                         required
+                                        disabled={submitting}
                                     />
                                 </div>
 
@@ -443,6 +451,7 @@ const EditConnectionPage = () => {
                                         value={formData.username}
                                         onChange={handleChange}
                                         required
+                                        disabled={submitting}
                                     />
                                 </div>
                             </div>
@@ -456,20 +465,23 @@ const EditConnectionPage = () => {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
+                                    disabled={submitting}
                                 />
                                 <div className="form-hint">Укажите новый пароль только при изменении</div>
                             </div>
 
 
                             <div className="form-section">
-                            <h2 className="section-title">Избранное</h2>
+                                <h2 className="section-title">Избранное</h2>
                                 <label className="form-label">
                                     <input
                                         type="checkbox"
                                         name="is_favorite"
                                         checked={formData.is_favorite}
                                         onChange={handleChange}
+                                        disabled={submitting}
                                     />
+                                    <i className="fas fa-star"></i>
                                     Добавить в избранное
                                 </label>
                             </div>
@@ -481,7 +493,15 @@ const EditConnectionPage = () => {
                                 className={`btn btn-primary ${submitting ? 'btn-loading' : ''}`}
                                 disabled={submitting}
                             >
-                                {submitting ? 'Сохранение...' : 'Сохранить'}
+                                {submitting ? (
+                                    <>
+                                        <i className="fas fa-spinner fa-spin"></i> Сохранение...
+                                    </>
+                                ) : (
+                                    <>
+                                        Сохранить
+                                    </>
+                                )}
                             </button>
                             <button
                                 type="button"
