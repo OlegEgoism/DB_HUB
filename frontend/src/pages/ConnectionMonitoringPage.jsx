@@ -1,60 +1,78 @@
 // src/pages/ConnectionMonitoringPage.jsx
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, {useState, useEffect} from 'react';
+import {useParams, useNavigate} from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const ConnectionMonitoringPage = () => {
-    const { id: connectionId } = useParams();
+    const {id: connectionId} = useParams();
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [metrics, setMetrics] = useState(null);
+    const [connectionData, setConnectionData] = useState(null); // Объединяем данные
 
     // Преобразуем basic_metrics в объект
     const parseMetrics = (basicMetrics) => {
         const parsed = {};
-        basicMetrics?.forEach(({ metric, value }) => {
+        basicMetrics?.forEach(({metric, value}) => {
             parsed[metric] = value;
         });
         return parsed;
     };
 
-    useEffect(() => {
-        const loadMetrics = async () => {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                navigate('/login');
-                return;
+useEffect(() => {
+    const loadMetrics = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}/all`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.detail || `Ошибка: ${response.status}`);
             }
 
-            try {
-                const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}/all`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
+            const data = await response.json();
 
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.detail || `Ошибка: ${response.status}`);
-                }
+            // Сохраняем всю информацию о подключении
+            setConnectionData({
+                connection_id: data.connection_id,
+                connection_name: data.connection_name,
+                connection_description: data.connection_description,
+                host: data.host,
+                port: data.port, // Добавляем порт из API
+                username: data.username, // Добавляем username из API
+                database_name: data.database_name,
+                environment: data.environment,
+                database_type: data.database_type,
+                status: data.status
+            });
 
-                const data = await response.json();
-                const parsed = parseMetrics(data.basic_metrics);
-                setMetrics(parsed);
-            } catch (err) {
-                console.error('Ошибка загрузки метрик:', err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
+            // Парсим метрики
+            const parsedMetrics = parseMetrics(data.basic_metrics);
+            setMetrics(parsedMetrics);
 
-        loadMetrics();
-    }, [connectionId, navigate]);
+        } catch (err) {
+            console.error('Ошибка загрузки метрик:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    loadMetrics();
+}, [connectionId, navigate]);
 
     // Форматирование чисел с разделителями (1,245)
     const formatCount = (str) => {
@@ -67,23 +85,27 @@ const ConnectionMonitoringPage = () => {
     // Определение типа окружения
     const envLabel = (env) => {
         switch (env?.toLowerCase()) {
-            case 'production': return 'ПРОДАКШЕН';
-            case 'testing': return 'ТЕСТИРОВАНИЕ';
-            case 'analytics': return 'АНАЛИТИКА';
-            default: return 'РАЗРАБОТКА';
+            case 'production':
+                return 'ПРОДАКШЕН';
+            case 'testing':
+                return 'ТЕСТИРОВАНИЕ';
+            case 'analytics':
+                return 'АНАЛИТИКА';
+            default:
+                return 'РАЗРАБОТКА';
         }
     };
 
     if (loading) {
         return (
             <>
-                <Header isAuthenticated={true} />
+                <Header isAuthenticated={true}/>
                 <main>
                     <div className="loading-message">
                         <i className="fas fa-spinner fa-spin"></i> Загрузка данных мониторинга...
                     </div>
                 </main>
-                <Footer />
+                <Footer/>
             </>
         );
     }
@@ -91,25 +113,31 @@ const ConnectionMonitoringPage = () => {
     if (error) {
         return (
             <>
-                <Header isAuthenticated={true} />
+                <Header isAuthenticated={true}/>
                 <main>
                     <div className="error-message">
                         <i className="fas fa-exclamation-circle"></i> {error}
                     </div>
                 </main>
-                <Footer />
+                <Footer/>
             </>
         );
     }
 
-    const m = metrics; // сокращение для удобства
+    const m = metrics; // метрики базы данных
+    const conn = connectionData; // информация о подключении
 
-    // Извлекаем значения
-    const dbName = m?.database_name || 'core';
-    const dbType = m?.database_type || 'postgresql';
-    const host = m?.host || 'localhost';
-    const port = m?.port || '5432';
-    const env = m?.environment || 'production';
+    // Извлекаем значения из connectionData
+    const dbName = conn?.database_name || 'Неизвестно';
+    const connectionName = conn?.connection_name || 'Без имени';
+    const userName = conn?.username || 'Без имени';
+    const connectionDescription = conn?.connection_description || 'Без описания';
+    const dbType = conn?.database_type || 'postgresql';
+    const host = conn?.host || 'localhost';
+    const port = '5432'; // Стандартный порт PostgreSQL
+    const env = conn?.environment || 'development';
+
+    // Извлекаем значения из метрик
     const version = m?.postgresql_version || m?.mysql_version || '—';
     const charset = m?.default_encoding || m?.server_encoding || '—';
     const collation = m?.collation || '—';
@@ -127,6 +155,7 @@ const ConnectionMonitoringPage = () => {
     const tempTablesCount = formatCount(m?.temp_table_count);
     const systemTablesCount = formatCount(m?.system_table_count);
     const indexesCount = formatCount(m?.index_count);
+    const indexSize = m?.index_size || '—';
     const viewsCount = formatCount(m?.view_count);
     const matViewsCount = formatCount(m?.materialized_view_count);
     const proceduresCount = formatCount(m?.procedure_count);
@@ -134,18 +163,20 @@ const ConnectionMonitoringPage = () => {
 
     // Пользователи
     const totalUsers = formatCount(m?.total_users);
+    const superuserCount = formatCount(m?.superuser_count);
     const activeUsers = formatCount(m?.active_users);
     const roleCount = formatCount(m?.role_count);
+    const pgroleCount = formatCount(m?.pg_role_count);
     const maxConnections = formatCount(m?.max_connections);
     const currentConnections = formatCount(m?.current_connections);
 
-    // Репликация (в данном ответе пусто, но оставим заглушку)
-    const isReplicationActive = false; // или логика на основе данных
+    // Репликация
+    const isReplicationActive = false;
     const replicationDelay = '—';
 
     return (
         <>
-            <Header isAuthenticated={true} />
+            <Header isAuthenticated={true}/>
             <main>
                 <section className="database-detail-section">
                     {/* Заголовок */}
@@ -156,53 +187,25 @@ const ConnectionMonitoringPage = () => {
                                     <i className="fas fa-database"></i>
                                 </div>
                                 <div className="title-block">
-                                    <h1>{m?.connection_name || 'База данных'}</h1>
+                                    <h1>{connectionName}</h1>
                                     <div className="database-meta">
                                         <span className="database-type">{dbType.toUpperCase()}</span>
+                                        <span className={`status-indicator status-${conn?.status || 'unknown'}`}>
+                                            {conn?.status === 'connected' ? 'Подключено' :
+                                             conn?.status === 'error' ? 'Ошибка' : 'Неизвестно'}
+                                        </span>
                                     </div>
                                 </div>
                                 <div className="card-badge-log">
                                     {envLabel(env)}
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Основная информация */}
-                    <div className="database-overview">
-                        <div className="overview-card">
-                            <div className="overview-icon"><i className="fas fa-database"></i></div>
-                            <div className="overview-content">
-                                <div className="overview-value">{dbName}</div>
-                                <div className="overview-label">БАЗА ДАННЫХ</div>
-                            </div>
-                        </div>
-                        <div className="overview-card">
-                            <div className="overview-icon"><i className="fas fa-server"></i></div>
-                            <div className="overview-content">
-                                <div className="overview-value">{host}:{port}</div>
-                                <div className="overview-label">ХОСТ:ПОРТ</div>
-                            </div>
-                        </div>
-                        <div className="overview-card">
-                            <div className="overview-icon"><i className="fas fa-hdd"></i></div>
-                            <div className="overview-content">
-                                <div className="overview-value">{dbSize}</div>
-                                <div className="overview-label">РАЗМЕР</div>
-                            </div>
-                        </div>
-                        <div className="overview-card">
-                            <div className="overview-icon"><i className="fas fa-table"></i></div>
-                            <div className="overview-content">
-                                <div className="overview-value">{tablesCount}</div>
-                                <div className="overview-label">ТАБЛИЦ</div>
-                            </div>
-                        </div>
-                        <div className="overview-card">
-                            <div className="overview-icon"><i className="fas fa-users"></i></div>
-                            <div className="overview-content">
-                                <div className="overview-value">{currentConnections}</div>
-                                <div className="overview-label">ПОДКЛЮЧЕНИЙ</div>
+                                <div className="overview-card">
+                                    <div className="overview-icon"><i className="fas fa-database"></i></div>
+                                    <div className="overview-content">
+                                        <div className="overview-value">{connectionDescription}</div>
+                                        <div className="overview-label">ОПИСАИЕ БАЗА ДАННЫХ</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -212,37 +215,120 @@ const ConnectionMonitoringPage = () => {
                         <div className="tab-header">
                             <h3><i className="fas fa-info-circle"></i> Подробная информация о базе данных</h3>
                         </div>
-                        <div className="info-grid">
+                        <div className="info-db">
                             {/* Общая информация */}
                             <div className="info-section">
                                 <h4><i className="fas fa-database"></i> Общая информация</h4>
+
+                                {/*<div className="info-row">*/}
+                                {/*    <span className="info-label_db">Имя подключения:</span>*/}
+                                {/*    <span className="info-value">{connectionName}</span>*/}
+                                {/*</div>*/}
+
+                                {/*<div className="info-row">*/}
+                                {/*    <span className="info-label_db">Описание подключения:</span>*/}
+                                {/*    <span className="info-value">{connectionDescription}</span>*/}
+                                {/*</div>*/}
+
                                 <div className="info-row">
-                                    <span className="info-label">Размер базы данных:</span>
+                                    <span className="info-label_db">База данных:</span>
+                                    <span className="info-value">{dbName}</span>
+                                </div>
+
+                                <div className="info-row">
+                                    <span className="info-label_db">Хост:</span>
+                                    <span className="info-value">{host}</span>
+                                </div>
+
+                                <div className="info-row">
+                                    <span className="info-label_db">Порт:</span>
+                                    <span className="info-value">{port}</span>
+                                </div>
+
+                                <div className="info-row">
+                                    <span className="info-label_db">Пользователь:</span>
+                                    <span className="info-value">{userName}</span>
+                                </div>
+
+                                <div className="info-row">
+                                    <span className="info-label_db">Размер базы данных:</span>
                                     <span className="info-value">{dbSize}</span>
                                 </div>
+
                                 <div className="info-row">
-                                    <span className="info-label">Количество таблиц:</span>
+                                <span className="info-label_db">Версия СУБД:</span>
+                                    <span className="info-value">{version}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Кодировка по умолчанию:</span>
+                                    <span className="info-value">{charset}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Коллация:</span>
+                                    <span className="info-value">{collation}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Время работы:</span>
+                                    <span className="info-value">{uptime}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Дата запуска:</span>
+                                    <span className="info-value">{startTime}</span>
+                                </div>
+                            </div>
+
+                            {/* Структура базы */}
+                            <div className="info-section">
+                                <h4><i className="fas fa-sitemap"></i> Структура базы</h4>
+
+                                <div className="info-row">
+                                    <span className="info-label_db">Количество таблиц:</span>
                                     <span className="info-value">{tablesCount}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Общий размер таблиц:</span>
+                                    <span className="info-label_db">Размер таблиц:</span>
                                     <span className="info-value">{tablesSize}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Количество временных таблиц:</span>
+                                    <span className="info-label_db">Количество временных таблиц:</span>
                                     <span className="info-value">{tempTablesCount}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Размер временных таблиц:</span>
+                                    <span className="info-label_db">Размер временных таблиц:</span>
                                     <span className="info-value">{tempTablesSize}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Системных таблиц:</span>
+                                    <span className="info-label_db">Количество системных таблиц:</span>
                                     <span className="info-value">{systemTablesCount}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Размер системных таблиц:</span>
+                                    <span className="info-label_db">Размер системных таблиц:</span>
                                     <span className="info-value">{systemTablesSize}</span>
+                                </div>
+
+                                <div className="info-row">
+                                    <span className="info-label_db">Количество индексов:</span>
+                                    <span className="info-value">{indexesCount}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Размер индексов:</span>
+                                    <span className="info-value">{indexSize}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Количество представлений:</span>
+                                    <span className="info-value">{viewsCount}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Материализованных представлений:</span>
+                                    <span className="info-value">{matViewsCount}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Хранимых процедур:</span>
+                                    <span className="info-value">{proceduresCount}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Триггеров:</span>
+                                    <span className="info-value">{triggersCount}</span>
                                 </div>
                             </div>
 
@@ -250,49 +336,32 @@ const ConnectionMonitoringPage = () => {
                             <div className="info-section">
                                 <h4><i className="fas fa-users"></i> Пользователи и группы</h4>
                                 <div className="info-row">
-                                    <span className="info-label">Всего пользователей:</span>
+                                    <span className="info-label_db">Всего пользователей:</span>
                                     <span className="info-value">{totalUsers}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Активных пользователей:</span>
+                                    <span className="info-label_db">Всего суперпользователей:</span>
+                                    <span className="info-value">{superuserCount}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Активных пользователей:</span>
                                     <span className="info-value">{activeUsers}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Количество ролей:</span>
+                                    <span className="info-label_db">Количество групп:</span>
                                     <span className="info-value">{roleCount}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Максимальное кол-во подключений:</span>
+                                    <span className="info-label_db">Количество системных групп:</span>
+                                    <span className="info-value">{pgroleCount}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Максимальное кол-во подключений:</span>
                                     <span className="info-value">{maxConnections}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Текущих подключений:</span>
+                                    <span className="info-label_db">Текущих подключений:</span>
                                     <span className="info-value">{currentConnections}</span>
-                                </div>
-                            </div>
-
-                            {/* Структура базы */}
-                            <div className="info-section">
-                                <h4><i className="fas fa-sitemap"></i> Структура базы</h4>
-                                <div className="info-row">
-                                    <span className="info-label">Количество индексов:</span>
-                                    <span className="info-value">{indexesCount}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="info-label">Количество представлений:</span>
-                                    <span className="info-value">{viewsCount}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="info-label">Материализованных представлений:</span>
-                                    <span className="info-value">{matViewsCount}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="info-label">Хранимых процедур:</span>
-                                    <span className="info-value">{proceduresCount}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="info-label">Триггеров:</span>
-                                    <span className="info-value">{triggersCount}</span>
                                 </div>
                             </div>
 
@@ -300,7 +369,7 @@ const ConnectionMonitoringPage = () => {
                             <div className="info-section">
                                 <h4><i className="fas fa-project-diagram"></i> Кластеризация и репликация</h4>
                                 <div className="info-row">
-                                    <span className="info-label">Статус репликации:</span>
+                                    <span className="info-label_db">Статус репликации:</span>
                                     <span className="info-value">
                                         {isReplicationActive ? (
                                             <>
@@ -310,62 +379,15 @@ const ConnectionMonitoringPage = () => {
                                     </span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label">Задержка репликации:</span>
+                                    <span className="info-label_db">Задержка репликации:</span>
                                     <span className="info-value">{replicationDelay}</span>
                                 </div>
                             </div>
-
-                            {/* Версии и настройки */}
-                            <div className="info-section">
-                                <h4><i className="fas fa-code-branch"></i> Версии и настройки</h4>
-                                <div className="info-row">
-                                    <span className="info-label">Версия СУБД:</span>
-                                    <span className="info-value">{version}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="info-label">Кодировка по умолчанию:</span>
-                                    <span className="info-value">{charset}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="info-label">Коллация:</span>
-                                    <span className="info-value">{collation}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="info-label">Время работы (uptime):</span>
-                                    <span className="info-value">{uptime}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="info-label">Дата запуска:</span>
-                                    <span className="info-value">{startTime}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Кнопки действий */}
-                        <div className="info-actions">
-                            <button
-                                className="btn btn-outline"
-                                onClick={() => window.location.reload()}
-                            >
-                                <i className="fas fa-sync-alt"></i> Обновить статистику
-                            </button>
-                            <button
-                                className="btn btn-outline"
-                                onClick={() => alert('Экспорт будет реализован позже')}
-                            >
-                                <i className="fas fa-download"></i> Экспорт информации
-                            </button>
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => alert('Расширенные метрики — в разработке')}
-                            >
-                                <i className="fas fa-chart-line"></i> Расширенные метрики
-                            </button>
                         </div>
                     </div>
                 </section>
             </main>
-            <Footer />
+            <Footer/>
         </>
     );
 };

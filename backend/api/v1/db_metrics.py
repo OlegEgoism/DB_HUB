@@ -22,8 +22,11 @@ async def get_all_database_metrics(connection_id: int, db: AsyncSession = Depend
         return AllDatabaseMetricsResponse(
             connection_id=connection.id,
             connection_name=connection.name,
-            host=connection.host,
+            connection_description=connection.description,
             database_name=connection.database_name,
+            host=connection.host,
+            port=connection.port,
+            username=connection.username,
             environment=connection.environment,
             database_type=connection.database_type,
             status=all_metrics["status"],

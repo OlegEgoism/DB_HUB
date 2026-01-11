@@ -30,8 +30,11 @@ class AllDatabaseMetricsResponse(BaseModel):
     """Общая схема для всех метрик базы данных"""
     connection_id: int
     connection_name: str
-    host: str
+    connection_description: Optional[str] = None
     database_name: str
+    host: str
+    port: int
+    username: str
     environment: Optional[str] = None
     database_type: Optional[str] = None
     status: str

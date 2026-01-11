@@ -21,9 +21,9 @@ class DB_Connection(Base, DateTimeMixin):
 
     id = Column(Integer, primary_key=True, index=True, comment="PK подключения")
     # Поля для подключения
+    database_name = Column(String(255), nullable=False, comment="Название базы данных")
     host = Column(String(255), nullable=False, comment="Хост")
     port = Column(Integer, nullable=False, comment="Порт")
-    database_name = Column(String(255), nullable=False, comment="Название базы данных")
     username = Column(String(255), nullable=False, comment="Имя пользователя")
     password = Column(String(255), nullable=False, comment="Пароль пользователя")
     # Дополнительная информация

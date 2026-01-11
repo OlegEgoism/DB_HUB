@@ -23,7 +23,7 @@ class DBMetricsService:
 
             # Основные метрики базы данных
             basic_metrics_query = """
-            SELECT 'db_size' AS metric, pg_size_pretty(pg_database_size(current_database())) AS value
+            SELECT 'db_size' AS metric, pg_size_pretty(pg_database_size(current_database())) AS value 
             UNION ALL
             SELECT 'count_table', COUNT(*)::TEXT
             FROM information_schema.tables 
@@ -33,14 +33,6 @@ class DBMetricsService:
             FROM pg_tables
             WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
             UNION ALL
-            SELECT 'system_table_count', COUNT(*)::TEXT
-            FROM information_schema.tables 
-            WHERE table_schema IN ('pg_catalog', 'information_schema') AND table_type = 'BASE TABLE'
-            UNION ALL
-            SELECT 'system_table_total_size', pg_size_pretty(COALESCE(SUM(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))), 0))
-            FROM pg_tables
-            WHERE schemaname IN ('pg_catalog', 'information_schema')
-            UNION ALL
             SELECT 'temp_table_count', COUNT(*)::TEXT
             FROM pg_class
             WHERE relpersistence = 't'
@@ -49,15 +41,32 @@ class DBMetricsService:
             FROM pg_class
             WHERE relpersistence = 't'
             UNION ALL
+            SELECT 'system_table_count', COUNT(*)::TEXT
+            FROM information_schema.tables 
+            WHERE table_schema IN ('pg_catalog', 'information_schema') AND table_type = 'BASE TABLE'
+            UNION ALL
+            SELECT 'system_table_total_size', pg_size_pretty(COALESCE(SUM(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))), 0))
+            FROM pg_tables
+            WHERE schemaname IN ('pg_catalog', 'information_schema')
+            
+            UNION ALL
             SELECT 'total_users', COUNT(*)::TEXT FROM pg_user
             UNION ALL
             SELECT 'active_users', COUNT(DISTINCT usename)::TEXT
             FROM pg_stat_activity 
             WHERE pid <> pg_backend_pid() AND state IS NOT NULL
             UNION ALL
+            SELECT 'superuser_count', COUNT(*)::TEXT
+            FROM pg_roles 
+            WHERE rolsuper = TRUE
+            UNION ALL
             SELECT 'role_count', COUNT(*)::TEXT
             FROM pg_roles 
-            WHERE rolname NOT LIKE 'pg\_%'
+            WHERE rolname NOT LIKE 'pg\_%' AND rolcanlogin IS NOT TRUE
+            UNION ALL
+            SELECT 'pg_role_count', COUNT(*)::TEXT
+            FROM pg_roles 
+            WHERE rolname LIKE 'pg\_%' AND rolcanlogin IS NOT TRUE
             UNION ALL
             SELECT 'max_connections', setting
             FROM pg_settings 
@@ -66,10 +75,16 @@ class DBMetricsService:
             SELECT 'current_connections', COUNT(*)::TEXT
             FROM pg_stat_activity 
             WHERE state IS NOT NULL
+            
             UNION ALL
             SELECT 'index_count', COUNT(*)::TEXT
             FROM pg_indexes
             WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+            UNION ALL
+            SELECT 'index_size', pg_size_pretty(SUM(pg_relation_size(indexrelid)))
+            FROM pg_index
+            WHERE indisvalid
+            
             UNION ALL
             SELECT 'view_count', COUNT(*)::TEXT
             FROM information_schema.views 
@@ -191,13 +206,13 @@ class DBMetricsService:
             # Получаем базовые метрики
             rows = await conn.fetch(basic_metrics_query)
             for row in rows:
-                basic_metrics.append({                    "metric": row["metric"],                    "value": row["value"],                })
+                basic_metrics.append({"metric": row["metric"], "value": row["value"], })
 
             # Получаем информацию о кластере
             try:
                 rows = await conn.fetch(cluster_replication_query)
                 for row in rows:
-                    cluster_info.append({                        "node_type": row["node_type"],                        "node_role": row["node_role"],                        "count": row["count"],                    })
+                    cluster_info.append({"node_type": row["node_type"], "node_role": row["node_role"], "count": row["count"], })
             except Exception:
                 cluster_info = []
 
@@ -205,7 +220,7 @@ class DBMetricsService:
             try:
                 row = await conn.fetchrow(cluster_health_query)
                 if row:
-                    cluster_health = {                        "check_name": row["check_name"],                        "status": row["status"],                    }
+                    cluster_health = {"check_name": row["check_name"], "status": row["status"], }
                 else:
                     cluster_health = {"check_name": "Здоровье кластера", "status": "not_supported"}
             except Exception:
@@ -214,13 +229,13 @@ class DBMetricsService:
             try:
                 rows = await conn.fetch(database_config_query)
                 for row in rows:
-                    config_parameters.append({                        "name": row["name"],                        "setting": row["setting"],                        "unit": row["unit"],                        "category": row["category"],                        "description": row["description"]                    })
+                    config_parameters.append({"name": row["name"], "setting": row["setting"], "unit": row["unit"], "category": row["category"], "description": row["description"]})
             except Exception as e:
                 config_parameters = [{"error": f"Ошибка получения конфигурации: {str(e)}"}]
 
             await conn.close()
 
-            return {                "basic_metrics": basic_metrics,                "cluster_replication": cluster_info,                "cluster_health": cluster_health,                "database_config": config_parameters,                "status": "connected"            }
+            return {"basic_metrics": basic_metrics, "cluster_replication": cluster_info, "cluster_health": cluster_health, "database_config": config_parameters, "status": "connected"}
 
         except Exception as e:
-            return {                "basic_metrics": [{"metric": "connection_error", "value": str(e)}],                "cluster_replication": [],                "cluster_health": {"check_name": "Здоровье кластера", "status": "connection_error"},                "database_config": [],                "status": "error"            }
+            return {"basic_metrics": [{"metric": "connection_error", "value": str(e)}], "cluster_replication": [], "cluster_health": {"check_name": "Здоровье кластера", "status": "connection_error"}, "database_config": [], "status": "error"}

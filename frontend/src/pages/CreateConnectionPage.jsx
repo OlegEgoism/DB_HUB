@@ -36,7 +36,7 @@ const CreateConnectionPage = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
-
+    console.log(currentUser)
     const envSelectRef = useRef(null);
     const dbTypeSelectRef = useRef(null);
     const [envOpen, setEnvOpen] = useState(false);
