@@ -425,3 +425,35 @@ class DBGroupService:
             if 'conn' in locals():
                 await conn.close()
             raise Exception(f"Ошибка при получении членов группы из внешней БД: {str(e)}")
+
+    async def get_database_description(connection: DB_Connection) -> Optional[str]:
+        """Получить описание базы данных из внешней PostgreSQL"""
+        try:
+            password = decrypt_password(connection.password)
+            conn = await asyncpg.connect(
+                host=connection.host,
+                port=connection.port,
+                user=connection.username,
+                password=password,
+                database=connection.database_name,
+                timeout=5
+            )
+
+            # Запрос для получения описания базы данных
+            query = """
+            SELECT 
+                COALESCE(d.description, '') as description
+            FROM pg_database db
+            LEFT JOIN pg_shdescription d ON db.oid = d.objoid
+            WHERE db.datname = current_database();
+            """
+
+            result = await conn.fetchrow(query)
+            description = result['description'] if result and result['description'] else None
+
+            await conn.close()
+            return description
+        except Exception as e:
+            # Логирование ошибки при необходимости
+            print(f"Error getting database description: {e}")
+            return None

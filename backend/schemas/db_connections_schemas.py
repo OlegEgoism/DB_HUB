@@ -44,15 +44,26 @@ class ConnectionUpdate(BaseModel):
     owner_id: Optional[int] = None
 
 
-class ConnectionOut(ConnectionBase):
+class ConnectionOut(BaseModel):
     id: int
+    database_name: str
+    description: Optional[str] = None
+    host: str
+    port: int
+    username: str
+    name: str
+    database_type: str
+    environment: str
+    is_favorite: bool
     owner_id: int
-    created_at: datetime
-    updated_at: datetime
+    owner_username: str
     status: str
     db_size_mb: Optional[float]
-    owner_username: Optional[str] = None
-    model_config = ConfigDict(from_attributes=True)
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 class PaginatedConnectionResponse(BaseModel):
@@ -100,3 +111,8 @@ class TerminateConnectionRequest(BaseModel):
 
 class ConnectionFavoriteUpdate(BaseModel):
     is_favorite: bool
+
+
+
+
+
