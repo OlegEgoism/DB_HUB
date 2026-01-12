@@ -1,7 +1,7 @@
 # backend/schemas/db_connections_schemas.py
 from datetime import datetime
 from typing import Optional, Literal, List
-from pydantic import BaseModel, Field, validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 Environment = Literal['production', 'development', 'testing', 'analytics']
 DatabaseType = Literal['postgresql', 'greenplum']
@@ -14,12 +14,13 @@ class ConnectionBase(BaseModel):
     environment: Environment
     is_favorite: bool = False
     host: str
-    port: int = 5432
+    port: int = Field(5432, ge=1, le=65535)
     database_name: str
     username: str
 
-    @validator('port')
-    def validate_port(cls, v):
+    @field_validator('port')
+    @classmethod
+    def validate_port(cls, v: int) -> int:
         if not (1 <= v <= 65535):
             raise ValueError("Порт должен быть в диапазоне 1–65535")
         return v
@@ -31,20 +32,29 @@ class ConnectionCreate(ConnectionBase):
 
 
 class ConnectionUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=255)
     database_type: Optional[DatabaseType] = None
     environment: Optional[Environment] = None
     is_favorite: Optional[bool] = None
     host: Optional[str] = None
-    port: Optional[int] = None
+    port: Optional[int] = Field(None, ge=1, le=65535)
     database_name: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
     owner_id: Optional[int] = None
 
+    @field_validator('port')
+    @classmethod
+    def validate_port_update(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and not (1 <= v <= 65535):
+            raise ValueError("Порт должен быть в диапазоне 1–65535")
+        return v
+
 
 class ConnectionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     database_name: str
     description: Optional[str] = None
@@ -58,15 +68,14 @@ class ConnectionOut(BaseModel):
     owner_id: int
     owner_username: str
     status: str
-    db_size_mb: Optional[float]
+    db_size_mb: Optional[float] = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class PaginatedConnectionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     items: List[ConnectionOut]
     total: int
     page: int
@@ -74,24 +83,27 @@ class PaginatedConnectionResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ActiveConnectionInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     pid: int
     username: str
-    application_name: Optional[str]
-    client_addr: Optional[str]
-    client_hostname: Optional[str]
-    client_port: Optional[int]
+    application_name: Optional[str] = None
+    client_addr: Optional[str] = None
+    client_hostname: Optional[str] = None
+    client_port: Optional[int] = None
     backend_start: datetime
-    query_start: Optional[datetime]
-    state_change: Optional[datetime]
+    query_start: Optional[datetime] = None
+    state_change: Optional[datetime] = None
     state: str
     query: str
 
 
 class PaginatedActiveConnectionsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     connection_id: int
     connection_name: str
     total_active_connections: int
@@ -102,7 +114,6 @@ class PaginatedActiveConnectionsResponse(BaseModel):
     has_next: bool
     has_prev: bool
     active_connections: List[ActiveConnectionInfo]
-    model_config = ConfigDict(from_attributes=True)
 
 
 class TerminateConnectionRequest(BaseModel):
@@ -111,8 +122,3 @@ class TerminateConnectionRequest(BaseModel):
 
 class ConnectionFavoriteUpdate(BaseModel):
     is_favorite: bool
-
-
-
-
-

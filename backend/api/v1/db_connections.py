@@ -10,11 +10,12 @@ from backend.models.user import User
 from backend.core.security import encrypt_password, decrypt_password
 from backend.schemas.db_connections_schemas import (
     ConnectionCreate,
-    ConnectionOut,
     ConnectionUpdate,
+    ConnectionOut,
     PaginatedConnectionResponse,
     PaginatedActiveConnectionsResponse,
-    TerminateConnectionRequest, ConnectionFavoriteUpdate
+    TerminateConnectionRequest,
+    ConnectionFavoriteUpdate
 )
 from backend.services.db_connections_services import DBConnectionService
 
