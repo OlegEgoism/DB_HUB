@@ -1,6 +1,7 @@
 # backend/api/v1/db_schemas.py
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 from backend.database.session import get_db
 from backend.services.db_schemas_services import DBSchemaService
 from backend.schemas.db_schemas_schemas import (
@@ -19,7 +20,6 @@ from backend.schemas.db_schemas_schemas import (
     TablePrivilegesUpdateResponse,
     TablePrivilegesUpdateRequest
 )
-
 router = APIRouter(prefix="/db_schemas", tags=["DB SCHEMAS"])
 
 
@@ -314,8 +314,7 @@ async def update_table_privileges_for_groups(connection_id: int, request: TableP
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав групп: {str(e)}")
 
 
-from fastapi import Query
-from typing import List
+
 
 
 @router.get("/connection/{connection_id}/table_privileges_groups_filtered", response_model=PaginatedTablePrivilegesGroupsResponse)

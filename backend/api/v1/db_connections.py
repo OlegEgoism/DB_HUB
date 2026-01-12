@@ -22,7 +22,7 @@ router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
 
 async def get_db_status_and_size(connection: DB_Connection) -> tuple[str, float | None, str | None]:
-    """Получить статус подключения, размер базы данных и описание из внешней БД"""
+    """Получить статус подключения, размер базы данных и описание базы данных"""
     try:
         password = decrypt_password(connection.password)
         conn = await asyncpg.connect(
@@ -33,11 +33,7 @@ async def get_db_status_and_size(connection: DB_Connection) -> tuple[str, float 
             database=connection.database_name,
             timeout=5
         )
-
-        # Получаем размер базы данных
         size_bytes = await conn.fetchval("SELECT pg_database_size(current_database())")
-
-        # Получаем описание базы данных из внешней БД
         db_description_query = """
         SELECT 
             COALESCE(d.description, '') as description
@@ -45,14 +41,11 @@ async def get_db_status_and_size(connection: DB_Connection) -> tuple[str, float 
         LEFT JOIN pg_shdescription d ON db.oid = d.objoid
         WHERE db.datname = current_database();
         """
-
         db_description_result = await conn.fetchrow(db_description_query)
         db_description = db_description_result['description'] if db_description_result and db_description_result['description'] else None
-
         await conn.close()
         return "connected", round(size_bytes / 1024 / 1024, 2), db_description
     except Exception as e:
-        # В случае ошибки возвращаем None для описания
         return "error", None, None
 
 
@@ -61,26 +54,19 @@ async def list_connections(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-        search: Optional[str] = Query(None, description="""Поиск по нескольким полям одновременно"""),
-        database_type: Optional[str] = Query(None, description="Фильтр по типу СУБД (например: postgresql)"),
-        environment: Optional[str] = Query(None, description="Фильтр по окружению (production, development, testing, analytics)"),
-        is_favorite: Optional[bool] = Query(None, description="Фильтр по избранному (true/false)"),
-        sort_by: str = Query("name", description="Поле для сортировки (name, created_at, updated_at, database_name)"),
-        sort_order: str = Query("asc", description="Порядок сортировки (asc или desc)")
+        search: Optional[str] = Query(None, description="Поиск по названию базы данных, описанию базы данных и названию подключения"),
+        database_type: Optional[str] = Query(None, description="Фильтр по типу базы данных"),
+        environment: Optional[str] = Query(None, description="Фильтр по окружению"),
+        is_favorite: Optional[bool] = Query(None, description="Фильтр по избранному"),
 ):
-    """Получить список подключений к базам данных с поддержкой поиска, фильтрации и сортировки."""
+    """Получить список подключений к базам данных с поддержкой поиска и фильтрации"""
     try:
         query = select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id)
         filters = []
         if search and search.strip():
             search_term = f"%{search.strip()}%"
             filters.append(
-                or_(
-                    DB_Connection.database_name.ilike(search_term),
-                    DB_Connection.name.ilike(search_term),
-                    DB_Connection.description.ilike(search_term),
-                )
-            )
+                or_(DB_Connection.database_name.ilike(search_term), DB_Connection.name.ilike(search_term), DB_Connection.description.ilike(search_term), ))
         if database_type:
             filters.append(DB_Connection.database_type == database_type)
         if environment:
@@ -92,18 +78,7 @@ async def list_connections(
         count_query = query.with_only_columns(func.count(DB_Connection.id))
         total_result = await db.execute(count_query)
         total = total_result.scalar_one()
-        valid_sort_fields = ["name", "created_at", "updated_at", "database_name", "environment", "database_type"]
-        valid_sort_orders = ["asc", "desc"]
-        if sort_by not in valid_sort_fields:
-            sort_by = "name"
-        sort_order = sort_order.lower()
-        if sort_order not in valid_sort_orders:
-            sort_order = "asc"
-        sort_column = getattr(DB_Connection, sort_by, DB_Connection.name)
-        if sort_order == "desc":
-            query = query.order_by(sort_column.desc())
-        else:
-            query = query.order_by(sort_column.asc())
+        query = query.order_by(DB_Connection.name.asc())
         skip = (page - 1) * size
         query = query.offset(skip).limit(size)
         result = await db.execute(query)
@@ -111,20 +86,9 @@ async def list_connections(
         items = []
         for row in rows:
             connection, owner_username = row
-            # Получаем статус, размер и описание из внешней БД
             status_conn, size_mb, db_description = await get_db_status_and_size(connection)
-
-            # Используем описание из внешней БД, если оно есть, иначе из локальной БД
             effective_description = db_description if db_description is not None else connection.description
-
-            connection_dict = {
-                **connection.__dict__,
-                "status": status_conn,
-                "db_size_mb": size_mb,
-                "owner_username": owner_username,
-                # Заменяем локальное описание на полученное из внешней БД
-                "description": effective_description
-            }
+            connection_dict = {**connection.__dict__, "status": status_conn, "db_size_mb": size_mb, "owner_username": owner_username, "description": effective_description}
             items.append(ConnectionOut(**connection_dict))
         pages = (total + size - 1) // size if size > 0 else 1
         has_next = page < pages
@@ -150,18 +114,13 @@ async def read_connection(connection_id: int, db: AsyncSession = Depends(get_db)
     if not row:
         raise HTTPException(status_code=404, detail="Подключение не найдено")
     connection, owner_username = row
-    # Получаем статус, размер и описание из внешней БД
     status_conn, size, db_description = await get_db_status_and_size(connection)
-
-    # Используем описание из внешней БД, если оно есть, иначе из локальной БД
     effective_description = db_description if db_description is not None else connection.description
-
     connection_dict = {
         **connection.__dict__,
         "status": status_conn,
         "db_size_mb": size,
         "owner_username": owner_username,
-        # Заменяем локальное описание на полученное из внешней БД
         "description": effective_description
     }
     return ConnectionOut(**connection_dict)
@@ -173,28 +132,20 @@ async def create_connection_endpoint(connection: ConnectionCreate, db: AsyncSess
     result = await db.execute(select(User).where(User.id == connection.owner_id))
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Владелец не найден")
-
     encrypted_password = encrypt_password(connection.password)
     db_connection = DB_Connection(**connection.model_dump(exclude={"password"}), password=encrypted_password)
     db.add(db_connection)
     await db.commit()
     await db.refresh(db_connection)
-
     result = await db.execute(select(User.username).where(User.id == db_connection.owner_id))
     owner_username = result.scalar_one()
-
-    # Получаем статус, размер и описание из внешней БД для нового подключения
     status_conn, size, db_description = await get_db_status_and_size(db_connection)
-
-    # Используем описание из внешней БД, если оно есть, иначе из локальной БД
     effective_description = db_description if db_description is not None else db_connection.description
-
     connection_dict = {
         **db_connection.__dict__,
         "status": status_conn,
         "db_size_mb": size,
         "owner_username": owner_username,
-        # Заменяем локальное описание на полученное из внешней БД
         "description": effective_description
     }
     return ConnectionOut(**connection_dict)
@@ -202,37 +153,47 @@ async def create_connection_endpoint(connection: ConnectionCreate, db: AsyncSess
 
 @router.put("/{connection_id}", response_model=ConnectionOut)
 async def update_connection_endpoint(connection_id: int, connection: ConnectionUpdate, db: AsyncSession = Depends(get_db)):
-    """Обновить существующее подключение"""
+    """Обновить существующее подключение и, при необходимости, описание во внешней БД."""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     db_connection = result.scalar_one_or_none()
     if not db_connection:
         raise HTTPException(status_code=404, detail="Подключение не найдено")
-
     update_data = connection.model_dump(exclude_unset=True)
     if "password" in update_data:
         update_data["password"] = encrypt_password(update_data["password"])
-
     for field, value in update_data.items():
         setattr(db_connection, field, value)
-
     await db.commit()
     await db.refresh(db_connection)
-
-    result = await db.execute(select(User.username).where(User.id == db_connection.owner_id))
-    owner_username = result.scalar_one()
-
-    # Получаем статус, размер и описание из внешней БД
+    if "description" in update_data:
+        try:
+            password = decrypt_password(db_connection.password)
+            ext_conn = await asyncpg.connect(
+                host=db_connection.host,
+                port=db_connection.port,
+                user=db_connection.username,
+                password=password,
+                database=db_connection.database_name,
+                timeout=10
+            )
+            await ext_conn.execute("""
+                COMMENT ON DATABASE {} IS {};
+            """.format(
+                asyncpg.utils._quote_ident(db_connection.database_name),
+                f"$${update_data['description'] or ''}$$"
+            ))
+            await ext_conn.close()
+        except Exception as e:
+            pass
+    owner_result = await db.execute(select(User.username).where(User.id == db_connection.owner_id))
+    owner_username = owner_result.scalar_one()
     status_conn, size, db_description = await get_db_status_and_size(db_connection)
-
-    # Используем описание из внешней БД, если оно есть, иначе из локальной БД
     effective_description = db_description if db_description is not None else db_connection.description
-
     connection_dict = {
         **db_connection.__dict__,
         "status": status_conn,
         "db_size_mb": size,
         "owner_username": owner_username,
-        # Заменяем локальное описание на полученное из внешней БД
         "description": effective_description
     }
     return ConnectionOut(**connection_dict)
@@ -255,10 +216,7 @@ async def get_active_connections(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-        username: Optional[str] = Query(
-            None,
-            description="Фильтр по имени пользователя (регистронезависимый поиск)"
-        )
+        username: Optional[str] = Query(None, description="Фильтр по имени пользователя (регистронезависимый поиск)")
 ):
     """Получить список активных подключений к внешней БД с пагинацией и фильтрацией"""
     try:
@@ -291,26 +249,18 @@ async def update_connection_favorite(connection_id: int, favorite_update: Connec
     db_connection = result.scalar_one_or_none()
     if not db_connection:
         raise HTTPException(status_code=404, detail="Подключение не найдено")
-
     db_connection.is_favorite = favorite_update.is_favorite
     await db.commit()
     await db.refresh(db_connection)
-
     owner_result = await db.execute(select(User.username).where(User.id == db_connection.owner_id))
     owner_username = owner_result.scalar_one()
-
-    # Получаем статус, размер и описание из внешней БД
     status_conn, size, db_description = await get_db_status_and_size(db_connection)
-
-    # Используем описание из внешней БД, если оно есть, иначе из локальной БД
     effective_description = db_description if db_description is not None else db_connection.description
-
     connection_dict = {
         **db_connection.__dict__,
         "status": status_conn,
         "db_size_mb": size,
         "owner_username": owner_username,
-        # Заменяем локальное описание на полученное из внешней БД
         "description": effective_description
     }
     return ConnectionOut(**connection_dict)

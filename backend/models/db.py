@@ -13,6 +13,7 @@ ENVIRONMENT_CHOICES = [
 
 DATABASE_TYPES = [
     ('postgresql', 'PostgreSQL'),
+    ('greenplum', 'Greenplum'),
 ]
 
 
@@ -22,11 +23,11 @@ class DB_Connection(Base, DateTimeMixin):
     id = Column(Integer, primary_key=True, index=True, comment="PK подключения")
     # Поля для подключения
     database_name = Column(String(255), nullable=False, comment="Название базы данных")
-    description = Column(String(100), nullable=True, comment="Описание базы данных")
     host = Column(String(255), nullable=False, comment="Хост")
     port = Column(Integer, nullable=False, comment="Порт")
     username = Column(String(255), nullable=False, comment="Имя пользователя")
     password = Column(String(255), nullable=False, comment="Пароль пользователя")
+    description = Column(String(100), nullable=True, comment="Описание базы данных")
     # Дополнительная информация
     name = Column(String(255), nullable=False, index=True, comment="Название подключения")
     database_type = Column(Enum(*[t[0] for t in DATABASE_TYPES], name="database_type_enum"), nullable=False, comment="Тип базы данных")
@@ -39,14 +40,10 @@ class DB_Connection(Base, DateTimeMixin):
     owner = relationship("User", back_populates="db_connection")
     # Ограничения и индексы
     __table_args__ = (
-        UniqueConstraint("host", "port", "database_name", "username", "name", "owner_id", name="uq_connection_unique_fields"),
+        UniqueConstraint("database_name", "host", "port", "username", "description", "name", "owner_id", name="uq_connection_unique_fields"),
         Index('idx_connection_database_name_search', 'database_name'),
-        Index('idx_connection_name_search', 'name'),
-        Index('idx_connection_description_search', 'description'),
         Index('idx_connection_database_type_search', 'database_type'),
         Index('idx_connection_environment_search', 'environment'),
-        Index('idx_connection_name_env_type', 'name', 'environment', 'database_type'),
-        Index('idx_connection_dbname_env', 'database_name', 'environment'),
         Index('idx_connection_is_favorite', 'is_favorite'),
         Index('idx_connection_owner_id', 'owner_id'),
         Index('idx_connection_created_at', 'created_at'),
