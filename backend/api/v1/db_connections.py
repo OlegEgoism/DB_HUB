@@ -21,7 +21,7 @@ from backend.services.db_connections_services import DBConnectionService
 router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
 
-async def get_db_status_and_size(connection: DB_Connection) -> tuple[str, float | None, str | None]:
+async def get_db_status_size_description(connection: DB_Connection) -> tuple[str, float | None, str | None]:
     """Получить статус подключения, размер базы данных и описание базы данных"""
     try:
         password = decrypt_password(connection.password)
@@ -86,7 +86,7 @@ async def list_connections(
         items = []
         for row in rows:
             connection, owner_username = row
-            status_conn, size_mb, db_description = await get_db_status_and_size(connection)
+            status_conn, size_mb, db_description = await get_db_status_size_description(connection)
             effective_description = db_description if db_description is not None else connection.description
             connection_dict = {**connection.__dict__, "status": status_conn, "db_size_mb": size_mb, "owner_username": owner_username, "description": effective_description}
             items.append(ConnectionOut(**connection_dict))
@@ -106,29 +106,9 @@ async def list_connections(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении списка подключений: {str(e)}")
 
 
-@router.get("/{connection_id}", response_model=ConnectionOut)
-async def read_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
-    """Получить подключение по ID с именем владельца"""
-    result = await db.execute(select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id).where(DB_Connection.id == connection_id))
-    row = result.first()
-    if not row:
-        raise HTTPException(status_code=404, detail="Подключение не найдено")
-    connection, owner_username = row
-    status_conn, size, db_description = await get_db_status_and_size(connection)
-    effective_description = db_description if db_description is not None else connection.description
-    connection_dict = {
-        **connection.__dict__,
-        "status": status_conn,
-        "db_size_mb": size,
-        "owner_username": owner_username,
-        "description": effective_description
-    }
-    return ConnectionOut(**connection_dict)
-
-
 @router.post("/", response_model=ConnectionOut, status_code=status.HTTP_201_CREATED)
-async def create_connection_endpoint(connection: ConnectionCreate, db: AsyncSession = Depends(get_db)):
-    """Создать новое подключение"""
+async def create_connection(connection: ConnectionCreate, db: AsyncSession = Depends(get_db)):
+    """Создать новое подключение к базе данных"""
     result = await db.execute(select(User).where(User.id == connection.owner_id))
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Владелец не найден")
@@ -139,21 +119,15 @@ async def create_connection_endpoint(connection: ConnectionCreate, db: AsyncSess
     await db.refresh(db_connection)
     result = await db.execute(select(User.username).where(User.id == db_connection.owner_id))
     owner_username = result.scalar_one()
-    status_conn, size, db_description = await get_db_status_and_size(db_connection)
+    status_conn, size, db_description = await get_db_status_size_description(db_connection)
     effective_description = db_description if db_description is not None else db_connection.description
-    connection_dict = {
-        **db_connection.__dict__,
-        "status": status_conn,
-        "db_size_mb": size,
-        "owner_username": owner_username,
-        "description": effective_description
-    }
+    connection_dict = {**db_connection.__dict__, "status": status_conn, "db_size_mb": size, "owner_username": owner_username, "description": effective_description}
     return ConnectionOut(**connection_dict)
 
 
 @router.put("/{connection_id}", response_model=ConnectionOut)
-async def update_connection_endpoint(connection_id: int, connection: ConnectionUpdate, db: AsyncSession = Depends(get_db)):
-    """Обновить существующее подключение и, при необходимости, описание во внешней БД."""
+async def update_connection(connection_id: int, connection: ConnectionUpdate, db: AsyncSession = Depends(get_db)):
+    """Обновить подключение к базе данных"""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     db_connection = result.scalar_one_or_none()
     if not db_connection:
@@ -187,21 +161,15 @@ async def update_connection_endpoint(connection_id: int, connection: ConnectionU
             pass
     owner_result = await db.execute(select(User.username).where(User.id == db_connection.owner_id))
     owner_username = owner_result.scalar_one()
-    status_conn, size, db_description = await get_db_status_and_size(db_connection)
+    status_conn, size, db_description = await get_db_status_size_description(db_connection)
     effective_description = db_description if db_description is not None else db_connection.description
-    connection_dict = {
-        **db_connection.__dict__,
-        "status": status_conn,
-        "db_size_mb": size,
-        "owner_username": owner_username,
-        "description": effective_description
-    }
+    connection_dict = {**db_connection.__dict__, "status": status_conn, "db_size_mb": size, "owner_username": owner_username, "description": effective_description}
     return ConnectionOut(**connection_dict)
 
 
 @router.delete("/{connection_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_connection_endpoint(connection_id: int, db: AsyncSession = Depends(get_db)):
-    """Удалить подключение"""
+async def delete_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
+    """Удалить подключение к базе данных"""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     db_connection = result.scalar_one_or_none()
     if not db_connection:
@@ -216,9 +184,9 @@ async def get_active_connections(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-        username: Optional[str] = Query(None, description="Фильтр по имени пользователя (регистронезависимый поиск)")
+        username: Optional[str] = Query(None, description="Поиск по имени пользователя")
 ):
-    """Получить список активных подключений к внешней БД с пагинацией и фильтрацией"""
+    """Получить список активных подключений к базе данных"""
     try:
         service = DBConnectionService(db)
         result = await service.get_active_connections(connection_id=connection_id, page=page, size=size, username=username)
@@ -229,9 +197,9 @@ async def get_active_connections(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении активных подключений: {str(e)}")
 
 
-@router.post("/{connection_id}/active-connections/terminate", response_model=dict)
+@router.delete("/{connection_id}/active-connections/terminate", response_model=dict)
 async def terminate_active_connection(connection_id: int, request: TerminateConnectionRequest, db: AsyncSession = Depends(get_db)):
-    """Завершить активное подключение (процесс) во внешней БД по PID"""
+    """Завершить активное подключение (процесс) к базе данных по PID"""
     try:
         service = DBConnectionService(db)
         result = await service.terminate_backend_process(connection_id, request.pid)
@@ -244,7 +212,7 @@ async def terminate_active_connection(connection_id: int, request: TerminateConn
 
 @router.patch("/{connection_id}/favorite", response_model=ConnectionOut)
 async def update_connection_favorite(connection_id: int, favorite_update: ConnectionFavoriteUpdate, db: AsyncSession = Depends(get_db)):
-    """Обновить только флаг 'избранное' для подключения."""
+    """Обновить статус избранного подключения к базе данных"""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     db_connection = result.scalar_one_or_none()
     if not db_connection:
@@ -254,13 +222,7 @@ async def update_connection_favorite(connection_id: int, favorite_update: Connec
     await db.refresh(db_connection)
     owner_result = await db.execute(select(User.username).where(User.id == db_connection.owner_id))
     owner_username = owner_result.scalar_one()
-    status_conn, size, db_description = await get_db_status_and_size(db_connection)
+    status_conn, size, db_description = await get_db_status_size_description(db_connection)
     effective_description = db_description if db_description is not None else db_connection.description
-    connection_dict = {
-        **db_connection.__dict__,
-        "status": status_conn,
-        "db_size_mb": size,
-        "owner_username": owner_username,
-        "description": effective_description
-    }
+    connection_dict = {**db_connection.__dict__, "status": status_conn, "db_size_mb": size, "owner_username": owner_username, "description": effective_description}
     return ConnectionOut(**connection_dict)

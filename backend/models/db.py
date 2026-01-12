@@ -27,7 +27,7 @@ class DB_Connection(Base, DateTimeMixin):
     port = Column(Integer, nullable=False, comment="Порт")
     username = Column(String(255), nullable=False, comment="Имя пользователя")
     password = Column(String(255), nullable=False, comment="Пароль пользователя")
-    description = Column(String(100), nullable=True, comment="Описание базы данных")
+    description = Column(String(255), nullable=True, comment="Описание базы данных")
     # Дополнительная информация
     name = Column(String(255), nullable=False, index=True, comment="Название подключения")
     database_type = Column(Enum(*[t[0] for t in DATABASE_TYPES], name="database_type_enum"), nullable=False, comment="Тип базы данных")
