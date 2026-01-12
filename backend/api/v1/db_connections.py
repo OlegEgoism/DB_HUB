@@ -60,14 +60,13 @@ async def list_connections(
         environment: Optional[str] = Query(None, description="Фильтр по окружению"),
         is_favorite: Optional[bool] = Query(None, description="Фильтр по избранному"),
 ):
-    """Получить список подключений к базам данных с поддержкой поиска и фильтрации"""
+    """Получить список подключенных баз данных"""
     try:
         query = select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id)
         filters = []
         if search and search.strip():
             search_term = f"%{search.strip()}%"
-            filters.append(
-                or_(DB_Connection.database_name.ilike(search_term), DB_Connection.name.ilike(search_term), DB_Connection.description.ilike(search_term), ))
+            filters.append(or_(DB_Connection.database_name.ilike(search_term), DB_Connection.name.ilike(search_term), DB_Connection.description.ilike(search_term), ))
         if database_type:
             filters.append(DB_Connection.database_type == database_type)
         if environment:

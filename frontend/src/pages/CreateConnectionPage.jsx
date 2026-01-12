@@ -12,7 +12,8 @@ const ENVIRONMENTS = [
 ];
 
 const DATABASE_TYPES = [
-    "postgresql"
+    "postgresql",
+    "greenplum"
 ];
 
 const CreateConnectionPage = () => {
@@ -350,19 +351,6 @@ const CreateConnectionPage = () => {
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">
-                                    <i className="fas fa-comment"></i> Описание
-                                </label>
-                                <input
-                                    type="text"
-                                    name="description"
-                                    value={formData.description}
-                                    onChange={handleChange}
-                                    disabled={submitting}
-                                />
-                            </div>
-
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">
@@ -492,6 +480,9 @@ const CreateConnectionPage = () => {
                                     />
                                 </div>
 
+
+                            </div>
+                            <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">
                                         <i className="fas fa-user"></i> Пользователь*
@@ -505,23 +496,23 @@ const CreateConnectionPage = () => {
                                         disabled={submitting}
                                     />
                                 </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">
-                                    <i className="fas fa-key"></i> Пароль*
-                                </label>
-                                <div className="password-input-wrapper">
-                                    <input
-                                        type="password"
-                                        name="password"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={submitting}
-                                    />
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <i className="fas fa-key"></i> Пароль*
+                                    </label>
+                                    <div className="password-input-wrapper">
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            required
+                                            disabled={submitting}
+                                        />
+                                    </div>
+                                    <div className="form-hint">Пароль шифруется перед сохранением</div>
                                 </div>
-                                <div className="form-hint">Пароль шифруется перед сохранением</div>
+
                             </div>
                         </div>
 

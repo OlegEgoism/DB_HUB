@@ -9,7 +9,6 @@ DatabaseType = Literal['postgresql', 'greenplum']
 
 class ConnectionBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=255)
     database_type: DatabaseType
     environment: Environment
     is_favorite: bool = False
