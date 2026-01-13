@@ -204,6 +204,7 @@ useEffect(() => {
                                     <div className="overview-content">
                                         <div className="overview-value">{connectionDescription}</div>
                                         <div className="overview-label">ОПИСАИЕ БАЗА ДАННЫХ</div>
+                                        <div className="overview-value">{dbName} {host}:{port}</div>
                                     </div>
                                 </div>
                             </div>
@@ -230,25 +231,25 @@ useEffect(() => {
                                 {/*    <span className="info-value">{connectionDescription}</span>*/}
                                 {/*</div>*/}
 
-                                <div className="info-row">
-                                    <span className="info-label_db">База данных:</span>
-                                    <span className="info-value">{dbName}</span>
-                                </div>
+                                {/*<div className="info-row">*/}
+                                {/*    <span className="info-label_db">База данных:</span>*/}
+                                {/*    <span className="info-value">{dbName}</span>*/}
+                                {/*</div>*/}
 
-                                <div className="info-row">
-                                    <span className="info-label_db">Хост:</span>
-                                    <span className="info-value">{host}</span>
-                                </div>
+                                {/*<div className="info-row">*/}
+                                {/*    <span className="info-label_db">Хост:</span>*/}
+                                {/*    <span className="info-value">{host}</span>*/}
+                                {/*</div>*/}
 
-                                <div className="info-row">
-                                    <span className="info-label_db">Порт:</span>
-                                    <span className="info-value">{port}</span>
-                                </div>
+                                {/*<div className="info-row">*/}
+                                {/*    <span className="info-label_db">Порт:</span>*/}
+                                {/*    <span className="info-value">{port}</span>*/}
+                                {/*</div>*/}
 
-                                <div className="info-row">
-                                    <span className="info-label_db">Пользователь:</span>
-                                    <span className="info-value">{userName}</span>
-                                </div>
+                                {/*<div className="info-row">*/}
+                                {/*    <span className="info-label_db">Пользователь:</span>*/}
+                                {/*    <span className="info-value">{userName}</span>*/}
+                                {/*</div>*/}
 
                                 <div className="info-row">
                                     <span className="info-label_db">Размер базы данных:</span>
