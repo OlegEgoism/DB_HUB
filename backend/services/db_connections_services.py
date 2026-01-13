@@ -119,18 +119,18 @@ class DBConnectionService:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
+        conn = await self._connect_to_external_db(connection)
         try:
-            async with await self._connect_to_external_db(connection) as conn:
-                exists = await conn.fetchval("""
-                    SELECT 1 FROM pg_stat_activity
-                    WHERE pid = $1 AND pid <> pg_backend_pid()
-                """, pid)
-                if not exists:
-                    raise ValueError(f"Процесс с PID {pid} не найден или уже завершён")
-                result = await conn.fetchval("SELECT pg_terminate_backend($1)", pid)
-                if result:
-                    return {"success": True, "message": f"Процесс с PID {pid} успешно завершён", "pid": pid, "connection_id": connection_id}
-                else:
-                    raise Exception(f"Не удалось завершить процесс с PID {pid}")
-        except Exception as e:
-            raise Exception(f"Ошибка при завершении процесса: {str(e)}") from e
+            exists = await conn.fetchval("""
+                SELECT 1 FROM pg_stat_activity
+                WHERE pid = $1 AND pid <> pg_backend_pid()
+            """, pid)
+            if not exists:
+                raise ValueError(f"Процесс с PID {pid} не найден или уже завершён")
+            result = await conn.fetchval("SELECT pg_terminate_backend($1)", pid)
+            if result:
+                return {"success": True, "message": f"Процесс с PID {pid} успешно завершён", "pid": pid, "connection_id": connection_id}
+            else:
+                raise Exception(f"Не удалось завершить процесс с PID {pid}")
+        finally:
+            await conn.close()
