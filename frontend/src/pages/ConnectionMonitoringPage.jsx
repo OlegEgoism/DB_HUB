@@ -43,7 +43,6 @@ const ConnectionMonitoringPage = () => {
 
                 const data = await response.json();
 
-                // Сохраняем информацию о подключении
                 setConnectionData({
                     connection_id: data.connection_id,
                     connection_name: data.connection_name,
@@ -57,7 +56,6 @@ const ConnectionMonitoringPage = () => {
                     status: data.status
                 });
 
-                // Парсим метрики
                 const parsedMetrics = parseMetrics(data.basic_metrics);
                 setMetrics(parsedMetrics);
             } catch (err) {
@@ -70,6 +68,52 @@ const ConnectionMonitoringPage = () => {
 
         loadMetrics();
     }, [connectionId, navigate]);
+
+    const downloadShowAll = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}/show-all`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                alert(`Ошибка при загрузке настроек: ${errData.detail || response.statusText}`);
+                return;
+            }
+
+            const data = await response.json(); // { settings: [{ name, setting }, ...] }
+
+            // Преобразуем в CSV
+            const csvContent = [
+                ['Параметр', 'Значение'],
+                ...data.settings.map(item => [item.name, item.setting])
+            ]
+                .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+                .join('\n');
+
+            // Создаём Blob и скачиваем
+            const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `postgresql-settings-${connectionData?.connection_name || connectionId}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Ошибка при скачивании SHOW ALL:', err);
+            alert('Не удалось скачать настройки: ' + err.message);
+        }
+    };
 
     const formatCount = (str) => {
         if (!str || str === '0') return '—';
@@ -122,7 +166,6 @@ const ConnectionMonitoringPage = () => {
     const m = metrics;
     const conn = connectionData;
 
-    // Информация о подключении
     const dbName = conn?.database_name || 'Неизвестно';
     const connectionName = conn?.connection_name || 'Без имени';
     const connectionDescription = conn?.connection_description || 'Без описания';
@@ -131,7 +174,6 @@ const ConnectionMonitoringPage = () => {
     const port = conn?.port || '5432';
     const env = conn?.environment || 'development';
 
-    // Метрики СУБД
     const serverVersion = m?.server_version || '—';
     const clientEncoding = m?.client_encoding || '—';
     const serverEncoding = m?.server_encoding || '—';
@@ -144,11 +186,9 @@ const ConnectionMonitoringPage = () => {
     const serverStartTime = m?.server_start_time || '—';
     const serverUptime = m?.server_uptime || '—';
 
-    // Дополнительные параметры PostgreSQL из pg_settings
     const sharedBuffers = m?.shared_buffers || '—';
     const workMem = m?.work_mem || '—';
 
-    // Размеры
     const dbSize = m?.db_size || '—';
     const tableSize = m?.table_size || '—';
     const tempTableSize = m?.temp_table_size || '—';
@@ -157,7 +197,6 @@ const ConnectionMonitoringPage = () => {
     const viewsSize = m?.views_size || '—';
     const materializedViewsSize = m?.materialized_views_size || '—';
 
-    // Количества
     const tableCount = formatCount(m?.table_count);
     const tempTableCount = formatCount(m?.temp_table_count);
     const systemTableCount = formatCount(m?.system_table_count);
@@ -167,7 +206,6 @@ const ConnectionMonitoringPage = () => {
     const procedureCount = formatCount(m?.procedure_count);
     const triggerCount = formatCount(m?.trigger_count);
 
-    // Пользователи и подключения
     const totalUsers = formatCount(m?.total_users);
     const superuserCount = formatCount(m?.superuser_count);
     const activeUsers = formatCount(m?.active_users);
@@ -211,6 +249,8 @@ const ConnectionMonitoringPage = () => {
                                 </div>
                             </div>
                         </div>
+
+
                     </div>
 
                     <div className="tab-pane active" id="info-tab">
@@ -404,6 +444,11 @@ const ConnectionMonitoringPage = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                    <div className="action-buttons">
+                        <button onClick={downloadShowAll} className="btn btn-secondary">
+                            <i className="fas fa-download"></i> Скачать все настройки
+                        </button>
                     </div>
                 </section>
             </main>

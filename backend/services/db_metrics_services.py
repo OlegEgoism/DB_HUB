@@ -7,7 +7,7 @@ from backend.utils.external_db import external_db_connection
 class DBMetricsService:
 
     @staticmethod
-    async def get_all_database_metrics(connection: DB_Connection) -> Dict[str, Any]:
+    async def get_database_metrics(connection: DB_Connection) -> Dict[str, Any]:
         """Получить все метрики базы данных"""
         try:
             async with external_db_connection(connection) as conn:
@@ -171,3 +171,18 @@ class DBMetricsService:
                 return {"status": "connected", "basic_metrics": basic_metrics, "cluster_replication": cluster_info, "segment_details": segment_details, }
         except Exception as e:
             return {"status": "error", "basic_metrics": [{"metric": "connection_error", "value": str(e)}], "cluster_replication": [], "segment_details": [], }
+
+    @staticmethod
+    async def get_all_settings(connection: DB_Connection) -> List[Dict[str, str]]:
+        """Получить все настройки базы данных"""
+        try:
+            async with external_db_connection(connection) as conn:
+                query = """
+                SELECT name, setting
+                FROM pg_settings
+                ORDER BY name;
+                """
+                rows = await conn.fetch(query)
+                return [{"name": r["name"], "setting": r["setting"]} for r in rows]
+        except Exception as e:
+            raise Exception(f"Ошибка при выполнении SHOW ALL: {str(e)}")

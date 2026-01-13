@@ -33,3 +33,12 @@ class AllDatabaseMetricsResponse(BaseModel):
     cluster_replication: List[DatabaseMetric]
     segment_details: List[SegmentDetail]
     model_config = ConfigDict(from_attributes=True)
+
+
+class ShowAllItem(BaseModel):
+    name: str
+    setting: str
+
+
+class ShowAllResponse(BaseModel):
+    settings: List[ShowAllItem]
