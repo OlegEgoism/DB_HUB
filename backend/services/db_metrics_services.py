@@ -13,6 +13,18 @@ class DBMetricsService:
             async with external_db_connection(connection) as conn:
                 # === Базовые метрики ===
                 basic_metrics_query = """
+                SELECT name as metric, setting as value
+                FROM pg_settings 
+                WHERE name IN ('autovacuum', 'client_encoding', 'effective_cache_size', 'listen_addresses', 'log_statement_stats', 'server_encoding','server_version', 'shared_buffers', 'TimeZone', 'work_mem')
+                UNION ALL
+                SELECT 'database_collation' as metric, datcollate as value
+                FROM pg_database 
+                WHERE datname = current_database()
+                UNION ALL
+                SELECT 'server_start_time' as metric, to_char(pg_postmaster_start_time(), 'YYYY-MM-DD HH24:MI:SS TZ') as value
+                UNION ALL
+                SELECT 'server_uptime' as metric, age(now(), pg_postmaster_start_time())::text as value
+                UNION ALL
                 SELECT 'db_size' AS metric, pg_size_pretty(pg_database_size(current_database())) AS value 
                 UNION ALL
                 SELECT 'table_count', COUNT(*)::TEXT
@@ -99,6 +111,7 @@ class DBMetricsService:
                 """
                 rows = await conn.fetch(basic_metrics_query)
                 basic_metrics = [{"metric": r["metric"], "value": r["value"]} for r in rows]
+
                 # === Сводка по сегментам (метрики) ===
                 cluster_replication_query = """
                 SELECT 'total_segments', COUNT(*)::numeric
@@ -135,6 +148,7 @@ class DBMetricsService:
                     cluster_info = [{"metric": r[0], "value": str(r[1])} for r in rows]
                 except Exception:
                     cluster_info = []
+
                 # === Детали сегментов ===
                 segment_details = []
                 try:

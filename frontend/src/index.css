@@ -853,7 +853,7 @@ body {
     font-size: 16px;
     font-weight: 600;
     color: var(--gray-800);
-    display: flex;
+    /*display: flex;*/
     align-items: center;
     gap: 8px;
 }
@@ -1649,7 +1649,6 @@ body {
     font-size: 14px;
     color: var(--gray-600);
     font-weight: 500;
-    width: 74%;
 }
 
 .info-value {

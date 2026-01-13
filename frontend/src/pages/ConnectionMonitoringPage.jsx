@@ -7,13 +7,11 @@ import Footer from '../components/Footer';
 const ConnectionMonitoringPage = () => {
     const {id: connectionId} = useParams();
     const navigate = useNavigate();
-
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [metrics, setMetrics] = useState(null);
-    const [connectionData, setConnectionData] = useState(null); // Объединяем данные
+    const [connectionData, setConnectionData] = useState(null);
 
-    // Преобразуем basic_metrics в объект
     const parseMetrics = (basicMetrics) => {
         const parsed = {};
         basicMetrics?.forEach(({metric, value}) => {
@@ -22,59 +20,57 @@ const ConnectionMonitoringPage = () => {
         return parsed;
     };
 
-useEffect(() => {
-    const loadMetrics = async () => {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
-
-        try {
-            const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}/all`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.detail || `Ошибка: ${response.status}`);
+    useEffect(() => {
+        const loadMetrics = async () => {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                navigate('/login');
+                return;
             }
 
-            const data = await response.json();
+            try {
+                const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}/all`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
 
-            // Сохраняем всю информацию о подключении
-            setConnectionData({
-                connection_id: data.connection_id,
-                connection_name: data.connection_name,
-                connection_description: data.connection_description,
-                host: data.host,
-                port: data.port, // Добавляем порт из API
-                username: data.username, // Добавляем username из API
-                database_name: data.database_name,
-                environment: data.environment,
-                database_type: data.database_type,
-                status: data.status
-            });
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || `Ошибка: ${response.status}`);
+                }
 
-            // Парсим метрики
-            const parsedMetrics = parseMetrics(data.basic_metrics);
-            setMetrics(parsedMetrics);
+                const data = await response.json();
 
-        } catch (err) {
-            console.error('Ошибка загрузки метрик:', err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+                // Сохраняем информацию о подключении
+                setConnectionData({
+                    connection_id: data.connection_id,
+                    connection_name: data.connection_name,
+                    connection_description: data.connection_description,
+                    host: data.host,
+                    port: data.port,
+                    username: data.username,
+                    database_name: data.database_name,
+                    environment: data.environment,
+                    database_type: data.database_type,
+                    status: data.status
+                });
 
-    loadMetrics();
-}, [connectionId, navigate]);
+                // Парсим метрики
+                const parsedMetrics = parseMetrics(data.basic_metrics);
+                setMetrics(parsedMetrics);
+            } catch (err) {
+                console.error('Ошибка загрузки метрик:', err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    // Форматирование чисел с разделителями (1,245)
+        loadMetrics();
+    }, [connectionId, navigate]);
+
     const formatCount = (str) => {
         if (!str || str === '0') return '—';
         const num = parseInt(str, 10);
@@ -82,7 +78,6 @@ useEffect(() => {
         return num.toLocaleString('ru-RU');
     };
 
-    // Определение типа окружения
     const envLabel = (env) => {
         switch (env?.toLowerCase()) {
             case 'production':
@@ -124,62 +119,68 @@ useEffect(() => {
         );
     }
 
-    const m = metrics; // метрики базы данных
-    const conn = connectionData; // информация о подключении
+    const m = metrics;
+    const conn = connectionData;
 
-    // Извлекаем значения из connectionData
+    // Информация о подключении
     const dbName = conn?.database_name || 'Неизвестно';
     const connectionName = conn?.connection_name || 'Без имени';
-    const userName = conn?.username || 'Без имени';
     const connectionDescription = conn?.connection_description || 'Без описания';
-    const dbType = conn?.database_type || 'postgresql';
+    const dbType = (conn?.database_type || 'postgresql').toUpperCase();
     const host = conn?.host || 'localhost';
-    const port = '5432'; // Стандартный порт PostgreSQL
+    const port = conn?.port || '5432';
     const env = conn?.environment || 'development';
 
-    // Извлекаем значения из метрик
-    const version = m?.postgresql_version || m?.mysql_version || '—';
-    const charset = m?.default_encoding || m?.server_encoding || '—';
-    const collation = m?.collation || '—';
-    const uptime = m?.uptime || '—';
-    const startTime = m?.start_time || '—';
+    // Метрики СУБД
+    const serverVersion = m?.server_version || '—';
+    const clientEncoding = m?.client_encoding || '—';
+    const serverEncoding = m?.server_encoding || '—';
+    const timeZone = m?.TimeZone || '—';
+    const autovacuum = m?.autovacuum === 'on' ? 'Включено' : 'Выключено';
+    const effectiveCacheSize = m?.effective_cache_size || '—';
+    const logStatementStats = m?.log_statement_stats === 'on' ? 'Включено' : 'Выключено';
+    const listenAddresses = m?.listen_addresses || '—';
+    const databaseCollation = m?.database_collation || '—';
+    const serverStartTime = m?.server_start_time || '—';
+    const serverUptime = m?.server_uptime || '—';
+
+    // Дополнительные параметры PostgreSQL из pg_settings
+    const sharedBuffers = m?.shared_buffers || '—';
+    const workMem = m?.work_mem || '—';
 
     // Размеры
     const dbSize = m?.db_size || '—';
-    const tablesSize = m?.all_size_table || '—';
-    const tempTablesSize = m?.temp_table_size || '—';
-    const systemTablesSize = m?.system_table_total_size || '—';
+    const tableSize = m?.table_size || '—';
+    const tempTableSize = m?.temp_table_size || '—';
+    const systemTableSize = m?.system_table_size || '—';
+    const indexSize = m?.index_size || '—';
+    const viewsSize = m?.views_size || '—';
+    const materializedViewsSize = m?.materialized_views_size || '—';
 
     // Количества
-    const tablesCount = formatCount(m?.count_table);
-    const tempTablesCount = formatCount(m?.temp_table_count);
-    const systemTablesCount = formatCount(m?.system_table_count);
-    const indexesCount = formatCount(m?.index_count);
-    const indexSize = m?.index_size || '—';
-    const viewsCount = formatCount(m?.view_count);
-    const matViewsCount = formatCount(m?.materialized_view_count);
-    const proceduresCount = formatCount(m?.procedure_count);
-    const triggersCount = formatCount(m?.trigger_count);
+    const tableCount = formatCount(m?.table_count);
+    const tempTableCount = formatCount(m?.temp_table_count);
+    const systemTableCount = formatCount(m?.system_table_count);
+    const indexCount = formatCount(m?.index_count);
+    const viewCount = formatCount(m?.view_count);
+    const materializedViewCount = formatCount(m?.materialized_view_count);
+    const procedureCount = formatCount(m?.procedure_count);
+    const triggerCount = formatCount(m?.trigger_count);
 
-    // Пользователи
+    // Пользователи и подключения
     const totalUsers = formatCount(m?.total_users);
     const superuserCount = formatCount(m?.superuser_count);
     const activeUsers = formatCount(m?.active_users);
     const roleCount = formatCount(m?.role_count);
-    const pgroleCount = formatCount(m?.pg_role_count);
+    const pgRoleCount = formatCount(m?.pg_role_count);
     const maxConnections = formatCount(m?.max_connections);
     const currentConnections = formatCount(m?.current_connections);
-
-    // Репликация
-    const isReplicationActive = false;
-    const replicationDelay = '—';
 
     return (
         <>
             <Header isAuthenticated={true}/>
             <main>
                 <section className="database-detail-section">
-                    {/* Заголовок */}
                     <div className="database-header">
                         <div className="database-info">
                             <div className="database-title">
@@ -189,21 +190,22 @@ useEffect(() => {
                                 <div className="title-block">
                                     <h1>{connectionName}</h1>
                                     <div className="database-meta">
-                                        <span className="database-type">{dbType.toUpperCase()}</span>
+                                        <span className="database-type">{dbType}</span>
                                         <span className={`status-indicator status-${conn?.status || 'unknown'}`}>
-                                            {conn?.status === 'connected' ? 'Подключено' :
-                                             conn?.status === 'error' ? 'Ошибка' : 'Неизвестно'}
+                                            {conn?.status === 'connected'
+                                                ? 'Подключено'
+                                                : conn?.status === 'error'
+                                                    ? 'Ошибка'
+                                                    : 'Неизвестно'}
                                         </span>
                                     </div>
                                 </div>
-                                <div className="card-badge-log">
-                                    {envLabel(env)}
-                                </div>
+                                <div className="card-badge-log">{envLabel(env)}</div>
                                 <div className="overview-card">
                                     <div className="overview-icon"><i className="fas fa-database"></i></div>
                                     <div className="overview-content">
                                         <div className="overview-value">{connectionDescription}</div>
-                                        <div className="overview-label">ОПИСАИЕ БАЗА ДАННЫХ</div>
+                                        <div className="overview-label">ОПИСАНИЕ БАЗЫ ДАННЫХ</div>
                                         <div className="overview-value">{dbName} {host}:{port}</div>
                                     </div>
                                 </div>
@@ -211,105 +213,98 @@ useEffect(() => {
                         </div>
                     </div>
 
-                    {/* Вкладка "Информация" */}
                     <div className="tab-pane active" id="info-tab">
                         <div className="tab-header">
-                            <h3><i className="fas fa-info-circle"></i> Подробная информация о базе данных</h3>
+                            <h3><i className="fas fa-info-circle"></i> Информация о базе данных</h3>
                         </div>
                         <div className="info-db">
                             {/* Общая информация */}
                             <div className="info-section">
                                 <h4><i className="fas fa-database"></i> Общая информация</h4>
-
-                                {/*<div className="info-row">*/}
-                                {/*    <span className="info-label_db">Имя подключения:</span>*/}
-                                {/*    <span className="info-value">{connectionName}</span>*/}
-                                {/*</div>*/}
-
-                                {/*<div className="info-row">*/}
-                                {/*    <span className="info-label_db">Описание подключения:</span>*/}
-                                {/*    <span className="info-value">{connectionDescription}</span>*/}
-                                {/*</div>*/}
-
-                                {/*<div className="info-row">*/}
-                                {/*    <span className="info-label_db">База данных:</span>*/}
-                                {/*    <span className="info-value">{dbName}</span>*/}
-                                {/*</div>*/}
-
-                                {/*<div className="info-row">*/}
-                                {/*    <span className="info-label_db">Хост:</span>*/}
-                                {/*    <span className="info-value">{host}</span>*/}
-                                {/*</div>*/}
-
-                                {/*<div className="info-row">*/}
-                                {/*    <span className="info-label_db">Порт:</span>*/}
-                                {/*    <span className="info-value">{port}</span>*/}
-                                {/*</div>*/}
-
-                                {/*<div className="info-row">*/}
-                                {/*    <span className="info-label_db">Пользователь:</span>*/}
-                                {/*    <span className="info-value">{userName}</span>*/}
-                                {/*</div>*/}
-
                                 <div className="info-row">
                                     <span className="info-label_db">Размер базы данных:</span>
                                     <span className="info-value">{dbSize}</span>
                                 </div>
-
                                 <div className="info-row">
-                                <span className="info-label_db">Версия СУБД:</span>
-                                    <span className="info-value">{version}</span>
+                                    <span className="info-label_db">Версия базы данных:</span>
+                                    <span className="info-value">{serverVersion}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label_db">Кодировка по умолчанию:</span>
-                                    <span className="info-value">{charset}</span>
+                                    <span className="info-label_db">Кодировка клиент/сервер:</span>
+                                    <span className="info-value">{clientEncoding}/{serverEncoding}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Коллация:</span>
-                                    <span className="info-value">{collation}</span>
+                                    <span className="info-value">{databaseCollation}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Очистка (vacuum):</span>
+                                    <span className="info-value">{autovacuum}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Часовой пояс:</span>
+                                    <span className="info-value">{timeZone}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Адреса прослушивания:</span>
+                                    <span className="info-value">{listenAddresses}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Логирование:</span>
+                                    <span className="info-value">{logStatementStats}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Размер кэша (cache):</span>
+                                    <span className="info-value">{effectiveCacheSize}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Размер буфера (buffers):</span>
+                                    <span className="info-value">{sharedBuffers}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Размер рабочих (works):</span>
+                                    <span className="info-value">{workMem}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Время запуска сервера:</span>
+                                    <span className="info-value">{serverStartTime}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Время работы:</span>
-                                    <span className="info-value">{uptime}</span>
-                                </div>
-                                <div className="info-row">
-                                    <span className="info-label_db">Дата запуска:</span>
-                                    <span className="info-value">{startTime}</span>
+                                    <span className="info-value">{serverUptime}</span>
                                 </div>
                             </div>
 
                             {/* Структура базы */}
                             <div className="info-section">
                                 <h4><i className="fas fa-sitemap"></i> Структура базы</h4>
-
                                 <div className="info-row">
                                     <span className="info-label_db">Количество таблиц:</span>
-                                    <span className="info-value">{tablesCount}</span>
+                                    <span className="info-value">{tableCount}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Размер таблиц:</span>
-                                    <span className="info-value">{tablesSize}</span>
+                                    <span className="info-value">{tableSize}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Количество временных таблиц:</span>
-                                    <span className="info-value">{tempTablesCount}</span>
+                                    <span className="info-value">{tempTableCount}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Размер временных таблиц:</span>
-                                    <span className="info-value">{tempTablesSize}</span>
+                                    <span className="info-value">{tempTableSize}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Количество системных таблиц:</span>
-                                    <span className="info-value">{systemTablesCount}</span>
+                                    <span className="info-value">{systemTableCount}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Размер системных таблиц:</span>
-                                    <span className="info-value">{systemTablesSize}</span>
+                                    <span className="info-value">{systemTableSize}</span>
                                 </div>
-
                                 <div className="info-row">
                                     <span className="info-label_db">Количество индексов:</span>
-                                    <span className="info-value">{indexesCount}</span>
+                                    <span className="info-value">{indexCount}</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Размер индексов:</span>
@@ -317,19 +312,27 @@ useEffect(() => {
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Количество представлений:</span>
-                                    <span className="info-value">{viewsCount}</span>
+                                    <span className="info-value">{viewCount}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label_db">Материализованных представлений:</span>
-                                    <span className="info-value">{matViewsCount}</span>
+                                    <span className="info-label_db">Размер представлений:</span>
+                                    <span className="info-value">{viewsSize}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label_db">Хранимых процедур:</span>
-                                    <span className="info-value">{proceduresCount}</span>
+                                    <span className="info-label_db">Количество материализованных представлений:</span>
+                                    <span className="info-value">{materializedViewCount}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label_db">Триггеров:</span>
-                                    <span className="info-value">{triggersCount}</span>
+                                    <span className="info-label_db">Размер материализованных представлений:</span>
+                                    <span className="info-value">{materializedViewsSize}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Количество процедур:</span>
+                                    <span className="info-value">{procedureCount}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label_db">Количество триггеров:</span>
+                                    <span className="info-value">{triggerCount}</span>
                                 </div>
                             </div>
 
@@ -341,7 +344,7 @@ useEffect(() => {
                                     <span className="info-value">{totalUsers}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label_db">Всего суперпользователей:</span>
+                                    <span className="info-label_db">Суперпользователей:</span>
                                     <span className="info-value">{superuserCount}</span>
                                 </div>
                                 <div className="info-row">
@@ -354,10 +357,10 @@ useEffect(() => {
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label_db">Количество системных групп:</span>
-                                    <span className="info-value">{pgroleCount}</span>
+                                    <span className="info-value">{pgRoleCount}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label_db">Максимальное кол-во подключений:</span>
+                                    <span className="info-label_db">Максимальное количество подключений:</span>
                                     <span className="info-value">{maxConnections}</span>
                                 </div>
                                 <div className="info-row">
@@ -366,24 +369,40 @@ useEffect(() => {
                                 </div>
                             </div>
 
-                            {/* Репликация */}
-                            <div className="info-section">
-                                <h4><i className="fas fa-project-diagram"></i> Кластеризация и репликация</h4>
-                                <div className="info-row">
-                                    <span className="info-label_db">Статус репликации:</span>
-                                    <span className="info-value">
-                                        {isReplicationActive ? (
-                                            <>
-                                                <i className="fas fa-check-circle"></i> Активна
-                                            </>
-                                        ) : 'Не поддерживается'}
-                                    </span>
+                            {/* Кластер Greenplum (если есть) */}
+                            {(m?.total_segments || m?.up_segments) && (
+                                <div className="info-section">
+                                    <h4><i className="fas fa-project-diagram"></i> Кластер/Сегмент</h4>
+                                    <div className="info-row">
+                                        <span className="info-label_db">Всего сегментов:</span>
+                                        <span className="info-value">{formatCount(m?.total_segments)}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label_db">Работает:</span>
+                                        <span className="info-value">{formatCount(m?.up_segments)}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label_db">Выключено:</span>
+                                        <span className="info-value">{formatCount(m?.down_segments)}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label_db">Синхронизировано:</span>
+                                        <span className="info-value">{formatCount(m?.synced_segments)}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label_db">Основной(master):</span>
+                                        <span className="info-value">{formatCount(m?.primary_segments)}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label_db">Зеркал(mirror):</span>
+                                        <span className="info-value">{formatCount(m?.mirror_segments)}</span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label_db">Здоровье (%):</span>
+                                        <span className="info-value">{m?.health_percentage || '—'}%</span>
+                                    </div>
                                 </div>
-                                <div className="info-row">
-                                    <span className="info-label_db">Задержка репликации:</span>
-                                    <span className="info-value">{replicationDelay}</span>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </section>
