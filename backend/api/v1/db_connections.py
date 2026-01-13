@@ -42,21 +42,6 @@ async def get_db_info(db_connection: DB_Connection) -> Tuple[str, float | None, 
         return "error", None, None, False
 
 
-@router.get("/{connection_id}", response_model=ConnectionOut)
-async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
-    """Получить информацию о подключении по id"""
-    result = await db.execute(select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id).where(DB_Connection.id == connection_id))
-    row = result.first()
-    if not row:
-        raise HTTPException(status_code=404, detail="Подключение не найдено")
-    connection, owner_username = row
-    status_conn, size_mb, db_description, is_connected = await get_db_info(connection)
-    effective_description = connection.description
-    if is_connected:
-        effective_description = await sync_description_if_needed(db, connection, db_description)
-    return build_connection_out(connection, owner_username, status_conn, size_mb, effective_description)
-
-
 async def sync_description_if_needed(db: AsyncSession, connection: DB_Connection, external_description: Optional[str]) -> str:
     """Сравнивает локальное и внешнее описание в базе данных, если отличаются — обновляет локальное поле description в базе данных"""
     local_desc = connection.description or ""
@@ -131,6 +116,21 @@ async def list_connections(
         return PaginatedConnectionResponse(items=items, total=total, page=page, size=size, pages=pages, has_next=page < pages, has_prev=page > 1)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении списка подключений: {str(e)}")
+
+
+@router.get("/{connection_id}", response_model=ConnectionOut)
+async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
+    """Получить информацию о подключении по id"""
+    result = await db.execute(select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id).where(DB_Connection.id == connection_id))
+    row = result.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Подключение не найдено")
+    connection, owner_username = row
+    status_conn, size_mb, db_description, is_connected = await get_db_info(connection)
+    effective_description = connection.description
+    if is_connected:
+        effective_description = await sync_description_if_needed(db, connection, db_description)
+    return build_connection_out(connection, owner_username, status_conn, size_mb, effective_description)
 
 
 @router.post("/", response_model=ConnectionOut, status_code=201)

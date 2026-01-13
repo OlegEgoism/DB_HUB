@@ -12,7 +12,8 @@ const ENVIRONMENTS = [
 ];
 
 const DATABASE_TYPES = [
-    "postgresql"
+    "postgresql",
+    "greenplum"
 ];
 
 const EditConnectionPage = () => {
@@ -394,6 +395,20 @@ const EditConnectionPage = () => {
                         <div className="form-section">
                             <h2 className="section-title">Параметры подключения (* обязательные поля)</h2>
 
+                            <div className="form-group">
+                                <label className="form-label">
+                                    <i className="fas fa-database"></i> Имя базы данных*
+                                </label>
+                                <input
+                                    type="text"
+                                    name="database_name"
+                                    value={formData.database_name}
+                                    onChange={handleChange}
+                                    required
+                                    disabled={submitting}
+                                />
+                            </div>
+
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">
@@ -426,21 +441,9 @@ const EditConnectionPage = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label className="form-label">
-                                        <i className="fas fa-database"></i> Имя базы данных*
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="database_name"
-                                        value={formData.database_name}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={submitting}
-                                    />
-                                </div>
 
+
+                            <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">
                                         <i className="fas fa-user"></i> Пользователь*
@@ -454,22 +457,20 @@ const EditConnectionPage = () => {
                                         disabled={submitting}
                                     />
                                 </div>
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <i className="fas fa-key"></i> Пароль
+                                    </label>
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        disabled={submitting}
+                                    />
+                                    <div className="form-hint">Укажите новый пароль только при изменении</div>
+                                </div>
                             </div>
-
-                            <div className="form-group">
-                                <label className="form-label">
-                                    <i className="fas fa-key"></i> Пароль
-                                </label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    disabled={submitting}
-                                />
-                                <div className="form-hint">Укажите новый пароль только при изменении</div>
-                            </div>
-
 
                             <div className="form-section">
                                 <h2 className="section-title">Избранное</h2>
@@ -503,6 +504,7 @@ const EditConnectionPage = () => {
                                     </>
                                 )}
                             </button>
+
                             <button
                                 type="button"
                                 className="btn btn-danger"

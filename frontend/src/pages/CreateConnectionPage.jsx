@@ -433,6 +433,20 @@ const CreateConnectionPage = () => {
                         <div className="form-section">
                             <h2 className="section-title">Параметры подключения (* обязательные поля)</h2>
 
+                            <div className="form-group">
+                                <label className="form-label">
+                                    <i className="fas fa-database"></i> Имя базы данных*
+                                </label>
+                                <input
+                                    type="text"
+                                    name="database_name"
+                                    value={formData.database_name}
+                                    onChange={handleChange}
+                                    required
+                                    disabled={submitting}
+                                />
+                            </div>
+
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">
@@ -447,7 +461,6 @@ const CreateConnectionPage = () => {
                                         disabled={submitting}
                                     />
                                 </div>
-
                                 <div className="form-group">
                                     <label className="form-label">
                                         <i className="fas fa-plug"></i> Порт*
@@ -465,23 +478,6 @@ const CreateConnectionPage = () => {
                                 </div>
                             </div>
 
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label className="form-label">
-                                        <i className="fas fa-database"></i> Имя базы данных*
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="database_name"
-                                        value={formData.database_name}
-                                        onChange={handleChange}
-                                        required
-                                        disabled={submitting}
-                                    />
-                                </div>
-
-
-                            </div>
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">
@@ -530,7 +526,6 @@ const CreateConnectionPage = () => {
                                 Добавить в избранное
                             </label>
                         </div>
-
 
                         <div className="header-actions">
                             <button
