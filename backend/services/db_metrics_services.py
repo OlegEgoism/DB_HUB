@@ -1,5 +1,4 @@
 # backend/services/db_metrics_services.py
-
 from typing import Dict, Any, List
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection
@@ -98,10 +97,8 @@ class DBMetricsService:
                 FROM pg_stat_activity 
                 WHERE state IS NOT null;
                 """
-
                 rows = await conn.fetch(basic_metrics_query)
                 basic_metrics = [{"metric": r["metric"], "value": r["value"]} for r in rows]
-
                 # === Сводка по сегментам (метрики) ===
                 cluster_replication_query = """
                 SELECT 'total_segments', COUNT(*)::numeric
@@ -132,14 +129,12 @@ class DBMetricsService:
                 FROM gp_segment_configuration
                 WHERE content >= 0;
                 """
-
                 cluster_info = []
                 try:
                     rows = await conn.fetch(cluster_replication_query)
                     cluster_info = [{"metric": r[0], "value": str(r[1])} for r in rows]
                 except Exception:
                     cluster_info = []
-
                 # === Детали сегментов ===
                 segment_details = []
                 try:
@@ -154,29 +149,11 @@ class DBMetricsService:
                         ORDER BY dbid ASC;
                     """)
                     segment_details = [
-                        {
-                            "content": r["content"],
-                            "role": r["role"],
-                            "status": r["status"],
-                            "port": r["port"],
-                            "address": r["address"]
-                        }
+                        {"content": r["content"], "role": r["role"], "status": r["status"], "port": r["port"], "address": r["address"]}
                         for r in segment_rows
                     ]
                 except Exception:
                     segment_details = []
-
-                return {
-                    "status": "connected",
-                    "basic_metrics": basic_metrics,
-                    "cluster_replication": cluster_info,
-                    "segment_details": segment_details,
-                }
-
+                return {"status": "connected", "basic_metrics": basic_metrics, "cluster_replication": cluster_info, "segment_details": segment_details, }
         except Exception as e:
-            return {
-                "status": "error",
-                "basic_metrics": [{"metric": "connection_error", "value": str(e)}],
-                "cluster_replication": [],
-                "segment_details": [],
-            }
+            return {"status": "error", "basic_metrics": [{"metric": "connection_error", "value": str(e)}], "cluster_replication": [], "segment_details": [], }
