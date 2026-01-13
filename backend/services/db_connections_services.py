@@ -31,7 +31,6 @@ class DBConnectionService:
         )
 
     async def get_active_connections(self, connection_id: int, page: int = 1, size: int = 20, username: Optional[str] = None) -> PaginatedActiveConnectionsResponse:
-        """Получить список активных подключений к базе данных"""
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
@@ -43,75 +42,75 @@ class DBConnectionService:
             params.append(f"%{username.strip()}%")
             param_index += 1
         where_clause = " AND ".join(where_conditions)
+        conn = await self._connect_to_external_db(connection)
         try:
-            async with await self._connect_to_external_db(connection) as conn:
-                total_all_result = await conn.fetchrow("""
-                    SELECT COUNT(*) as total
-                    FROM pg_stat_activity
-                    WHERE state IS NOT NULL
-                      AND pid <> pg_backend_pid()
-                """)
-                total_all = total_all_result["total"] if total_all_result else 0
-                total_filtered_query = f"""
-                    SELECT COUNT(*) as total
-                    FROM pg_stat_activity
-                    WHERE {where_clause}
-                """
-                total_filtered_result = await conn.fetchrow(total_filtered_query, *params)
-                total_filtered = total_filtered_result["total"] if total_filtered_result else 0
-                offset = (page - 1) * size
-                limit = size
-                data_query = f"""
-                    SELECT
-                        pid,
-                        usename AS username,
-                        application_name,
-                        client_addr::text AS client_addr,
-                        client_hostname,
-                        client_port,
-                        backend_start,
-                        query_start,
-                        state_change,
-                        state,
-                        query
-                    FROM pg_stat_activity
-                    WHERE {where_clause}
-                    ORDER BY backend_start DESC
-                    LIMIT ${param_index} OFFSET ${param_index + 1};
-                """
-                rows = await conn.fetch(data_query, *params, limit, offset)
-                active_connections = []
-                for row in rows:
-                    active_connections.append({
-                        "pid": row["pid"],
-                        "username": row["username"],
-                        "application_name": row["application_name"],
-                        "client_addr": row["client_addr"],
-                        "client_hostname": row["client_hostname"],
-                        "client_port": row["client_port"],
-                        "backend_start": row["backend_start"],
-                        "query_start": row["query_start"],
-                        "state_change": row["state_change"],
-                        "state": row["state"],
-                        "query": row["query"] or ""
-                    })
-                pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
-                has_next = page < pages
-                has_prev = page > 1
-                return PaginatedActiveConnectionsResponse(
-                    connection_id=connection.id,
-                    connection_name=connection.name,
-                    total_active_connections=total_all,
-                    total_filtered_connections=total_filtered,
-                    page=page,
-                    size=size,
-                    pages=pages,
-                    has_next=has_next,
-                    has_prev=has_prev,
-                    active_connections=active_connections
-                )
-        except Exception as e:
-            raise Exception(f"Ошибка при получении активных подключений: {str(e)}") from e
+            total_all_result = await conn.fetchrow("""
+                SELECT COUNT(*) as total
+                FROM pg_stat_activity
+                WHERE state IS NOT NULL
+                  AND pid <> pg_backend_pid()
+            """)
+            total_all = total_all_result["total"] if total_all_result else 0
+            total_filtered_query = f"""
+                SELECT COUNT(*) as total
+                FROM pg_stat_activity
+                WHERE {where_clause}
+            """
+            total_filtered_result = await conn.fetchrow(total_filtered_query, *params)
+            total_filtered = total_filtered_result["total"] if total_filtered_result else 0
+            offset = (page - 1) * size
+            limit = size
+            data_query = f"""
+                SELECT
+                    pid,
+                    usename AS username,
+                    application_name,
+                    client_addr::text AS client_addr,
+                    client_hostname,
+                    client_port,
+                    backend_start,
+                    query_start,
+                    state_change,
+                    state,
+                    query
+                FROM pg_stat_activity
+                WHERE {where_clause}
+                ORDER BY backend_start DESC
+                LIMIT ${param_index} OFFSET ${param_index + 1};
+            """
+            rows = await conn.fetch(data_query, *params, limit, offset)
+            active_connections = []
+            for row in rows:
+                active_connections.append({
+                    "pid": row["pid"],
+                    "username": row["username"],
+                    "application_name": row["application_name"],
+                    "client_addr": row["client_addr"],
+                    "client_hostname": row["client_hostname"],
+                    "client_port": row["client_port"],
+                    "backend_start": row["backend_start"],
+                    "query_start": row["query_start"],
+                    "state_change": row["state_change"],
+                    "state": row["state"],
+                    "query": row["query"] or ""
+                })
+            pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+            has_next = page < pages
+            has_prev = page > 1
+            return PaginatedActiveConnectionsResponse(
+                connection_id=connection.id,
+                connection_name=connection.name,
+                total_active_connections=total_all,
+                total_filtered_connections=total_filtered,
+                page=page,
+                size=size,
+                pages=pages,
+                has_next=has_next,
+                has_prev=has_prev,
+                active_connections=active_connections
+            )
+        finally:
+            await conn.close()
 
     async def terminate_backend_process(self, connection_id: int, pid: int) -> dict:
         """Завершить активное подключение (процесс) к базе данных по PID"""
