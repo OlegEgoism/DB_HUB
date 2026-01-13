@@ -1,5 +1,7 @@
+# backend/schemas/db_metrics_schemas.py
+
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 
 
 class DatabaseMetric(BaseModel):
@@ -7,23 +9,12 @@ class DatabaseMetric(BaseModel):
     value: str
 
 
-class ClusterNodeInfo(BaseModel):
-    node_type: str
-    node_role: str
-    count: int
-
-
-class ClusterHealthCheck(BaseModel):
-    check_name: str
+class SegmentDetail(BaseModel):
+    content: int
+    role: str
     status: str
-
-
-class DatabaseConfigParameter(BaseModel):
-    name: str
-    setting: str
-    unit: Optional[str] = None
-    category: Optional[str] = None
-    description: Optional[str] = None
+    port: int
+    address: str
 
 
 class AllDatabaseMetricsResponse(BaseModel):
@@ -39,7 +30,6 @@ class AllDatabaseMetricsResponse(BaseModel):
     database_type: Optional[str] = None
     status: str
     basic_metrics: List[DatabaseMetric]
-    cluster_replication: List[ClusterNodeInfo]
-    cluster_health: ClusterHealthCheck
-    database_config: List[DatabaseConfigParameter]
+    cluster_replication: List[DatabaseMetric]
+    segment_details: List[SegmentDetail]
     model_config = ConfigDict(from_attributes=True)

@@ -1,4 +1,5 @@
 # backend/api/v1/db_metrics.py
+
 from fastapi import Depends, HTTPException, APIRouter, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -16,7 +17,11 @@ async def get_all_database_metrics(connection_id: int, db: AsyncSession = Depend
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     connection = result.scalar_one_or_none()
     if not connection:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Подключение с ID {connection_id} не найдено")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Подключение с ID {connection_id} не найдено"
+        )
+
     try:
         all_metrics = await DBMetricsService.get_all_database_metrics(connection)
         return AllDatabaseMetricsResponse(
@@ -32,8 +37,10 @@ async def get_all_database_metrics(connection_id: int, db: AsyncSession = Depend
             status=all_metrics["status"],
             basic_metrics=all_metrics["basic_metrics"],
             cluster_replication=all_metrics["cluster_replication"],
-            cluster_health=all_metrics["cluster_health"],
-            database_config=all_metrics["database_config"]
+            segment_details=all_metrics["segment_details"],
         )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении метрик: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при получении метрик: {str(e)}"
+        )
