@@ -20,7 +20,6 @@ from backend.schemas.db_connections_schemas import (
 from backend.services.db_connections_services import DBConnectionService
 from backend.utils.external_db import external_db_connection
 
-
 router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
 
@@ -41,6 +40,21 @@ async def get_db_info(db_connection: DB_Connection) -> Tuple[str, float | None, 
             return "connected", round(size_bytes / 1024 / 1024, 2), db_description, True
     except Exception:
         return "error", None, None, False
+
+
+@router.get("/{connection_id}", response_model=ConnectionOut)
+async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
+    """Получить информацию о подключении по id"""
+    result = await db.execute(select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id).where(DB_Connection.id == connection_id))
+    row = result.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Подключение не найдено")
+    connection, owner_username = row
+    status_conn, size_mb, db_description, is_connected = await get_db_info(connection)
+    effective_description = connection.description
+    if is_connected:
+        effective_description = await sync_description_if_needed(db, connection, db_description)
+    return build_connection_out(connection, owner_username, status_conn, size_mb, effective_description)
 
 
 async def sync_description_if_needed(db: AsyncSession, connection: DB_Connection, external_description: Optional[str]) -> str:
@@ -178,7 +192,7 @@ async def delete_connection(connection_id: int, db: AsyncSession = Depends(get_d
 
 
 @router.get("/{connection_id}/active-connections", response_model=PaginatedActiveConnectionsResponse)
-async def get_active_connections(
+async def list_active_connections(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
@@ -195,9 +209,9 @@ async def get_active_connections(
         raise HTTPException(status_code=500, detail=f"Ошибка при получении активных подключений: {str(e)}")
 
 
-@router.delete("/{connection_id}/active-connections/terminate", response_model=dict)
-async def terminate_active_connection(connection_id: int, request: TerminateConnectionRequest, db: AsyncSession = Depends(get_db)):
-    """Завершить активное подключение (процесс) к базе данных по PID"""
+@router.delete("/{connection_id}/active-connections/delete", response_model=dict)
+async def delete_active_connection(connection_id: int, request: TerminateConnectionRequest, db: AsyncSession = Depends(get_db)):
+    """Удалить активное подключение (процесс) к базе данных по PID"""
     try:
         service = DBConnectionService(db)
         return await service.terminate_backend_process(connection_id, request.pid)
