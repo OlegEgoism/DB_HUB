@@ -40,7 +40,7 @@ class DB_Connection(Base, DateTimeMixin):
     owner = relationship("User", back_populates="db_connection")
     # Ограничения и индексы
     __table_args__ = (
-        UniqueConstraint("database_name", "host", "port", "username", "description", "name", "owner_id", name="uq_connection_unique_fields"),
+        UniqueConstraint("database_name", "host", "port", "username", "name", "owner_id", name="uq_connection_unique_fields"),
         Index('idx_connection_database_name_search', 'database_name'),
         Index('idx_connection_database_type_search', 'database_type'),
         Index('idx_connection_environment_search', 'environment'),
