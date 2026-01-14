@@ -445,11 +445,9 @@ const ConnectionMonitoringPage = () => {
                             )}
                         </div>
                     </div>
-                    <div className="action-buttons">
                         <button onClick={downloadShowAll} className="btn btn-secondary">
-                            <i className="fas fa-download"></i> Скачать все настройки
+                            <i className="fas fa-download"></i> Скачать настройки
                         </button>
-                    </div>
                 </section>
             </main>
             <Footer/>

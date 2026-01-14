@@ -131,17 +131,20 @@ body {
 }
 
 .btn-secondary {
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 12px;
+    margin-top: 10px;
     background: #6b7280;
     color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 14px;
+    border: 1px solid #6b7280;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: background 0.2s;
+    gap: 12px;
+    transition: all 0.3s ease;
 }
 
 .btn-secondary:hover:not(:disabled) {
