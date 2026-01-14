@@ -241,7 +241,8 @@ body {
 .login-container::before,
 .profile-section::before,
 .agreement-container::before,
-.connections-section::before {
+.connections-section::before,
+.database-detail-section::before {
     content: '';
     position: absolute;
     top: 0;
@@ -1388,9 +1389,12 @@ body {
     background: white;
     border-radius: 20px;
     border: 1px solid var(--gray-200);
-    padding: 30px;
+    padding: 20px;
     margin-bottom: 40px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    width: 100%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
 }
 
 .database-header {
