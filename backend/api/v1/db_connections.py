@@ -55,7 +55,7 @@ async def sync_description_if_needed(db: AsyncSession, connection: DB_Connection
 
 
 def build_connection_out(connection: DB_Connection, owner_username: str, status: str, db_size_mb: Optional[float], description: Optional[str]) -> ConnectionOut:
-    """Вспомогательная функция для безопасного создания ConnectionOut без дублирования полей"""
+    """Вспомогательная функция для безопасного создания соединения без дублирования полей"""
     return ConnectionOut(
         id=connection.id,
         database_name=connection.database_name,
@@ -120,7 +120,7 @@ async def list_connections(
 
 @router.get("/{connection_id}", response_model=ConnectionOut)
 async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
-    """Получить информацию о подключении по id"""
+    """Получить информацию о подключенных баз данных по id"""
     result = await db.execute(select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id).where(DB_Connection.id == connection_id))
     row = result.first()
     if not row:
@@ -211,7 +211,7 @@ async def list_active_connections(
 
 @router.delete("/{connection_id}/active-connections/delete", response_model=dict)
 async def delete_active_connection(connection_id: int, request: TerminateConnectionRequest, db: AsyncSession = Depends(get_db)):
-    """Удалить активное подключение (процесс) к базе данных по PID"""
+    """Удалить активное подключение (процесс) к базе данных по pid"""
     try:
         service = DBConnectionService(db)
         return await service.terminate_backend_process(connection_id, request.pid)
