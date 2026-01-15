@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from backend.database.session import engine, Base
-from backend.api.v1 import users, auth, db_connections, agreements, db_metrics, db_groups, db_users, db_schemas
+from backend.api.v1 import users, auth, db_connections, agreements, db_metrics, db_groups #, db_users, db_schemas
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 
