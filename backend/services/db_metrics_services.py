@@ -173,7 +173,7 @@ class DBMetricsService:
             return {"status": "error", "basic_metrics": [{"metric": "connection_error", "value": str(e)}], "cluster_replication": [], "segment_details": [], }
 
     @staticmethod
-    async def get_all_settings(connection: DB_Connection) -> List[Dict[str, str]]:
+    async def get_database_settings(connection: DB_Connection) -> List[Dict[str, str]]:
         """Получить все настройки базы данных"""
         try:
             async with external_db_connection(connection) as conn:

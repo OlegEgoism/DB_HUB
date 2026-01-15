@@ -86,11 +86,11 @@ async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db))
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
     """Получить пользователя по ID"""
     user_service = UserService(db)
     try:
-        user = await user_service.get_user_by_id(user_id)
+        user = await user_service.get_user(user_id)
     except Exception as e:
         print(f"❌ Ошибка при получении пользователя: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении пользователя: {str(e)}")

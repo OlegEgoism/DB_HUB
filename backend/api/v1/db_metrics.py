@@ -10,7 +10,7 @@ from backend.services.db_metrics_services import DBMetricsService
 router = APIRouter(prefix="/db_metrics", tags=["DB METRIC"])
 
 
-@router.get("/{connection_id}/all", response_model=AllDatabaseMetricsResponse)
+@router.get("/{connection_id}", response_model=AllDatabaseMetricsResponse)
 async def get_database_metrics(connection_id: int, db: AsyncSession = Depends(get_db)):
     """Получить все метрики базы данных одним запросом"""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
@@ -38,15 +38,15 @@ async def get_database_metrics(connection_id: int, db: AsyncSession = Depends(ge
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении метрик: {str(e)}")
 
 
-@router.get("/{connection_id}/show-all", response_model=ShowAllResponse)
-async def get_all_settings(connection_id: int, db: AsyncSession = Depends(get_db)):
+@router.get("/{connection_id}/settings", response_model=ShowAllResponse)
+async def get_database_settings(connection_id: int, db: AsyncSession = Depends(get_db)):
     """Получить все настройки базы данных"""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     connection = result.scalar_one_or_none()
     if not connection:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Подключение с ID {connection_id} не найдено")
     try:
-        settings = await DBMetricsService.get_all_settings(connection)
+        settings = await DBMetricsService.get_database_settings(connection)
         return ShowAllResponse(settings=settings)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении SHOW ALL: {str(e)}")

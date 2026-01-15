@@ -209,7 +209,7 @@ async def list_active_connections(
         raise HTTPException(status_code=500, detail=f"Ошибка при получении активных подключений: {str(e)}")
 
 
-@router.delete("/{connection_id}/active-connections/delete", response_model=dict)
+@router.delete("/{connection_id}/active-connections", response_model=dict)
 async def delete_active_connection(connection_id: int, request: TerminateConnectionRequest, db: AsyncSession = Depends(get_db)):
     """Удалить активное подключение (процесс) к базе данных по pid"""
     try:
