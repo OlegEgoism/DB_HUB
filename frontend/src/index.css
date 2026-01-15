@@ -1658,13 +1658,13 @@ body {
     font-weight: 500;
 }
 
-.info-value {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--gray-800);
-    text-align: right;
-    flex: 1;
-}
+/*.info-value {*/
+/*    font-size: 15px;*/
+/*    font-weight: 600;*/
+/*    color: var(--gray-800);*/
+/*    text-align: right;*/
+/*    flex: 1;*/
+/*}*/
 
 .info-value.status-active {
     color: var(--success);

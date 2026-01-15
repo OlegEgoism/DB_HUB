@@ -94,6 +94,49 @@ class DBGroupService:
                 has_prev=page > 1
             )
 
+    async def get_group(self, connection_id: int, group_oid: int) -> DBGroupOut:
+        connection = await self.get_connection(connection_id)
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        if group_oid <= 0:
+            raise ValueError("Недопустимый OID группы")
+        async with external_db_connection(connection) as conn:
+            row = await conn.fetchrow("""
+                SELECT
+                    r.oid,
+                    r.rolname AS name,
+                    pg_catalog.shobj_description(r.oid, 'pg_authid') AS description,
+                    COUNT(m.member) AS user_count
+                FROM pg_roles r
+                LEFT JOIN pg_auth_members m ON r.oid = m.roleid
+                WHERE r.oid = $1
+                  AND r.rolcanlogin = false
+                  AND r.rolname !~ '^pg_'
+                GROUP BY r.oid, r.rolname
+            """, group_oid)
+            if not row:
+                raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
+            existing = await self.db.execute(select(DB_Group_User).where(DB_Group_User.connection_id == connection_id, DB_Group_User.oid == group_oid, DB_Group_User.type.is_(True)))
+            existing_record = existing.scalar_one_or_none()
+            if existing_record:
+                if (existing_record.name != row["name"] or
+                        existing_record.description != (row["description"] or None)):
+                    existing_record.name = row["name"]
+                    existing_record.description = row["description"] or None
+                    self.db.add(existing_record)
+                    await self.db.commit()
+            else:
+                new_group = DB_Group_User(oid=row["oid"], name=row["name"], description=row["description"] or None, type=True, connection_id=connection_id)
+                self.db.add(new_group)
+                await self.db.commit()
+
+            return DBGroupOut(
+                oid=row["oid"],
+                name=row["name"],
+                description=row["description"] or None,
+                user_count=row["user_count"]
+            )
+
     async def create_group(self, connection_id: int, create_data: "DBGroupCreate") -> dict:
         connection = await self.get_connection(connection_id)
         if not connection:
@@ -135,6 +178,9 @@ class DBGroupService:
             raise ValueError("Недопустимый OID группы")
         new_name = update_data.name
         new_description = update_data.description
+        from sqlalchemy import select
+        result = await self.db.execute(select(DB_Group_User).where(DB_Group_User.connection_id == connection_id, DB_Group_User.oid == group_oid, DB_Group_User.type.is_(True)))
+        db_group_record = result.scalar_one_or_none()
         async with external_db_connection(connection) as conn:
             row = await conn.fetchrow("""
                 SELECT rolname
@@ -158,13 +204,33 @@ class DBGroupService:
             comment_value = new_description if new_description is not None else ''
             quoted_name = effective_name.replace('"', '""')
             await conn.execute(f'COMMENT ON ROLE "{quoted_name}" IS $${comment_value}$$')
-            return {
-                "success": True,
-                "oid": group_oid,
-                "old_name": current_name,
-                "new_name": effective_name,
-                "description": new_description
-            }
+            if db_group_record:
+                if new_name is not None and new_name != current_name:
+                    db_group_record.name = effective_name
+                if new_description is not None:
+                    db_group_record.description = new_description
+                elif new_description is None and comment_value == '':
+                    db_group_record.description = None
+                self.db.add(db_group_record)
+            else:
+                new_group = DB_Group_User(
+                    oid=group_oid,
+                    name=effective_name,
+                    description=new_description if new_description is not None else None,
+                    type=True,  # группа
+                    connection_id=connection_id
+                )
+                self.db.add(new_group)
+            await self.db.commit()
+            if db_group_record:
+                await self.db.refresh(db_group_record)
+        return {
+            "success": True,
+            "oid": group_oid,
+            "old_name": current_name,
+            "new_name": effective_name,
+            "description": new_description
+        }
 
     async def create_group(self, connection_id: int, create_data: "DBGroupCreate") -> dict:
         connection = await self.get_connection(connection_id)
@@ -187,63 +253,79 @@ class DBGroupService:
                 "description": create_data.description
             }
 
-    # async def delete_group(self, connection_id: int, group_oid: int) -> dict:
-    #     connection = await self.get_connection(connection_id)
-    #     if not connection:
-    #         raise ValueError("Подключение не найдено")
-    #     if group_oid <= 0:
-    #         raise ValueError("Недопустимый OID группы")
-    #     async with external_db_connection(connection) as conn:
-    #         row = await conn.fetchrow("""
-    #             SELECT rolname
-    #             FROM pg_roles
-    #             WHERE oid = $1
-    #               AND rolcanlogin = false
-    #               AND rolname !~ '^pg_'
-    #         """, group_oid)
-    #         if not row:
-    #             raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
-    #         group_name = row["rolname"]
-    #         quoted_name = group_name.replace('"', '""')
-    #         await conn.execute(f'DROP ROLE "{quoted_name}"')
-    #         return {
-    #             "success": True,
-    #             "oid": group_oid,
-    #             "name": group_name,
-    #             "message": f"Группа '{group_name}' успешно удалена"
-    #         }
+    # backend/services/db_groups_services.py
     async def delete_group(self, connection_id: int, group_oid: int) -> dict:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
         if group_oid <= 0:
             raise ValueError("Недопустимый OID группы")
-        async with external_db_connection(connection) as conn:
-            row = await conn.fetchrow("""
-                SELECT rolname
-                FROM pg_roles
-                WHERE oid = $1
-                  AND rolcanlogin = false
-                  AND rolname !~ '^pg_'
-            """, group_oid)
-            if not row:
-                raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
-            group_name = row["rolname"]
-            quoted_name = group_name.replace('"', '""')
+        deleted_from_internal = False
+        deleted_from_external = False
+        group_name = None
+        try:
+            result = await self.db.execute(select(DB_Group_User).where(DB_Group_User.connection_id == connection_id, DB_Group_User.oid == group_oid, DB_Group_User.type.is_(True)))
+            db_group_record = result.scalar_one_or_none()
+            if db_group_record:
+                await self.db.delete(db_group_record)
+                await self.db.commit()
+                deleted_from_internal = True
+            async with external_db_connection(connection) as conn:
+                row = await conn.fetchrow("""
+                    SELECT rolname
+                    FROM pg_roles
+                    WHERE oid = $1
+                      AND rolcanlogin = false
+                      AND rolname !~ '^pg_'
+                """, group_oid)
+                if not row:
+                    return {
+                        "success": True,
+                        "oid": group_oid,
+                        "deleted_from_internal": deleted_from_internal,
+                        "deleted_from_external": False,
+                        "message": "Группа не найдена во внешней БД, но удалена из внутренней БД" if deleted_from_internal else ""
+                    }
+                group_name = row["rolname"]
+                try:
+                    await conn.execute(f'DROP OWNED BY "{group_name}" CASCADE')
+                    await conn.execute(f'DROP ROLE "{group_name}"')
+                    deleted_from_external = True
+                    return {
+                        "success": True,
+                        "oid": group_oid,
+                        "name": group_name,
+                        "deleted_from_internal": deleted_from_internal,
+                        "deleted_from_external": deleted_from_external,
+                        "message": f"Группа '{group_name}' успешно удалена"
+                    }
+                except Exception as e:
+                    error_msg = str(e)
+                    if "does not exist" in error_msg or "could not find role" in error_msg:
+                        return {
+                            "success": True,
+                            "oid": group_oid,
+                            "name": group_name,
+                            "deleted_from_internal": deleted_from_internal,
+                            "deleted_from_external": False,
+                            "message": f"Группа '{group_name}' уже удалена из внешней БД" +
+                                       (", удалена из внутренней БД" if deleted_from_internal else "")
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "oid": group_oid,
+                            "name": group_name,
+                            "deleted_from_internal": deleted_from_internal,
+                            "deleted_from_external": False,
+                            "error": f"Не удалось удалить группу из внешней БД: {error_msg}"
+                        }
+        except Exception as e:
             try:
-                await conn.execute(f'DROP OWNED BY "{quoted_name}" CASCADE')
-                await conn.execute(f'DROP ROLE "{quoted_name}"')
-                return {
-                    "success": True,
-                    "oid": group_oid,
-                    "name": group_name,
-                    "message": f"Группа '{group_name}' успешно удалена"
-                }
-            except Exception as e:
-                error_msg = str(e)
-                if "does not exist" in error_msg:
-                    raise ValueError(f"Группа '{group_name}' уже удалена")
-                elif "could not find role" in error_msg:
-                    raise ValueError(f"Роль '{group_name}' не существует")
-                else:
-                    raise Exception(f"Не удалось удалить группу: {error_msg}")
+                await self.db.rollback()
+            except:
+                pass
+            check_result = await self.db.execute(
+                select(DB_Group_User).where(DB_Group_User.connection_id == connection_id, DB_Group_User.oid == group_oid, DB_Group_User.type.is_(True)))
+            still_exists = check_result.scalar_one_or_none() is not None
+            raise Exception(f"Ошибка при удалении группы: {str(e)}. Запись во внутренней БД: {'существует' if still_exists else 'не существует'}")

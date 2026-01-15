@@ -29,7 +29,7 @@ const ConnectionMonitoringPage = () => {
             }
 
             try {
-                const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}/all`, {
+                const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ const ConnectionMonitoringPage = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}/show-all`, {
+            const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}/settings`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -278,7 +278,7 @@ const ConnectionMonitoringPage = () => {
                                     <span className="info-value">{databaseCollation}</span>
                                 </div>
                                 <div className="info-row">
-                                    <span className="info-label_db">Очистка (vacuum):</span>
+                                    <span className="info-label_db">Авто очистка (autovacuum):</span>
                                     <span className="info-value">{autovacuum}</span>
                                 </div>
                                 <div className="info-row">
