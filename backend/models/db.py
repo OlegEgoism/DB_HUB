@@ -60,7 +60,7 @@ class DB_Group_User(Base, DateTimeMixin):
     name = Column(String(255), nullable=False, index=True, comment="Название группы/пользователя")
     description = Column(Text, nullable=True, comment="Описание группы/пользователя")
     email = Column(String(200), nullable=True, index=True, comment="Почта пользователя")
-    type = Column(Boolean, default=False, nullable=False, comment="Тип принадлежности, (True=группа, False=пользователь)")
+    # type = Column(Boolean, default=False, nullable=False, comment="Тип принадлежности, (True=группа, False=пользователь)")
     # Связь
     connection_id = Column(Integer, ForeignKey("db_connection.id", ondelete="CASCADE"), nullable=False, comment="ID подключения к БД")
     connection = relationship("DB_Connection", back_populates="db_group_user")

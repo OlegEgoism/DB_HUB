@@ -22,16 +22,11 @@ class DBGroupService:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
-        where_conditions = ["r.rolcanlogin = false", "r.rolname !~ '^pg_'"]
-        params = []
-        param_index = 1
-        if search and search.strip():
-            where_conditions.append(f"r.rolname ILIKE ${param_index}")
-            params.append(f"%{search.strip()}%")
-            param_index += 1
-        where_clause = " AND ".join(where_conditions)
+
+        # ВСЕГДА выполняем полную синхронизацию данных перед любым поиском/фильтрацией
         async with external_db_connection(connection) as conn:
-            groups_query = f"""
+            # Получаем ВСЕ группы из внешней БД
+            all_groups_query = """
                 SELECT
                     r.oid,
                     r.rolname AS name,
@@ -39,40 +34,105 @@ class DBGroupService:
                     COUNT(m.member) AS user_count
                 FROM pg_roles r
                 LEFT JOIN pg_auth_members m ON r.oid = m.roleid
-                WHERE {where_clause}
+                WHERE r.rolcanlogin = false AND r.rolname !~ '^pg_'
                 GROUP BY r.oid, r.rolname
                 ORDER BY r.rolname
             """
-            external_rows = await conn.fetch(groups_query, *params)
-            external_groups = {row["oid"]: row for row in external_rows}
-            internal_result = await self.db.execute(select(DB_Group_User).where(DB_Group_User.connection_id == connection_id, DB_Group_User.type.is_(True)))
+
+            all_external_rows = await conn.fetch(all_groups_query)
+            all_external_groups = {row["oid"]: row for row in all_external_rows}
+
+            # Получаем все существующие записи из внутренней БД
+            internal_result = await self.db.execute(
+                select(DB_Group_User).where(
+                    DB_Group_User.connection_id == connection_id,
+                    DB_Group_User.type.is_(True)
+                )
+            )
             internal_records = internal_result.scalars().all()
             internal_groups = {record.oid: record for record in internal_records}
-            oids_to_keep = set(external_groups.keys())
+
+            # Удаление групп, которые больше не существуют во внешней БД
+            oids_to_keep = set(all_external_groups.keys())
             oids_in_internal = set(internal_groups.keys())
             oids_to_delete = oids_in_internal - oids_to_keep
+
             for oid in oids_to_delete:
                 record = internal_groups[oid]
                 await self.db.delete(record)
-            for oid, ext_row in external_groups.items():
+
+            # Обновление/создание записей групп для ВСЕХ данных
+            for oid, ext_row in all_external_groups.items():
                 int_record = internal_groups.get(oid)
                 name = ext_row["name"]
                 description = ext_row["description"] or None
+
                 if int_record:
                     if int_record.name != name or int_record.description != description:
                         int_record.name = name
                         int_record.description = description
                         self.db.add(int_record)
                 else:
-                    new_group = DB_Group_User(oid=oid, name=name, description=description, type=True, connection_id=connection_id)
+                    new_group = DB_Group_User(
+                        oid=oid,
+                        name=name,
+                        description=description,
+                        type=True,
+                        connection_id=connection_id
+                    )
                     self.db.add(new_group)
+
             await self.db.commit()
-            total = len(external_rows)
-            start = (page - 1) * size
-            paginated_rows = external_rows[start:start + size]
-            items = [DBGroupOut(oid=row["oid"], name=row["name"], description=row["description"] or None, user_count=row["user_count"]) for row in paginated_rows]
-            pages = math.ceil(total / size) if size > 0 and total > 0 else 1
-            return PaginatedDBGroupsResponse(items=items, total=total, page=page, size=size, pages=pages, has_next=page < pages, has_prev=page > 1)
+
+            # ТЕПЕРЬ применяем фильтрацию поиска (если есть)
+            if search and search.strip():
+                search_term = f"%{search.strip()}%"
+                # Выполняем запрос с поиском
+                search_query = """
+                    SELECT
+                        r.oid,
+                        r.rolname AS name,
+                        pg_catalog.shobj_description(r.oid, 'pg_authid') AS description,
+                        COUNT(m.member) AS user_count
+                    FROM pg_roles r
+                    LEFT JOIN pg_auth_members m ON r.oid = m.roleid
+                    WHERE r.rolcanlogin = false 
+                      AND r.rolname !~ '^pg_'
+                      AND (r.rolname ILIKE $1 
+                           OR pg_catalog.shobj_description(r.oid, 'pg_authid') ILIKE $1)
+                    GROUP BY r.oid, r.rolname
+                    ORDER BY r.rolname
+                """
+
+                external_rows = await conn.fetch(search_query, search_term)
+            else:
+                # Без поиска - используем все группы
+                external_rows = all_external_rows
+
+        # Пагинация
+        total = len(external_rows)
+        start = (page - 1) * size
+        paginated_rows = external_rows[start:start + size] if total > 0 else []
+
+        items = [
+            DBGroupOut(
+                oid=row["oid"],
+                name=row["name"],
+                description=row["description"] or None,
+                user_count=row["user_count"]
+            ) for row in paginated_rows
+        ]
+
+        pages = math.ceil(total / size) if size > 0 and total > 0 else 1
+        return PaginatedDBGroupsResponse(
+            items=items,
+            total=total,
+            page=page,
+            size=size,
+            pages=pages,
+            has_next=page < pages,
+            has_prev=page > 1
+        )
 
     async def get_group(self, connection_id: int, group_oid: int) -> DBGroupOut:
         connection = await self.get_connection(connection_id)
