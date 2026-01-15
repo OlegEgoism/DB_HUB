@@ -65,7 +65,7 @@ class DBUserService:
         stats = {"added": 0, "updated": 0, "deleted": 0}
         added, updated, deleted = [], [], []
 
-        # === Удаление локальных пользователей, отсутствующих во внешней БД по OID ===
+        # === Удаление локальных пользователей, отсутствующих во внешней БД по oid ===
         for local in local_users:
             if local.oid not in external_oids:
                 if local.username in [u["username"] for u in external_users]:
@@ -93,7 +93,7 @@ class DBUserService:
             ext_username = ext["username"]
 
             if ext_oid in current_by_oid:
-                # OID совпадает → обновляем только username
+                # oid совпадает → обновляем только username
                 local = current_by_oid[ext_oid]
                 if local.username != ext_username:
                     local.username = ext_username
@@ -103,7 +103,7 @@ class DBUserService:
                 # email, description НЕ обновляются
 
             elif ext_username in current_by_username:
-                # Username совпадает, OID другой → замена
+                # Username совпадает, oid другой → замена
                 old = current_by_username[ext_username]
                 await self.db.delete(old)
                 deleted.append({"oid": old.oid, "username": old.username, "reason": "replaced_due_to_oid_change"})
