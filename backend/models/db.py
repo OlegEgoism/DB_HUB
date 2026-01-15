@@ -19,7 +19,6 @@ DATABASE_TYPES = [
 
 class DB_Connection(Base, DateTimeMixin):
     __tablename__ = "db_connection"
-
     id = Column(Integer, primary_key=True, index=True, comment="PK подключения")
     # Поля для подключения
     database_name = Column(String(255), nullable=False, comment="Название базы данных")
@@ -73,4 +72,3 @@ class DB_Group_User(Base, DateTimeMixin):
 
     def __repr__(self):
         return f"<DB_Group_User(id={self.id}, name='{self.name}', connection_id={self.connection_id})>"
-
