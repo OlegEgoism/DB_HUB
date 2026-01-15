@@ -18,17 +18,10 @@ class DBGroupService:
         result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
         return result.scalar_one_or_none()
 
-    async def list_groups(
-            self,
-            connection_id: int,
-            page: int = 1,
-            size: int = 20,
-            search: Optional[str] = None
-    ) -> PaginatedDBGroupsResponse:
+    async def list_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> PaginatedDBGroupsResponse:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
-
         where_conditions = ["r.rolcanlogin = false", "r.rolname !~ '^pg_'"]
         params = []
         param_index = 1
@@ -37,7 +30,6 @@ class DBGroupService:
             params.append(f"%{search.strip()}%")
             param_index += 1
         where_clause = " AND ".join(where_conditions)
-
         async with external_db_connection(connection) as conn:
             groups_query = f"""
                 SELECT
@@ -51,48 +43,36 @@ class DBGroupService:
                 GROUP BY r.oid, r.rolname
                 ORDER BY r.rolname
             """
-            rows = await conn.fetch(groups_query, *params)
-            for row in rows:
-                existing = await self.db.execute(select(DB_Group_User).where(DB_Group_User.connection_id == connection_id, DB_Group_User.oid == row["oid"], DB_Group_User.type.is_(True)))
-                existing_record = existing.scalar_one_or_none()
-                if existing_record:
-                    if (existing_record.name != row["name"] or
-                            existing_record.description != (row["description"] or None)):
-                        existing_record.name = row["name"]
-                        existing_record.description = row["description"] or None
-                        self.db.add(existing_record)
+            external_rows = await conn.fetch(groups_query, *params)
+            external_groups = {row["oid"]: row for row in external_rows}
+            internal_result = await self.db.execute(select(DB_Group_User).where(DB_Group_User.connection_id == connection_id, DB_Group_User.type.is_(True)))
+            internal_records = internal_result.scalars().all()
+            internal_groups = {record.oid: record for record in internal_records}
+            oids_to_keep = set(external_groups.keys())
+            oids_in_internal = set(internal_groups.keys())
+            oids_to_delete = oids_in_internal - oids_to_keep
+            for oid in oids_to_delete:
+                record = internal_groups[oid]
+                await self.db.delete(record)
+            for oid, ext_row in external_groups.items():
+                int_record = internal_groups.get(oid)
+                name = ext_row["name"]
+                description = ext_row["description"] or None
+                if int_record:
+                    if int_record.name != name or int_record.description != description:
+                        int_record.name = name
+                        int_record.description = description
+                        self.db.add(int_record)
                 else:
-                    new_group = DB_Group_User(
-                        oid=row["oid"],
-                        name=row["name"],
-                        description=row["description"] or None,
-                        type=True,  # группа
-                        connection_id=connection_id
-                    )
+                    new_group = DB_Group_User(oid=oid, name=name, description=description, type=True, connection_id=connection_id)
                     self.db.add(new_group)
             await self.db.commit()
-            total = len(rows)
+            total = len(external_rows)
             start = (page - 1) * size
-            paginated_rows = rows[start:start + size]
-            items = [
-                DBGroupOut(
-                    oid=row["oid"],
-                    name=row["name"],
-                    description=row["description"] or None,
-                    user_count=row["user_count"]
-                )
-                for row in paginated_rows
-            ]
+            paginated_rows = external_rows[start:start + size]
+            items = [DBGroupOut(oid=row["oid"], name=row["name"], description=row["description"] or None, user_count=row["user_count"]) for row in paginated_rows]
             pages = math.ceil(total / size) if size > 0 and total > 0 else 1
-            return PaginatedDBGroupsResponse(
-                items=items,
-                total=total,
-                page=page,
-                size=size,
-                pages=pages,
-                has_next=page < pages,
-                has_prev=page > 1
-            )
+            return PaginatedDBGroupsResponse(items=items, total=total, page=page, size=size, pages=pages, has_next=page < pages, has_prev=page > 1)
 
     async def get_group(self, connection_id: int, group_oid: int) -> DBGroupOut:
         connection = await self.get_connection(connection_id)
@@ -129,13 +109,7 @@ class DBGroupService:
                 new_group = DB_Group_User(oid=row["oid"], name=row["name"], description=row["description"] or None, type=True, connection_id=connection_id)
                 self.db.add(new_group)
                 await self.db.commit()
-
-            return DBGroupOut(
-                oid=row["oid"],
-                name=row["name"],
-                description=row["description"] or None,
-                user_count=row["user_count"]
-            )
+            return DBGroupOut(oid=row["oid"], name=row["name"], description=row["description"] or None, user_count=row["user_count"])
 
     async def create_group(self, connection_id: int, create_data: "DBGroupCreate") -> dict:
         connection = await self.get_connection(connection_id)
@@ -153,22 +127,11 @@ class DBGroupService:
             oid = await conn.fetchval("SELECT oid FROM pg_roles WHERE rolname = $1", group_name)
             if not oid:
                 raise Exception("Не удалось получить OID созданной группы")
-            new_group = DB_Group_User(
-                oid=oid,
-                name=group_name,
-                description=description or None,
-                type=True,  # ← группа
-                connection_id=connection_id
-            )
+            new_group = DB_Group_User(oid=oid, name=group_name, description=description or None, type=True, connection_id=connection_id)
             self.db.add(new_group)
             await self.db.commit()
             await self.db.refresh(new_group)
-            return {
-                "success": True,
-                "oid": oid,
-                "name": group_name,
-                "description": create_data.description
-            }
+            return {"success": True, "oid": oid, "name": group_name, "description": create_data.description}
 
     async def update_group(self, connection_id: int, group_oid: int, update_data: "DBGroupUpdate") -> dict:
         connection = await self.get_connection(connection_id)
@@ -213,24 +176,12 @@ class DBGroupService:
                     db_group_record.description = None
                 self.db.add(db_group_record)
             else:
-                new_group = DB_Group_User(
-                    oid=group_oid,
-                    name=effective_name,
-                    description=new_description if new_description is not None else None,
-                    type=True,  # группа
-                    connection_id=connection_id
-                )
+                new_group = DB_Group_User(oid=group_oid, name=effective_name, description=new_description if new_description is not None else None, type=True, connection_id=connection_id)
                 self.db.add(new_group)
             await self.db.commit()
             if db_group_record:
                 await self.db.refresh(db_group_record)
-        return {
-            "success": True,
-            "oid": group_oid,
-            "old_name": current_name,
-            "new_name": effective_name,
-            "description": new_description
-        }
+        return {"success": True, "oid": group_oid, "old_name": current_name, "new_name": effective_name, "description": new_description}
 
     async def create_group(self, connection_id: int, create_data: "DBGroupCreate") -> dict:
         connection = await self.get_connection(connection_id)
@@ -246,14 +197,8 @@ class DBGroupService:
             quoted_name = group_name.replace('"', '""')
             await conn.execute(f'COMMENT ON ROLE "{quoted_name}" IS $${description}$$')
             oid = await conn.fetchval("SELECT oid FROM pg_roles WHERE rolname = $1", group_name)
-            return {
-                "success": True,
-                "oid": oid,
-                "name": group_name,
-                "description": create_data.description
-            }
+            return {"success": True, "oid": oid, "name": group_name, "description": create_data.description}
 
-    # backend/services/db_groups_services.py
     async def delete_group(self, connection_id: int, group_oid: int) -> dict:
         connection = await self.get_connection(connection_id)
         if not connection:
