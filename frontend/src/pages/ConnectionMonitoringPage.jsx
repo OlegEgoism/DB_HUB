@@ -1,5 +1,5 @@
 // src/pages/ConnectionMonitoringPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -7,14 +7,29 @@ import Footer from '../components/Footer';
 const ConnectionMonitoringPage = () => {
     const { id: connectionId } = useParams();
     const navigate = useNavigate();
+
+    // Общие состояния
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [metrics, setMetrics] = useState(null);
     const [connectionData, setConnectionData] = useState(null);
-    const [activeTab, setActiveTab] = useState('info'); // 'info' | 'groups'
+    const [activeTab, setActiveTab] = useState('info');
+
+    // Состояния для вкладки "Группы"
     const [groupsData, setGroupsData] = useState(null);
     const [groupsLoading, setGroupsLoading] = useState(false);
     const [groupsError, setGroupsError] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8);
+    const PAGE_SIZES = [4, 8, 16, 32];
+
+    // Модальные состояния
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [groupToDelete, setGroupToDelete] = useState(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingGroup, setEditingGroup] = useState(null);
+    const [editForm, setEditForm] = useState({ name: '', description: '' });
 
     const parseMetrics = (basicMetrics) => {
         const parsed = {};
@@ -24,7 +39,7 @@ const ConnectionMonitoringPage = () => {
         return parsed;
     };
 
-    // Загрузка метрик и общей информации о подключении
+    // Загрузка метрик и общей информации
     useEffect(() => {
         const loadMetrics = async () => {
             const token = localStorage.getItem('access_token');
@@ -74,14 +89,8 @@ const ConnectionMonitoringPage = () => {
         loadMetrics();
     }, [connectionId, navigate]);
 
-    // Загрузка групп при переключении на вкладку "Группы"
-    useEffect(() => {
-        if (activeTab === 'groups' && !groupsData && !groupsError) {
-            loadGroups();
-        }
-    }, [activeTab, connectionId]);
-
-    const loadGroups = async () => {
+    // Загрузка групп
+    const loadGroups = useCallback(async () => {
         const token = localStorage.getItem('access_token');
         if (!token) {
             navigate('/login');
@@ -92,7 +101,16 @@ const ConnectionMonitoringPage = () => {
         setGroupsError(null);
 
         try {
-            const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionId}/groups/`, {
+            const params = new URLSearchParams();
+            params.append('page', currentPage);
+            params.append('size', pageSize);
+            if (searchQuery.trim()) {
+                params.append('search', searchQuery.trim());
+            }
+
+            const url = `http://localhost:8000/api/v1/db_connections/${connectionId}/groups/?${params.toString()}`;
+
+            const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -112,6 +130,117 @@ const ConnectionMonitoringPage = () => {
         } finally {
             setGroupsLoading(false);
         }
+    }, [connectionId, currentPage, pageSize, searchQuery, navigate]);
+
+    useEffect(() => {
+        if (activeTab === 'groups') {
+            loadGroups();
+        }
+    }, [activeTab, loadGroups]);
+
+    // === УДАЛЕНИЕ ГРУППЫ ===
+    const openDeleteModal = (group) => {
+        setGroupToDelete(group);
+        setShowDeleteModal(true);
+    };
+
+    const deleteGroup = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `http://localhost:8000/api/v1/db_connections/${connectionId}/groups/${groupToDelete.oid}`,
+                {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                }
+            );
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.detail || `Ошибка: ${response.status}`);
+            }
+
+            await loadGroups();
+            setShowDeleteModal(false);
+            setGroupToDelete(null);
+        } catch (err) {
+            console.error('Ошибка удаления группы:', err);
+            setError(`Не удалось удалить группу: ${err.message}`);
+            setShowDeleteModal(false);
+        }
+    };
+
+    // === РЕДАКТИРОВАНИЕ ГРУППЫ ===
+    const openEditModal = (group) => {
+        setEditingGroup(group);
+        setEditForm({
+            name: group.name || '',
+            description: group.description || '',
+        });
+        setShowEditModal(true);
+    };
+
+    const handleEditChange = (e) => {
+        const { name, value } = e.target;
+        setEditForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const saveEditGroup = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `http://localhost:8000/api/v1/db_connections/${connectionId}/groups/${editingGroup.oid}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(editForm),
+                }
+            );
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.detail || `Ошибка: ${response.status}`);
+            }
+
+            await loadGroups();
+            setShowEditModal(false);
+            setEditingGroup(null);
+        } catch (err) {
+            console.error('Ошибка обновления группы:', err);
+            setError(`Не удалось обновить группу: ${err.message}`);
+            setShowEditModal(false);
+        }
+    };
+
+    // === Остальные обработчики ===
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= (groupsData?.pages || 1)) {
+            setCurrentPage(newPage);
+        }
+    };
+
+    const handlePageSizeChange = (e) => {
+        const newSize = parseInt(e.target.value, 10);
+        setPageSize(newSize);
+        setCurrentPage(1);
     };
 
     const downloadShowAll = async () => {
@@ -134,9 +263,8 @@ const ConnectionMonitoringPage = () => {
                 return;
             }
 
-            const data = await response.json(); // { settings: [{ name, setting }, ...] }
+            const data = await response.json();
 
-            // Преобразуем в CSV
             const csvContent = [
                 ['Параметр', 'Значение'],
                 ...data.settings.map(item => [item.name, item.setting])
@@ -144,7 +272,6 @@ const ConnectionMonitoringPage = () => {
                 .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
                 .join('\n');
 
-            // Создаём Blob и скачиваем
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -169,14 +296,10 @@ const ConnectionMonitoringPage = () => {
 
     const envLabel = (env) => {
         switch (env?.toLowerCase()) {
-            case 'production':
-                return 'ПРОДАКШЕН';
-            case 'testing':
-                return 'ТЕСТИРОВАНИЕ';
-            case 'analytics':
-                return 'АНАЛИТИКА';
-            default:
-                return 'РАЗРАБОТКА';
+            case 'production': return 'ПРОДАКШЕН';
+            case 'testing': return 'ТЕСТИРОВАНИЕ';
+            case 'analytics': return 'АНАЛИТИКА';
+            default: return 'РАЗРАБОТКА';
         }
     };
 
@@ -302,8 +425,7 @@ const ConnectionMonitoringPage = () => {
                             className={`tab-btn ${activeTab === 'info' ? 'active' : ''}`}
                             onClick={() => setActiveTab('info')}
                         >
-                            <i className="fas fa-info-circle"></i>
-                            Информация
+                            <i className="fas fa-info-circle"></i> Информация
                         </button>
                         <button
                             className={`tab-btn ${activeTab === 'groups' ? 'active' : ''}`}
@@ -316,9 +438,6 @@ const ConnectionMonitoringPage = () => {
                     {/* Содержимое вкладок */}
                     {activeTab === 'info' && (
                         <div className="tab-pane active" id="info-tab">
-                            <div className="tab-header">
-                                {/*<h3><i className="fas fa-info-circle"></i> Информация о базе данных</h3>*/}
-                            </div>
                             <div className="info-db">
                                 {/* Общая информация */}
                                 <div className="info-section">
@@ -471,7 +590,7 @@ const ConnectionMonitoringPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Кластер Greenplum (если есть) */}
+                                {/* Кластер Greenplum */}
                                 {(m?.total_segments || m?.up_segments) && (
                                     <div className="info-section">
                                         <h4><i className="fas fa-project-diagram"></i> Кластер/Сегмент</h4>
@@ -514,9 +633,17 @@ const ConnectionMonitoringPage = () => {
 
                     {activeTab === 'groups' && (
                         <div className="tab-pane active" id="groups-tab">
-                            <div className="tab-header">
-                                {/*<h3><i className="fas fa-users-cog"></i> Группы</h3>*/}
+                            <div className="tab-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Поиск по названию и описанию группы"
+                                    value={searchQuery}
+                                    onChange={handleSearchChange}
+                                    className="form-control"
+                                    style={{ width: '300px' }}
+                                />
                             </div>
+
                             {groupsLoading ? (
                                 <div className="loading-message">
                                     <i className="fas fa-spinner fa-spin"></i> Загрузка групп...
@@ -526,38 +653,164 @@ const ConnectionMonitoringPage = () => {
                                     <i className="fas fa-exclamation-circle"></i> {groupsError}
                                 </div>
                             ) : groupsData?.items?.length > 0 ? (
-                                <div className="groups-list">
-                                    <table className="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>OID</th>
-                                                <th>Название</th>
-                                                <th>Описание</th>
-                                                <th>Кол-во пользователей</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {groupsData.items.map(group => (
-                                                <tr key={group.oid}>
-                                                    <td>{group.oid}</td>
-                                                    <td>{group.name}</td>
-                                                    <td>{group.description || '—'}</td>
-                                                    <td>{group.user_count}</td>
+                                <>
+                                    <div className="groups-list">
+                                        <table className="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>OID</th>
+                                                    <th>Название</th>
+                                                    <th>Описание</th>
+                                                    <th>Кол-во пользователей</th>
+                                                    <th>Действия</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    <div className="pagination-info">
-                                        Всего: {groupsData.total} | Страница {groupsData.page} из {groupsData.pages}
+                                            </thead>
+                                            <tbody>
+                                                {groupsData.items.map(group => (
+                                                    <tr key={group.oid}>
+                                                        <td>{group.oid}</td>
+                                                        <td>{group.name}</td>
+                                                        <td>{group.description || '—'}</td>
+                                                        <td>{group.user_count}</td>
+                                                        <td>
+                                                            <button
+                                                                className="btn btn-sm btn-outline-primary me-2"
+                                                                onClick={() => openEditModal(group)}
+                                                                title="Редактировать"
+                                                            >
+                                                                <i className="fas fa-edit"></i>
+                                                            </button>
+                                                            <button
+                                                                className="btn btn-sm btn-outline-danger"
+                                                                onClick={() => openDeleteModal(group)}
+                                                                title="Удалить"
+                                                            >
+                                                                <i className="fas fa-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                </div>
+
+                                    {/* Пагинация как в HomePage */}
+                                    {groupsData.total > 0 && (
+                                        <div className="pagination-container" style={{ marginTop: '24px' }}>
+                                            <div className="pagination-info">
+                                                Показано {groupsData.items.length} из {groupsData.total} групп
+                                            </div>
+                                            <div className="pagination-controls">
+                                                <select
+                                                    value={pageSize}
+                                                    onChange={handlePageSizeChange}
+                                                    className="pagination-select"
+                                                >
+                                                    {PAGE_SIZES.map(size => (
+                                                        <option key={size} value={size}>
+                                                            {size} на странице
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="pagination-buttons">
+                                                    <button
+                                                        className="btn btn-ghost"
+                                                        onClick={() => handlePageChange(currentPage - 1)}
+                                                        disabled={currentPage === 1}
+                                                    >
+                                                        <i className="fas fa-chevron-left"></i>
+                                                    </button>
+                                                    <span className="pagination-page-info">
+                                                        Страница {currentPage} из {groupsData.pages}
+                                                    </span>
+                                                    <button
+                                                        className="btn btn-ghost"
+                                                        onClick={() => handlePageChange(currentPage + 1)}
+                                                        disabled={currentPage === groupsData.pages}
+                                                    >
+                                                        <i className="fas fa-chevron-right"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             ) : (
-                                <div className="no-data-message">Группы не найдены</div>
+                                <div className="no-data-message">
+                                    {searchQuery ? 'Группы по запросу не найдены' : 'Группы не найдены'}
+                                </div>
                             )}
                         </div>
                     )}
                 </section>
             </main>
+
+            {/* Модальное окно удаления */}
+            {showDeleteModal && (
+                <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Удаление группы</h3>
+                        </div>
+                        <div className="modal-body">
+                            <p>
+                                Вы уверены, что хотите удалить группу <strong>«{groupToDelete?.name}»</strong>?
+                                Это действие нельзя отменить.
+                            </p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+                                Отмена
+                            </button>
+                            <button className="btn btn-danger" onClick={deleteGroup}>
+                                Удалить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Модальное окно редактирования */}
+            {showEditModal && (
+                <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+                    <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Редактирование группы</h3>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group mb-3">
+                                <label>Название</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    name="name"
+                                    value={editForm.name}
+                                    onChange={handleEditChange}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Описание</label>
+                                <textarea
+                                    className="form-control"
+                                    name="description"
+                                    value={editForm.description}
+                                    onChange={handleEditChange}
+                                    rows="3"
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setShowEditModal(false)}>
+                                Отмена
+                            </button>
+                            <button className="btn btn-primary" onClick={saveEditGroup}>
+                                Сохранить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Footer />
         </>
     );
