@@ -34,7 +34,7 @@ class DB_Connection(Base, DateTimeMixin):
     is_favorite = Column(Boolean, default=False, nullable=False, comment="Избранное")
     # Связь
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, comment="ID владельца (пользователя)")
-    db_group_user = relationship("DB_Group_User", back_populates="connection", cascade="all, delete-orphan", lazy="selectin")
+    db_user = relationship("DB_User", back_populates="connection", cascade="all, delete-orphan", lazy="selectin")
     owner = relationship("User", back_populates="db_connection")
     # Ограничения и индексы
     __table_args__ = (
@@ -52,23 +52,22 @@ class DB_Connection(Base, DateTimeMixin):
         return f"<DB_Connection(id={self.id}, name='{self.name}', type='{self.database_type}', owner_id={self.owner_id})>"
 
 
-class DB_Group_User(Base, DateTimeMixin):
-    __tablename__ = "db_group_user"
+class DB_User(Base, DateTimeMixin):
+    __tablename__ = "db_user"
     id = Column(Integer, primary_key=True, index=True, comment="PK группы/пользователя")
     # Основные поля
     oid = Column(Integer, nullable=False, index=True, comment="OID группы/пользователя")
     name = Column(String(255), nullable=False, index=True, comment="Название группы/пользователя")
     description = Column(Text, nullable=True, comment="Описание группы/пользователя")
     email = Column(String(200), nullable=True, index=True, comment="Почта пользователя")
-    # type = Column(Boolean, default=False, nullable=False, comment="Тип принадлежности, (True=группа, False=пользователь)")
     # Связь
     connection_id = Column(Integer, ForeignKey("db_connection.id", ondelete="CASCADE"), nullable=False, comment="ID подключения к БД")
-    connection = relationship("DB_Connection", back_populates="db_group_user")
+    connection = relationship("DB_Connection", back_populates="db_user")
     # Ограничения и индексы
     __table_args__ = (
-        UniqueConstraint("connection_id", "oid", "name", "type", name="uq_db_group_connection_name"),
+        UniqueConstraint("connection_id", "oid", "name", name="uq_db_user_connection_name"),
         Index("idx_db_name", "name"),
     )
 
     def __repr__(self):
-        return f"<DB_Group_User(id={self.id}, name='{self.name}', connection_id={self.connection_id})>"
+        return f"<DB_User(id={self.id}, name='{self.name}', connection_id={self.connection_id})>"

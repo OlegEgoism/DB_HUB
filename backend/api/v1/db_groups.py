@@ -15,7 +15,7 @@ async def list_groups(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-        search: Optional[str] = Query(None, description="Поиск по названию группы")
+        search: Optional[str] = Query(None, description="Поиск по названию и описанию группы")
 ):
     """Получить список групп в базе данных"""
     try:

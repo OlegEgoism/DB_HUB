@@ -1,5 +1,5 @@
 # backend/models/__init__.py
 from .user import User
-from .db import DB_Connection, DB_Group_User
+from .db import DB_Connection, DB_User
 
-__all__ = ["User", "DB_Connection", "DB_Group_User"]
+__all__ = ["User", "DB_Connection", "DB_User"]
