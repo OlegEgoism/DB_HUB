@@ -163,3 +163,30 @@ class DBUserService:
                         raise
         await self.db.execute(delete(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         await self.db.commit()
+
+    async def get_user_with_groups(self, connection_id: int, user_oid: int) -> list[DBUserOut]:
+        connection = await self.get_connection(connection_id)
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
+        local_user = result.scalar_one_or_none()
+        if not local_user:
+            raise ValueError(f"Пользователь с OID {user_oid} не найден")
+        username = local_user.name
+        memberships = []
+        async with external_db_connection(connection) as conn:
+            rows = await conn.fetch("""
+                SELECT
+                    r.oid,
+                    r.rolname AS name,
+                    pg_catalog.shobj_description(r.oid, 'pg_authid') AS description
+                FROM pg_auth_members m
+                JOIN pg_roles r ON m.roleid = r.oid
+                WHERE m.member = $1
+                  AND r.rolcanlogin = false  -- только группы (не login-роли)
+                  AND r.rolname !~ '^pg_'
+                ORDER BY r.rolname
+            """, user_oid)
+            for row in rows:
+                memberships.append(DBUserOut(oid=row["oid"], name=row["name"], description=row["description"] or None, email=None))
+        return memberships

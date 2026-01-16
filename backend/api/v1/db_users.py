@@ -1,7 +1,7 @@
 # backend/api/v1/db_users.py
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
+from typing import Optional, List
 from backend.database.session import get_db
 from backend.schemas.db_users_schemas import PaginatedDBUsersResponse, DBUserOut, DBUserCreate, DBUserUpdate
 from backend.services.db_users_services import DBUserService
@@ -90,3 +90,18 @@ async def delete_user(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при удалении пользователя: {str(e)}")
+
+@router.get("/{oid}/groups", response_model=List[DBUserOut])
+async def get_user_with_groups(
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    oid: int = Path(..., description="oid пользователя в базе данных"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получить список групп, в которых состоит пользователь"""
+    try:
+        service = DBUserService(db)
+        return await service.get_user_with_groups(connection_id=connection_id, user_oid=oid)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении членства пользователя: {str(e)}")
