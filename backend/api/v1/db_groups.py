@@ -102,7 +102,7 @@ async def delete_group(
         raise HTTPException(status_code=500, detail=f"Ошибка при удалении группы: {str(e)}")
 
 
-@router.get("/{oid}/users", response_model=DBGroupWithUsersOut)
+@router.get("/{oid}/get_users", response_model=DBGroupWithUsersOut)
 async def get_group_with_users(
         connection_id: int = Path(..., description="id подключения к базе данных"),
         oid: int = Path(..., description="oid группы в базе данных"),
