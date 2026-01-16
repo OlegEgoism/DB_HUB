@@ -168,9 +168,7 @@ class DBGroupService:
             raise ValueError("Подключение не найдено")
         if group_oid <= 0:
             raise ValueError("Недопустимый OID группы")
-
         async with external_db_connection(connection) as conn:
-            # Получаем основную информацию о группе
             group_row = await conn.fetchrow("""
                 SELECT
                     r.oid,
@@ -181,11 +179,8 @@ class DBGroupService:
                   AND r.rolcanlogin = false
                   AND r.rolname !~ '^pg_'
             """, group_oid)
-
             if not group_row:
                 raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
-
-            # Получаем пользователей, входящих в группу
             users_rows = await conn.fetch("""
                 SELECT
                     u.oid,
@@ -197,17 +192,6 @@ class DBGroupService:
                   AND u.rolcanlogin = true
                 ORDER BY u.rolname
             """, group_oid)
-
             user_count = len(users_rows)
-            users = [
-                {"oid": row["oid"], "name": row["name"], "description": row["description"] or None}
-                for row in users_rows
-            ]
-
-            return {
-                "oid": group_row["oid"],
-                "name": group_row["name"],
-                "description": group_row["description"] or None,
-                "user_count": user_count,
-                "users": users,
-            }
+            users = [{"oid": row["oid"], "name": row["name"], "description": row["description"] or None} for row in users_rows]
+            return {"oid": group_row["oid"], "name": group_row["name"], "description": group_row["description"] or None, "user_count": user_count, "users": users, }
