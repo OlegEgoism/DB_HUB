@@ -75,7 +75,7 @@ class DBUserService:
         result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         user = result.scalar_one_or_none()
         if not user:
-            raise ValueError(f"Пользователь с OID {user_oid} не найден")
+            raise ValueError(f"Пользователь с oid {user_oid} не найден")
         return DBUserOut(oid=user.oid, name=user.name, description=user.description, email=user.email)
 
     async def create_user(self, connection_id: int, username: str, password: str, description: Optional[str] = None, email: Optional[str] = None) -> DBUserOut:
@@ -112,7 +112,7 @@ class DBUserService:
         result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         local_user = result.scalar_one_or_none()
         if not local_user:
-            raise ValueError(f"Пользователь с OID {user_oid} не найден")
+            raise ValueError(f"Пользователь с oid {user_oid} не найден")
         username = local_user.name
         async with external_db_connection(connection) as conn:
             if password is not None:
@@ -145,7 +145,7 @@ class DBUserService:
         result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         local_user = result.scalar_one_or_none()
         if not local_user:
-            raise ValueError(f"Пользователь с OID {user_oid} не найден в локальной базе")
+            raise ValueError(f"Пользователь с oid {user_oid} не найден в локальной базе")
         username = local_user.name
         if username.lower() in {"postgres", "admin", "root"}:
             raise ValueError("Удаление системной роли запрещено")
@@ -171,7 +171,7 @@ class DBUserService:
         result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         local_user = result.scalar_one_or_none()
         if not local_user:
-            raise ValueError(f"Пользователь с OID {user_oid} не найден")
+            raise ValueError(f"Пользователь с oid {user_oid} не найден")
         username = local_user.name
         memberships = []
         async with external_db_connection(connection) as conn:
@@ -190,63 +190,3 @@ class DBUserService:
             for row in rows:
                 memberships.append(DBUserOut(oid=row["oid"], name=row["name"], description=row["description"] or None, email=None))
         return memberships
-
-    async def add_user_to_group(self, connection_id: int, user_oid: int, group_oid: int) -> dict:
-        if user_oid <= 0 or group_oid <= 0:
-            raise ValueError("OID пользователя и группы должны быть положительными")
-        connection = await self.get_connection(connection_id)
-        if not connection:
-            raise ValueError("Подключение не найдено")
-        async with external_db_connection(connection) as conn:
-            user_row = await conn.fetchrow("""
-                SELECT rolname FROM pg_roles
-                WHERE oid = $1 AND rolcanlogin = true AND rolname !~ '^pg_'
-            """, user_oid)
-            if not user_row:
-                raise ValueError(f"Пользователь с OID {user_oid} не найден или является системным")
-            group_row = await conn.fetchrow("""
-                SELECT rolname FROM pg_roles
-                WHERE oid = $1 AND rolcanlogin = false AND rolname !~ '^pg_'
-            """, group_oid)
-            if not group_row:
-                raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
-            username = user_row["rolname"]
-            groupname = group_row["rolname"]
-            already_member = await conn.fetchval("""
-                SELECT 1 FROM pg_auth_members
-                WHERE member = $1 AND roleid = $2
-            """, user_oid, group_oid)
-            if already_member:
-                return {"success": True, "message": f"Пользователь '{username}' уже состоит в группе '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
-            await conn.execute(f'GRANT "{groupname}" TO "{username}"')
-            return {"success": True, "message": f"Пользователь '{username}' успешно добавлен в группу '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
-
-    async def remove_user_from_group(self, connection_id: int, user_oid: int, group_oid: int) -> dict:
-        if user_oid <= 0 or group_oid <= 0:
-            raise ValueError("OID пользователя и группы должны быть положительными")
-        connection = await self.get_connection(connection_id)
-        if not connection:
-            raise ValueError("Подключение не найдено")
-        async with external_db_connection(connection) as conn:
-            user_row = await conn.fetchrow("""
-                SELECT rolname FROM pg_roles
-                WHERE oid = $1 AND rolcanlogin = true AND rolname !~ '^pg_'
-            """, user_oid)
-            if not user_row:
-                raise ValueError(f"Пользователь с OID {user_oid} не найден или является системным")
-            group_row = await conn.fetchrow("""
-                SELECT rolname FROM pg_roles
-                WHERE oid = $1 AND rolcanlogin = false AND rolname !~ '^pg_'
-            """, group_oid)
-            if not group_row:
-                raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
-            username = user_row["rolname"]
-            groupname = group_row["rolname"]
-            is_member = await conn.fetchval("""
-                SELECT 1 FROM pg_auth_members
-                WHERE member = $1 AND roleid = $2
-            """, user_oid, group_oid)
-            if not is_member:
-                return {"success": True, "message": f"Пользователь '{username}' не состоит в группе '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
-            await conn.execute(f'REVOKE "{groupname}" FROM "{username}"')
-            return {"success": True, "message": f"Пользователь '{username}' успешно удалён из группы '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}

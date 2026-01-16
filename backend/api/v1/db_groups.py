@@ -3,8 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from backend.database.session import get_db
-from backend.schemas.db_groups_schemas import PaginatedDBGroupsResponse, DBGroupUpdate, DBGroupCreate, DBGroupOut, DBGroupWithUsersOut
 from backend.services.db_groups_services import DBGroupService
+from backend.schemas.db_groups_schemas import (
+    PaginatedDBGroupsResponse,
+    DBGroupUpdate, DBGroupCreate,
+    DBGroupOut, DBGroupWithUsersOut,
+    AddUserToGroupRequest,
+    RemoveUserFromGroupRequest
+)
 
 router = APIRouter(prefix="/db_connections/{connection_id}/groups", tags=["DB GROUPS"])
 
@@ -95,11 +101,12 @@ async def delete_group(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при удалении группы: {str(e)}")
 
+
 @router.get("/{oid}/users", response_model=DBGroupWithUsersOut)
 async def get_group_with_users(
-    connection_id: int = Path(..., description="id подключения к базе данных"),
-    oid: int = Path(..., description="oid группы в базе данных"),
-    db: AsyncSession = Depends(get_db)
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        oid: int = Path(..., description="oid группы в базе данных"),
+        db: AsyncSession = Depends(get_db)
 ):
     """Получить информацию о группе и список её пользователей из базы данных"""
     try:
@@ -110,3 +117,39 @@ async def get_group_with_users(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении группы с пользователями: {str(e)}")
+
+
+@router.post("/{oid}/add_user", status_code=200)
+async def add_user_to_group(
+        request: AddUserToGroupRequest,
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        oid: int = Path(..., description="oid группы в базе данных"),
+        db: AsyncSession = Depends(get_db)
+):
+    """Добавить пользователя в группу"""
+    try:
+        service = DBGroupService(db)
+        result = await service.add_user_to_group(connection_id=connection_id, user_oid=request.user_oid, group_oid=oid)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при добавлении пользователя в группу: {str(e)}")
+
+
+@router.post("/{oid}/remove_user", status_code=200)
+async def remove_user_from_group(
+        request: RemoveUserFromGroupRequest,
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        oid: int = Path(..., description="oid группы в базе данных"),
+        db: AsyncSession = Depends(get_db)
+):
+    """Удалить пользователя из группы"""
+    try:
+        service = DBGroupService(db)
+        result = await service.remove_user_from_group(connection_id=connection_id, user_oid=request.user_oid, group_oid=oid)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении пользователя из группы: {str(e)}")

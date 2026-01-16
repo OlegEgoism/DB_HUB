@@ -57,9 +57,11 @@ class DBGroupCreate(BaseModel):
             raise ValueError("Имя группы должно начинаться с буквы или '_', и содержать только латинские буквы, цифры и символ '_'")
         return v
 
+
 class DBUserInGroup(BaseModel):
     oid: int
     name: str
+
 
 class DBGroupWithUsersOut(BaseModel):
     oid: int
@@ -67,3 +69,11 @@ class DBGroupWithUsersOut(BaseModel):
     description: Optional[str] = None
     user_count: int
     users: List[DBUserInGroup]
+
+
+class AddUserToGroupRequest(BaseModel):
+    user_oid: int
+
+
+class RemoveUserFromGroupRequest(BaseModel):
+    user_oid: int

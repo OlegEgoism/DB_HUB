@@ -79,10 +79,3 @@ class DBUserUpdate(BaseModel):
         if len(v) > 128:
             raise ValueError("Пароль слишком длинный (максимум 128 символов)")
         return v
-
-
-class AddUserToGroupRequest(BaseModel):
-    user_oid: int
-
-class RemoveUserFromGroupRequest(BaseModel):
-    user_oid: int

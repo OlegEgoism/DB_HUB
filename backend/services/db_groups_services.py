@@ -66,7 +66,7 @@ class DBGroupService:
         if not connection:
             raise ValueError("Подключение не найдено")
         if group_oid <= 0:
-            raise ValueError("Недопустимый OID группы")
+            raise ValueError("Недопустимый oid группы")
         async with external_db_connection(connection) as conn:
             row = await conn.fetchrow("""
                 SELECT
@@ -82,7 +82,7 @@ class DBGroupService:
                 GROUP BY r.oid, r.rolname
             """, group_oid)
             if not row:
-                raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
+                raise ValueError(f"Группа с oid {group_oid} не найдена или является системной")
             return DBGroupOut(oid=row["oid"], name=row["name"], description=row["description"] or None, user_count=row["user_count"])
 
     async def create_group(self, connection_id: int, create_data: "DBGroupCreate") -> dict:
@@ -99,7 +99,7 @@ class DBGroupService:
             await conn.execute(f'COMMENT ON ROLE {group_name} IS $${description}$$')
             oid = await conn.fetchval("SELECT oid FROM pg_roles WHERE rolname = $1", group_name)
             if not oid:
-                raise Exception("Не удалось получить OID созданной группы")
+                raise Exception("Не удалось получить oid созданной группы")
             return {"success": True, "oid": oid, "name": group_name, "description": create_data.description}
 
     async def update_group(self, connection_id: int, group_oid: int, update_data: "DBGroupUpdate") -> dict:
@@ -107,7 +107,7 @@ class DBGroupService:
         if not connection:
             raise ValueError("Подключение не найдено")
         if group_oid <= 0:
-            raise ValueError("Недопустимый OID группы")
+            raise ValueError("Недопустимый oid группы")
         async with external_db_connection(connection) as conn:
             row = await conn.fetchrow("""
                 SELECT rolname
@@ -117,7 +117,7 @@ class DBGroupService:
                   AND rolname !~ '^pg_'
             """, group_oid)
             if not row:
-                raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
+                raise ValueError(f"Группа с oid {group_oid} не найдена или является системной")
             current_name = row["rolname"]
             new_name = update_data.name
             new_description = update_data.description
@@ -139,7 +139,7 @@ class DBGroupService:
         if not connection:
             raise ValueError("Подключение не найдено")
         if group_oid <= 0:
-            raise ValueError("Недопустимый OID группы")
+            raise ValueError("Недопустимый oid группы")
         async with external_db_connection(connection) as conn:
             row = await conn.fetchrow("""
                 SELECT rolname
@@ -149,7 +149,7 @@ class DBGroupService:
                   AND rolname !~ '^pg_'
             """, group_oid)
             if not row:
-                raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
+                raise ValueError(f"Группа с oid {group_oid} не найдена или является системной")
             group_name = row["rolname"]
             try:
                 await conn.execute(f'DROP OWNED BY {group_name} CASCADE')
@@ -167,7 +167,7 @@ class DBGroupService:
         if not connection:
             raise ValueError("Подключение не найдено")
         if group_oid <= 0:
-            raise ValueError("Недопустимый OID группы")
+            raise ValueError("Недопустимый oid группы")
         async with external_db_connection(connection) as conn:
             group_row = await conn.fetchrow("""
                 SELECT
@@ -180,7 +180,7 @@ class DBGroupService:
                   AND r.rolname !~ '^pg_'
             """, group_oid)
             if not group_row:
-                raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
+                raise ValueError(f"Группа с oid {group_oid} не найдена или является системной")
             users_rows = await conn.fetch("""
                 SELECT
                     u.oid,
@@ -195,3 +195,63 @@ class DBGroupService:
             user_count = len(users_rows)
             users = [{"oid": row["oid"], "name": row["name"], "description": row["description"] or None} for row in users_rows]
             return {"oid": group_row["oid"], "name": group_row["name"], "description": group_row["description"] or None, "user_count": user_count, "users": users, }
+
+    async def add_user_to_group(self, connection_id: int, user_oid: int, group_oid: int) -> dict:
+        if user_oid <= 0 or group_oid <= 0:
+            raise ValueError("oid пользователя и группы должны быть положительными")
+        connection = await self.get_connection(connection_id)
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        async with external_db_connection(connection) as conn:
+            user_row = await conn.fetchrow("""
+                SELECT rolname FROM pg_roles
+                WHERE oid = $1 AND rolcanlogin = true AND rolname !~ '^pg_'
+            """, user_oid)
+            if not user_row:
+                raise ValueError(f"Пользователь с oid {user_oid} не найден или является системным")
+            group_row = await conn.fetchrow("""
+                SELECT rolname FROM pg_roles
+                WHERE oid = $1 AND rolcanlogin = false AND rolname !~ '^pg_'
+            """, group_oid)
+            if not group_row:
+                raise ValueError(f"Группа с oid {group_oid} не найдена или является системной")
+            username = user_row["rolname"]
+            groupname = group_row["rolname"]
+            already_member = await conn.fetchval("""
+                SELECT 1 FROM pg_auth_members
+                WHERE member = $1 AND roleid = $2
+            """, user_oid, group_oid)
+            if already_member:
+                return {"success": True, "message": f"Пользователь '{username}' уже состоит в группе '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
+            await conn.execute(f'GRANT "{groupname}" TO "{username}"')
+            return {"success": True, "message": f"Пользователь '{username}' успешно добавлен в группу '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
+
+    async def remove_user_from_group(self, connection_id: int, user_oid: int, group_oid: int) -> dict:
+        if user_oid <= 0 or group_oid <= 0:
+            raise ValueError("OID пользователя и группы должны быть положительными")
+        connection = await self.get_connection(connection_id)
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        async with external_db_connection(connection) as conn:
+            user_row = await conn.fetchrow("""
+                SELECT rolname FROM pg_roles
+                WHERE oid = $1 AND rolcanlogin = true AND rolname !~ '^pg_'
+            """, user_oid)
+            if not user_row:
+                raise ValueError(f"Пользователь с oid {user_oid} не найден или является системным")
+            group_row = await conn.fetchrow("""
+                SELECT rolname FROM pg_roles
+                WHERE oid = $1 AND rolcanlogin = false AND rolname !~ '^pg_'
+            """, group_oid)
+            if not group_row:
+                raise ValueError(f"Группа с oid {group_oid} не найдена или является системной")
+            username = user_row["rolname"]
+            groupname = group_row["rolname"]
+            is_member = await conn.fetchval("""
+                SELECT 1 FROM pg_auth_members
+                WHERE member = $1 AND roleid = $2
+            """, user_oid, group_oid)
+            if not is_member:
+                return {"success": True, "message": f"Пользователь '{username}' не состоит в группе '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
+            await conn.execute(f'REVOKE "{groupname}" FROM "{username}"')
+            return {"success": True, "message": f"Пользователь '{username}' успешно удалён из группы '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
