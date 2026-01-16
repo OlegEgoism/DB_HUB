@@ -49,7 +49,7 @@ async def create_user(
         connection_id: int = Path(..., description="id подключения к базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Создать новое пользователя в базе данных"""
+    """Создать нового пользователя в базе данных"""
     try:
         service = DBUserService(db)
         return await service.create_user(connection_id=connection_id, username=user_data.username, password=user_data.password, description=user_data.description, email=user_data.email)
@@ -82,7 +82,7 @@ async def delete_user(
     oid: int = Path(..., description="oid пользователя в базе данных"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Удаление пользователя из базы данных"""
+    """Удалить пользователя из базы данных"""
     try:
         service = DBUserService(db)
         await service.delete_user(connection_id=connection_id, user_oid=oid)
