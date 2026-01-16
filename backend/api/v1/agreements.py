@@ -7,7 +7,7 @@ from backend.models.agreement import Agreement
 from backend.schemas.agreements_schemas import AgreementResponse
 from sqlalchemy import select
 
-router = APIRouter(prefix="/agreements", tags=["AGREEMENTS"])
+router = APIRouter(prefix="/agreements", tags=["APP AGREEMENTS"])
 
 
 @router.get("/", response_model=List[AgreementResponse])

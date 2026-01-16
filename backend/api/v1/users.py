@@ -13,7 +13,7 @@ from backend.schemas.users_schemas import (
     PaginatedResponse
 )
 
-router = APIRouter(prefix="/users", tags=["USERS APP"])
+router = APIRouter(prefix="/users", tags=["APP USERS"])
 
 
 @router.get("/", response_model=PaginatedResponse)

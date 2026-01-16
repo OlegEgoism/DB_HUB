@@ -6,7 +6,7 @@ from backend.database.session import get_db
 from backend.services.users_services import UserService
 from backend.schemas.users_schemas import LoginRequest, Token, UserLoginResponse, UserProfile
 
-router = APIRouter(prefix="/auth", tags=["AUTHENTICATION"])
+router = APIRouter(prefix="/auth", tags=["APP AUTHENTICATION"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
@@ -61,9 +61,4 @@ async def get_current_user_profile(current_user=Depends(get_current_user)):
 @router.post("/validate-token")
 async def validate_token(current_user=Depends(get_current_user)):
     """Проверка валидности токена"""
-    return {"valid": True, "user": {
-        "id": current_user.id,
-        "username": current_user.username,
-        "role": current_user.role,
-        "is_active": current_user.is_active
-    }}
+    return {"valid": True, "user": {"id": current_user.id, "username": current_user.username, "role": current_user.role, "is_active": current_user.is_active}}
