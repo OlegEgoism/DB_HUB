@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from backend.database.session import get_db
-from backend.schemas.db_groups_schemas import PaginatedDBGroupsResponse, DBGroupUpdate, DBGroupCreate, DBGroupOut
+from backend.schemas.db_groups_schemas import PaginatedDBGroupsResponse, DBGroupUpdate, DBGroupCreate, DBGroupOut, DBGroupWithUsersOut
 from backend.services.db_groups_services import DBGroupService
 
 router = APIRouter(prefix="/db_connections/{connection_id}/groups", tags=["DB GROUPS"])
@@ -94,3 +94,19 @@ async def delete_group(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при удалении группы: {str(e)}")
+
+@router.get("/{oid}/users", response_model=DBGroupWithUsersOut)
+async def get_group_with_users(
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    oid: int = Path(..., description="oid группы в базе данных"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получить информацию о группе и список её пользователей из базы данных"""
+    try:
+        service = DBGroupService(db)
+        group_data = await service.get_group_with_users(connection_id, oid)
+        return group_data
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении группы с пользователями: {str(e)}")

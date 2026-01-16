@@ -56,3 +56,15 @@ class DBGroupCreate(BaseModel):
         if not ROLE_NAME_PATTERN.match(v):
             raise ValueError("Имя группы должно начинаться с буквы или '_', и содержать только буквы, цифры и символ '_'")
         return v
+
+class DBUserInGroup(BaseModel):
+    oid: int
+    name: str
+    # description: Optional[str] = None
+
+class DBGroupWithUsersOut(BaseModel):
+    oid: int
+    name: str
+    description: Optional[str] = None
+    user_count: int
+    users: List[DBUserInGroup]

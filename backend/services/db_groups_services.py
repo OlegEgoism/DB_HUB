@@ -161,3 +161,53 @@ class DBGroupService:
                 else:
                     raise ValueError(f"Не удалось удалить группу из внешней БД: {error_msg}")
         return {"success": True, "oid": group_oid, "name": group_name, "message": f"Группа '{group_name}' успешно удалена"}
+
+    async def get_group_with_users(self, connection_id: int, group_oid: int) -> dict:
+        connection = await self.get_connection(connection_id)
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        if group_oid <= 0:
+            raise ValueError("Недопустимый OID группы")
+
+        async with external_db_connection(connection) as conn:
+            # Получаем основную информацию о группе
+            group_row = await conn.fetchrow("""
+                SELECT
+                    r.oid,
+                    r.rolname AS name,
+                    pg_catalog.shobj_description(r.oid, 'pg_authid') AS description
+                FROM pg_roles r
+                WHERE r.oid = $1
+                  AND r.rolcanlogin = false
+                  AND r.rolname !~ '^pg_'
+            """, group_oid)
+
+            if not group_row:
+                raise ValueError(f"Группа с OID {group_oid} не найдена или является системной")
+
+            # Получаем пользователей, входящих в группу
+            users_rows = await conn.fetch("""
+                SELECT
+                    u.oid,
+                    u.rolname AS name,
+                    pg_catalog.shobj_description(u.oid, 'pg_authid') AS description
+                FROM pg_auth_members m
+                JOIN pg_roles u ON m.member = u.oid
+                WHERE m.roleid = $1
+                  AND u.rolcanlogin = true
+                ORDER BY u.rolname
+            """, group_oid)
+
+            user_count = len(users_rows)
+            users = [
+                {"oid": row["oid"], "name": row["name"], "description": row["description"] or None}
+                for row in users_rows
+            ]
+
+            return {
+                "oid": group_row["oid"],
+                "name": group_row["name"],
+                "description": group_row["description"] or None,
+                "user_count": user_count,
+                "users": users,
+            }
