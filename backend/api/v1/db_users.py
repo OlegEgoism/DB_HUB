@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 from backend.database.session import get_db
-from backend.schemas.db_users_schemas import PaginatedDBUsersResponse, DBUserOut, DBUserCreate, DBUserUpdate
+from backend.schemas.db_users_schemas import PaginatedDBUsersResponse, DBUserOut, DBUserCreate, DBUserUpdate, AddUserToGroupRequest
 from backend.services.db_users_services import DBUserService
 
 router = APIRouter(prefix="/db_connections/{connection_id}/users", tags=["DB USERS"])
@@ -78,9 +78,9 @@ async def update_user(
 
 @router.delete("/{oid}", status_code=204)
 async def delete_user(
-    connection_id: int = Path(..., description="id подключения к базе данных"),
-    oid: int = Path(..., description="oid пользователя в базе данных"),
-    db: AsyncSession = Depends(get_db)
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        oid: int = Path(..., description="oid пользователя в базе данных"),
+        db: AsyncSession = Depends(get_db)
 ):
     """Удалить пользователя из базы данных"""
     try:
@@ -91,11 +91,12 @@ async def delete_user(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при удалении пользователя: {str(e)}")
 
+
 @router.get("/{oid}/groups", response_model=List[DBUserOut])
 async def get_user_with_groups(
-    connection_id: int = Path(..., description="id подключения к базе данных"),
-    oid: int = Path(..., description="oid пользователя в базе данных"),
-    db: AsyncSession = Depends(get_db)
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        oid: int = Path(..., description="oid пользователя в базе данных"),
+        db: AsyncSession = Depends(get_db)
 ):
     """Получить список групп, в которых состоит пользователь"""
     try:
@@ -105,3 +106,23 @@ async def get_user_with_groups(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении членства пользователя: {str(e)}")
+
+
+@router.post("/{group_oid}/add-user", status_code=200)
+async def add_user_to_group(
+        request: AddUserToGroupRequest = ...,
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        group_oid: int = Path(..., description="oid группы"),
+        db: AsyncSession = Depends(get_db)
+):
+    """Добавить пользователя в группу"""
+    if request.group_oid != group_oid:
+        raise HTTPException(status_code=400, detail="group_oid в URL и в теле запроса должны совпадать")
+    try:
+        service = DBUserService(db)
+        result = await service.add_user_to_group(connection_id=connection_id, user_oid=request.user_oid, group_oid=group_oid)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при добавлении пользователя в группу: {str(e)}")
