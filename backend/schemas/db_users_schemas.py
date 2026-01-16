@@ -83,4 +83,6 @@ class DBUserUpdate(BaseModel):
 
 class AddUserToGroupRequest(BaseModel):
     user_oid: int
-    # group_oid: int
+
+class RemoveUserFromGroupRequest(BaseModel):
+    user_oid: int
