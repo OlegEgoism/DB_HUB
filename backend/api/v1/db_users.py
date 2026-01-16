@@ -110,14 +110,11 @@ async def get_user_with_groups(
 
 @router.post("/{group_oid}/add_user", status_code=200)
 async def add_user_to_group(
-        request: AddUserToGroupRequest = ...,
+        request: AddUserToGroupRequest,
         connection_id: int = Path(..., description="id подключения к базе данных"),
-        group_oid: int = Path(..., description="oid группы"),
+        group_oid: int = Path(..., description="oid группы в базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Добавить пользователя в группу"""
-    if request.group_oid != group_oid:
-        raise HTTPException(status_code=400, detail="group_oid в URL и в теле запроса должны совпадать")
     try:
         service = DBUserService(db)
         result = await service.add_user_to_group(connection_id=connection_id, user_oid=request.user_oid, group_oid=group_oid)
