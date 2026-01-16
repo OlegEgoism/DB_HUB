@@ -108,7 +108,7 @@ async def get_user_with_groups(
         raise HTTPException(status_code=500, detail=f"Ошибка при получении членства пользователя: {str(e)}")
 
 
-@router.post("/{group_oid}/add-user", status_code=200)
+@router.post("/{group_oid}/add_user", status_code=200)
 async def add_user_to_group(
         request: AddUserToGroupRequest = ...,
         connection_id: int = Path(..., description="id подключения к базе данных"),
