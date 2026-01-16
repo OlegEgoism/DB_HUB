@@ -3,9 +3,9 @@ import math
 from typing import Optional
 from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from backend.utils.external_db import external_db_connection
 from backend.models.db import DB_Connection, DB_User
 from backend.schemas.db_users_schemas import DBUserOut, PaginatedDBUsersResponse
-from backend.utils.external_db import external_db_connection
 
 
 class DBUserService:
