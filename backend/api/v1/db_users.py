@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from backend.database.session import get_db
-from backend.schemas.db_users_schemas import PaginatedDBUsersResponse, DBUserOut
+from backend.schemas.db_users_schemas import PaginatedDBUsersResponse, DBUserOut, DBUserCreate, DBUserUpdate
 from backend.services.db_users_services import DBUserService
 
 router = APIRouter(prefix="/db_connections/{connection_id}/users", tags=["DB USERS"])
@@ -28,7 +28,11 @@ async def list_users(
 
 
 @router.get("/{oid}", response_model=DBUserOut)
-async def get_user(connection_id: int = Path(...), oid: int = Path(...), db: AsyncSession = Depends(get_db)):
+async def get_user(
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        oid: int = Path(..., description="oid пользователя в базе данных"),
+        db: AsyncSession = Depends(get_db)
+):
     """Получить информацию о пользователе из базы данных"""
     try:
         service = DBUserService(db)
@@ -37,3 +41,52 @@ async def get_user(connection_id: int = Path(...), oid: int = Path(...), db: Asy
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении пользователя: {str(e)}")
+
+
+@router.post("/", response_model=DBUserOut, status_code=201)
+async def create_user(
+        user_data: DBUserCreate,
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        db: AsyncSession = Depends(get_db)
+):
+    """Создать новое пользователя в базе данных"""
+    try:
+        service = DBUserService(db)
+        return await service.create_user(connection_id=connection_id, username=user_data.username, password=user_data.password, description=user_data.description, email=user_data.email)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при создании пользователя: {str(e)}")
+
+
+@router.put("/{oid}", response_model=DBUserOut)
+async def update_user(
+        user_data: DBUserUpdate,
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        oid: int = Path(..., description="oid пользователя в базе данных"),
+        db: AsyncSession = Depends(get_db)
+):
+    """Обновить данные пользователя в базе данных"""
+    try:
+        service = DBUserService(db)
+        return await service.update_user(connection_id=connection_id, user_oid=oid, password=user_data.password, description=user_data.description, email=user_data.email)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении пользователя: {str(e)}")
+
+
+@router.delete("/{oid}", status_code=204)
+async def delete_user(
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    oid: int = Path(..., description="oid пользователя в базе данных"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Удаление пользователя из базы данных"""
+    try:
+        service = DBUserService(db)
+        await service.delete_user(connection_id=connection_id, user_oid=oid)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении пользователя: {str(e)}")

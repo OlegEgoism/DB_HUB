@@ -3,7 +3,7 @@ from typing import List, Optional
 import re
 from pydantic import BaseModel, field_validator
 
-# Список явно запрещённых имён (помимо pg_*)
+# Запрещённые имена
 FORBIDDEN_NAMES = {
     "public", "none", "current_user", "session_user", "user",
     "default", "all", "postgres", "admin", "root", "guest"
@@ -54,13 +54,12 @@ class DBGroupCreate(BaseModel):
         if v.lower() in FORBIDDEN_NAMES:
             raise ValueError(f"Имя '{v}' зарезервировано и не может использоваться для группы")
         if not ROLE_NAME_PATTERN.match(v):
-            raise ValueError("Имя группы должно начинаться с буквы или '_', и содержать только буквы, цифры и символ '_'")
+            raise ValueError("Имя группы должно начинаться с буквы или '_', и содержать только латинские буквы, цифры и символ '_'")
         return v
 
 class DBUserInGroup(BaseModel):
     oid: int
     name: str
-    # description: Optional[str] = None
 
 class DBGroupWithUsersOut(BaseModel):
     oid: int

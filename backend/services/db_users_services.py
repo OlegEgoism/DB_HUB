@@ -1,6 +1,6 @@
 # backend/services/db_users_services.py
 import math
-from typing import Optional, List
+from typing import Optional
 from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.db import DB_Connection, DB_User
@@ -56,19 +56,17 @@ class DBUserService:
     async def list_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> PaginatedDBUsersResponse:
         await self.sync_users_from_external_db(connection_id)
         query = select(DB_User).where(DB_User.connection_id == connection_id)
+        count_stmt = select(func.count(DB_User.id)).where(DB_User.connection_id == connection_id)
         if search and search.strip():
             term = f"%{search.strip()}%"
-            query = query.where((DB_User.name.ilike(term)) | (DB_User.description.ilike(term)))
-        query = query.order_by(DB_User.name)
-        count_query = select(DB_User).where(DB_User.connection_id == connection_id)
-        if search and search.strip():
-            count_query = count_query.where((DB_User.name.ilike(term)) | (DB_User.description.ilike(term)))
-        total_result = await self.db.execute(select(func.count()).select_from(count_query.subquery()))
-        total = total_result.scalar_one()
+            condition = (DB_User.name.ilike(term)) | (DB_User.description.ilike(term))
+            query = query.where(condition)
+            count_stmt = count_stmt.where(condition)
+        total = (await self.db.execute(count_stmt)).scalar_one()
         offset = (page - 1) * size
-        result = await self.db.execute(query.offset(offset).limit(size))
+        result = await self.db.execute(query.order_by(DB_User.name).offset(offset).limit(size))
         users = result.scalars().all()
-        items = [DBUserOut(oid=user.oid, name=user.name, description=user.description) for user in users]
+        items = [DBUserOut(oid=user.oid, name=user.name, description=user.description, email=user.email) for user in users]
         pages = math.ceil(total / size) if size > 0 and total > 0 else 1
         return PaginatedDBUsersResponse(items=items, total=total, page=page, size=size, pages=pages, has_next=page < pages, has_prev=page > 1)
 
@@ -79,3 +77,89 @@ class DBUserService:
         if not user:
             raise ValueError(f"Пользователь с OID {user_oid} не найден")
         return DBUserOut(oid=user.oid, name=user.name, description=user.description, email=user.email)
+
+    async def create_user(self, connection_id: int, username: str, password: str, description: Optional[str] = None, email: Optional[str] = None) -> DBUserOut:
+        connection = await self.get_connection(connection_id)
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        async with external_db_connection(connection) as conn:
+            exists_row = await conn.fetchrow("SELECT 1 FROM pg_roles WHERE rolname = $1", username)
+            if exists_row:
+                raise ValueError(f"Пользователь с именем '{username}' уже существует во внешней базе")
+            quoted_password = await conn.fetchval("SELECT quote_literal($1)", password)
+            create_sql = f'CREATE ROLE "{username}" WITH LOGIN PASSWORD {quoted_password}'
+            await conn.execute(create_sql)
+            if description is not None:
+                quoted_desc = await conn.fetchval("SELECT quote_literal($1)", description)
+                comment_sql = f'COMMENT ON ROLE "{username}" IS {quoted_desc}'
+                await conn.execute(comment_sql)
+        await self.sync_users_from_external_db(connection_id)
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.name == username))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise RuntimeError("Не удалось найти только что созданного пользователя после синхронизации")
+        if email != user.email:
+            user.email = email
+            self.db.add(user)
+            await self.db.commit()
+            await self.db.refresh(user)
+        return DBUserOut(oid=user.oid, name=user.name, description=user.description, email=user.email)
+
+    async def update_user(self, connection_id: int, user_oid: int, password: Optional[str] = None, description: Optional[str] = None, email: Optional[str] = None) -> DBUserOut:
+        connection = await self.get_connection(connection_id)
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
+        local_user = result.scalar_one_or_none()
+        if not local_user:
+            raise ValueError(f"Пользователь с OID {user_oid} не найден")
+        username = local_user.name
+        async with external_db_connection(connection) as conn:
+            if password is not None:
+                quoted_password = await conn.fetchval("SELECT quote_literal($1)", password)
+                alter_sql = f'ALTER ROLE "{username}" PASSWORD {quoted_password}'
+                await conn.execute(alter_sql)
+            current_desc = await conn.fetchval("SELECT pg_catalog.shobj_description($1, 'pg_authid')", user_oid)
+            if description is not None and description != current_desc:
+                quoted_desc = await conn.fetchval("SELECT quote_literal($1)", description)
+                comment_sql = f'COMMENT ON ROLE "{username}" IS {quoted_desc}'
+                await conn.execute(comment_sql)
+            elif description is None and current_desc is not None:
+                await conn.execute(f'COMMENT ON ROLE "{username}" IS NULL')
+        await self.sync_users_from_external_db(connection_id)
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
+        updated_user = result.scalar_one_or_none()
+        if not updated_user:
+            raise RuntimeError("Пользователь исчез после синхронизации")
+        if email is not None and email != updated_user.email:
+            updated_user.email = email
+            self.db.add(updated_user)
+            await self.db.commit()
+            await self.db.refresh(updated_user)
+        return DBUserOut(oid=updated_user.oid, name=updated_user.name, description=updated_user.description, email=updated_user.email)
+
+    async def delete_user(self, connection_id: int, user_oid: int) -> None:
+        connection = await self.get_connection(connection_id)
+        if not connection:
+            raise ValueError("Подключение не найдено")
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
+        local_user = result.scalar_one_or_none()
+        if not local_user:
+            raise ValueError(f"Пользователь с OID {user_oid} не найден в локальной базе")
+        username = local_user.name
+        if username.lower() in {"postgres", "admin", "root"}:
+            raise ValueError("Удаление системной роли запрещено")
+        async with external_db_connection(connection) as conn:
+            exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)", username)
+            if exists:
+                try:
+                    drop_sql = f'DROP ROLE IF EXISTS "{username}"'
+                    await conn.execute(drop_sql)
+                except Exception as e:
+                    error_msg = str(e).lower()
+                    if "required by other objects" in error_msg or "dependent objects" in error_msg:
+                        raise ValueError(f"Невозможно удалить роль '{username}': существуют зависимые объекты, удалите зависимости вручную.")
+                    else:
+                        raise
+        await self.db.execute(delete(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
+        await self.db.commit()
