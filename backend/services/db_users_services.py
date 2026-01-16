@@ -78,4 +78,4 @@ class DBUserService:
         user = result.scalar_one_or_none()
         if not user:
             raise ValueError(f"Пользователь с OID {user_oid} не найден")
-        return DBUserOut(oid=user.oid, name=user.name, description=user.description)
+        return DBUserOut(oid=user.oid, name=user.name, description=user.description, email=user.email)
