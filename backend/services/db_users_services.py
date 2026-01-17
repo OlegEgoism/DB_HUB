@@ -3,7 +3,7 @@ import math
 from typing import Optional
 from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.utils.external_db import external_db_connection
+from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 from backend.models.db import DB_Connection, DB_User
 from backend.schemas.db_users_schemas import DBUserOut, PaginatedDBUsersResponse
 
@@ -13,8 +13,7 @@ class DBUserService:
         self.db = db
 
     async def get_connection(self, connection_id: int) -> DB_Connection | None:
-        result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
-        return result.scalar_one_or_none()
+        return await get_db_connection_by_id(self.db, connection_id)
 
     async def sync_users_from_external_db(self, connection_id: int) -> None:
         connection = await self.get_connection(connection_id)

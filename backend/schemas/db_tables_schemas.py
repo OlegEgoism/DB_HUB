@@ -135,7 +135,7 @@ class TablePrivilegeGroupInfo(BaseModel):
 class PaginatedTablePrivilegesGroupsResponse(BaseModel):
     connection_id: int
     connection_name: str
-    requested_groups: List[str]  # ← добавь это
+    requested_groups: List[str]
     total_tables: int
     total_filtered_tables: int
     page: int

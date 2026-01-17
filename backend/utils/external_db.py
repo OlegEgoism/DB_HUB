@@ -1,6 +1,10 @@
 # backend/utils/external_db.py
 import asyncpg
 from contextlib import asynccontextmanager
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.models.db import DB_Connection
 from backend.core.security import decrypt_password
 
@@ -21,3 +25,9 @@ async def external_db_connection(db_connection: DB_Connection, timeout: int = 10
         yield conn
     finally:
         await conn.close()
+
+
+async def get_db_connection_by_id(db: AsyncSession, connection_id: int) -> DB_Connection | None:
+    """Получить запись подключения к внешней базе данных"""
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+    return result.scalar_one_or_none()

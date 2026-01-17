@@ -23,7 +23,7 @@ async def get_tables(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество схем на странице"),
-        search: str = Query(None, description="Поиск по: имени/описанию схемы, имени/описанию таблицы"),
+        search: str = Query(None, description="Поиск по имени/описанию схемы, имени/описанию таблицы"),
 ):
     """Получить список таблиц"""
     try:
@@ -42,7 +42,7 @@ async def get_tables_temporary(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество таблиц на странице"),
-        search: str = Query(None, description="Поиск по имени/описанию временной таблицы"),
+        search: str = Query(None, description="Поиск по имени/описанию схемы, имени/описанию временной таблицы"),
 ):
     """Получить список временных таблиц"""
     try:
@@ -61,7 +61,7 @@ async def get_tables_privileges_for_users(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
-        search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени пользователя (user)"),
+        search: str = Query(None, description="Поиск по имени/описанию схемы, имени/описанию таблицы и имени пользователя"),
 ):
     """Получить права пользователя к таблицам"""
     try:
@@ -79,22 +79,7 @@ async def update_tables_privileges_for_users(connection_id: int, request: TableP
     """Обновить права пользователя на таблицу"""
     try:
         service = DBTablesService(db)
-        updated = await service.update_tables_privileges_for_users(
-            connection_id=connection_id,
-            schema_name=request.schema_name,
-            table_name=request.table_name,
-            user_privileges=[
-                {
-                    "username": u.username,
-                    "select": u.select,
-                    "insert": u.insert,
-                    "update": u.update,
-                    "delete": u.delete,
-                    "truncate": u.truncate,
-                }
-                for u in request.users
-            ],
-        )
+        updated = await service.update_tables_privileges_for_users(connection_id=connection_id, schema_name=request.schema_name, table_name=request.table_name, user_privileges=[{"username": u.username, "select": u.select, "insert": u.insert, "update": u.update, "delete": u.delete, "truncate": u.truncate, } for u in request.users], )
         return TablePrivilegesUpdateResponse(message="Права на таблицу успешно обновлены", updated_users=updated)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -108,7 +93,7 @@ async def get_tables_privileges_for_groups(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
-        search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени группы (group)"),
+        search: str = Query(None, description="Поиск по имени/описанию схемы, имени/описанию таблицы и имени группы"),
 ):
     """Получить права групп к таблицам"""
     try:
@@ -123,29 +108,15 @@ async def get_tables_privileges_for_groups(
 
 @router.post("/privileges_groups", response_model=TablePrivilegesGroupsUpdateResponse)
 async def update_tables_privileges_for_groups(connection_id: int, request: TablePrivilegesGroupsUpdateRequest, db: AsyncSession = Depends(get_db), ):
-    """Обновить прав группы на таблицу"""
+    """Обновить права группы на таблицу"""
     try:
         service = DBTablesService(db)
         updated = await service.update_tables_privileges_for_groups(
             connection_id=connection_id,
             schema_name=request.schema_name,
             table_name=request.table_name,
-            group_privileges=[
-                {
-                    "groupname": g.groupname,
-                    "select": g.select,
-                    "insert": g.insert,
-                    "update": g.update,
-                    "delete": g.delete,
-                    "truncate": g.truncate,
-                }
-                for g in request.groups
-            ],
-        )
-        return TablePrivilegesGroupsUpdateResponse(
-            message="Права групп на таблицу успешно обновлены",
-            updated_groups=updated
-        )
+            group_privileges=[{"groupname": g.groupname, "select": g.select, "insert": g.insert, "update": g.update, "delete": g.delete, "truncate": g.truncate, } for g in request.groups], )
+        return TablePrivilegesGroupsUpdateResponse(message="Права групп на таблицу успешно обновлены", updated_groups=updated)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

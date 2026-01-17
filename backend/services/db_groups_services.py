@@ -1,11 +1,10 @@
 # backend/services/db_groups_services.py
 import math
 from typing import Optional
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.db import DB_Connection
 from backend.schemas.db_groups_schemas import DBGroupOut, PaginatedDBGroupsResponse
-from backend.utils.external_db import external_db_connection
+from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 
 
 class DBGroupService:
@@ -13,8 +12,7 @@ class DBGroupService:
         self.db = db
 
     async def get_connection(self, connection_id: int) -> DB_Connection | None:
-        result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
-        return result.scalar_one_or_none()
+        return await get_db_connection_by_id(self.db, connection_id)
 
     async def list_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> PaginatedDBGroupsResponse:
         connection = await self.get_connection(connection_id)

@@ -2,9 +2,8 @@
 import math
 from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from backend.models.db import DB_Connection
-from backend.utils.external_db import external_db_connection
+from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 
 
 class DBFunctionService:
@@ -12,10 +11,9 @@ class DBFunctionService:
         self.db = db
 
     async def _get_connection(self, connection_id: int) -> DB_Connection:
-        result = await self.db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
-        connection = result.scalar_one_or_none()
+        connection = await get_db_connection_by_id(self.db, connection_id)
         if not connection:
-            raise ValueError(f"Подключение с ID {connection_id} не найдено")
+            raise ValueError(f"Подключение с id {connection_id} не найдено")
         return connection
 
     async def get_functions(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
