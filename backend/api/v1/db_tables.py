@@ -1,5 +1,5 @@
 # backend/api/v1/db_tables.py
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
 from backend.services.db_tables_services import DBTablesService
@@ -53,6 +53,23 @@ async def get_tables_temporary(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении временных таблиц: {str(e)}")
+
+
+@router.delete("/temporary/{table_name}", response_model=dict)
+async def delete_temporary_table(
+        connection_id: int = Path(..., description="id подключения к базе данных"),
+        table_name: str = Path(..., description="Имя временной таблицы"),
+        db: AsyncSession = Depends(get_db),
+):
+    """Удалить временную таблицу"""
+    try:
+        service = DBTablesService(db)
+        result = await service.drop_tables_temporary(connection_id=connection_id, table_name=table_name)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении временной таблицы: {str(e)}")
 
 
 @router.get("/privileges_users", response_model=PaginatedTablePrivilegesUsersResponse)
