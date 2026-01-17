@@ -175,8 +175,7 @@ class DBTablesService:
             "schemas": schemas_with_tables,
         }
 
-    async def get_temporary_tables(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
-        """Получить список временных таблиц"""
+    async def get_tables_temporary(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         base_query = """
         SELECT
@@ -252,7 +251,7 @@ class DBTablesService:
             "temporary_tables": tables,
         }
 
-    async def get_table_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def get_tables_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         users_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true ORDER BY rolname;"
         user_rows = await self._execute_query(connection, users_query)
@@ -373,8 +372,7 @@ class DBTablesService:
             "table_privileges": paginated,
         }
 
-    async def update_table_privileges_for_users(self, connection_id: int, schema_name: str, table_name: str, user_privileges: List[Dict[str, Any]], ) -> List[str]:
-        """Обновляет права SELECT, INSERT, UPDATE, DELETE, TRUNCATE на таблицу для указанных пользователей."""
+    async def update_tables_privileges_for_users(self, connection_id: int, schema_name: str, table_name: str, user_privileges: List[Dict[str, Any]], ) -> List[str]:
         connection = await self._get_connection(connection_id)
         exists = await self._execute_query(connection, "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'r';", schema_name, table_name)
         if not exists:
@@ -419,7 +417,7 @@ class DBTablesService:
                     await self._execute_query(connection, f'REVOKE {priv} ON TABLE "{schema_name}"."{table_name}" FROM "{username}";')
         return updated_users
 
-    async def get_table_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def get_tables_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         groups_query = "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;"
         group_rows = await self._execute_query(connection, groups_query)
@@ -554,7 +552,7 @@ class DBTablesService:
             "table_privileges": paginated,
         }
 
-    async def update_table_privileges_for_groups(self, connection_id: int, schema_name: str, table_name: str, group_privileges: List[Dict[str, Any]], ) -> List[str]:
+    async def update_tables_privileges_for_groups(self, connection_id: int, schema_name: str, table_name: str, group_privileges: List[Dict[str, Any]], ) -> List[str]:
         connection = await self._get_connection(connection_id)
         exists = await self._execute_query(
             connection,

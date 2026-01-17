@@ -1,10 +1,18 @@
 # backend/api/v1/db_tables.py
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 from backend.database.session import get_db
-from backend.schemas.db_tables_schemas import PaginatedSchemasWithTablesResponse, PaginatedTemporaryTablesResponse, TablePrivilegesUpdateResponse, TablePrivilegesUpdateRequest, TablePrivilegesGroupsUpdateResponse, PaginatedTablePrivilegesGroupsResponse, TablePrivilegesGroupsUpdateRequest, PaginatedTablePrivilegesUsersResponse
 from backend.services.db_tables_services import DBTablesService
+from backend.schemas.db_tables_schemas import (
+    PaginatedSchemasWithTablesResponse,
+    PaginatedTemporaryTablesResponse,
+    TablePrivilegesUpdateResponse,
+    TablePrivilegesUpdateRequest,
+    TablePrivilegesGroupsUpdateResponse,
+    PaginatedTablePrivilegesGroupsResponse,
+    TablePrivilegesGroupsUpdateRequest,
+    PaginatedTablePrivilegesUsersResponse
+)
 
 router = APIRouter(prefix="/db_connections/{connection_id}/tables", tags=["DB TABLES"])
 
@@ -29,7 +37,7 @@ async def get_tables(
 
 
 @router.get("/temporary", response_model=PaginatedTemporaryTablesResponse)
-async def get_temporary_tables(
+async def get_tables_temporary(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
@@ -39,7 +47,7 @@ async def get_temporary_tables(
     """Получить список временных таблиц"""
     try:
         service = DBTablesService(db)
-        result = await service.get_temporary_tables(connection_id=connection_id, page=page, size=size, search=search)
+        result = await service.get_tables_temporary(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -48,17 +56,17 @@ async def get_temporary_tables(
 
 
 @router.get("/privileges_users", response_model=PaginatedTablePrivilegesUsersResponse)
-async def get_table_privileges_for_users(
+async def get_tables_privileges_for_users(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
         search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени пользователя (user)"),
 ):
-    """Получить права доступа пользователей к таблицам"""
+    """Получить права пользователя к таблицам"""
     try:
         service = DBTablesService(db)
-        result = await service.get_table_privileges_for_users(connection_id=connection_id, page=page, size=size, search=search)
+        result = await service.get_tables_privileges_for_users(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -67,11 +75,11 @@ async def get_table_privileges_for_users(
 
 
 @router.post("/privileges_users", response_model=TablePrivilegesUpdateResponse)
-async def update_table_privileges_for_users(connection_id: int, request: TablePrivilegesUpdateRequest, db: AsyncSession = Depends(get_db), ):
-    """Обновить права на таблицу для пользователя"""
+async def update_tables_privileges_for_users(connection_id: int, request: TablePrivilegesUpdateRequest, db: AsyncSession = Depends(get_db), ):
+    """Обновить права пользователя на таблицу"""
     try:
         service = DBTablesService(db)
-        updated = await service.update_table_privileges_for_users(
+        updated = await service.update_tables_privileges_for_users(
             connection_id=connection_id,
             schema_name=request.schema_name,
             table_name=request.table_name,
@@ -95,17 +103,17 @@ async def update_table_privileges_for_users(connection_id: int, request: TablePr
 
 
 @router.get("/privileges_groups", response_model=PaginatedTablePrivilegesGroupsResponse)
-async def get_table_privileges_for_groups(
+async def get_tables_privileges_for_groups(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
         search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени группы (group)"),
 ):
-    """Получить права доступа групп к таблицам"""
+    """Получить права групп к таблицам"""
     try:
         service = DBTablesService(db)
-        result = await service.get_table_privileges_for_groups(connection_id=connection_id, page=page, size=size, search=search)
+        result = await service.get_tables_privileges_for_groups(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -114,11 +122,11 @@ async def get_table_privileges_for_groups(
 
 
 @router.post("/privileges_groups", response_model=TablePrivilegesGroupsUpdateResponse)
-async def update_table_privileges_for_groups(connection_id: int, request: TablePrivilegesGroupsUpdateRequest, db: AsyncSession = Depends(get_db), ):
-    """Обновить права SELECT/INSERT/UPDATE/DELETE/TRUNCATE на таблицу для группы"""
+async def update_tables_privileges_for_groups(connection_id: int, request: TablePrivilegesGroupsUpdateRequest, db: AsyncSession = Depends(get_db), ):
+    """Обновить прав группы на таблицу"""
     try:
         service = DBTablesService(db)
-        updated = await service.update_table_privileges_for_groups(
+        updated = await service.update_tables_privileges_for_groups(
             connection_id=connection_id,
             schema_name=request.schema_name,
             table_name=request.table_name,
@@ -142,7 +150,3 @@ async def update_table_privileges_for_groups(connection_id: int, request: TableP
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав групп: {str(e)}")
-
-
-
-

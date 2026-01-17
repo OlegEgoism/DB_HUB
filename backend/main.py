@@ -12,7 +12,7 @@ from backend.api.v1 import (
     db_metrics,
     db_groups,
     db_users,
-    # db_schemas,
+    db_schemas,
     db_views, db_functions, db_indexes, db_tables
 )
 
@@ -61,7 +61,7 @@ app.include_router(db_connections.router, prefix="")
 app.include_router(db_metrics.router, prefix="")
 app.include_router(db_groups.router, prefix="")
 app.include_router(db_users.router, prefix="")
-# app.include_router(db_schemas.router, prefix="")
+app.include_router(db_schemas.router, prefix="")
 app.include_router(db_views.router, prefix="")
 app.include_router(db_functions.router, prefix="")
 app.include_router(db_indexes.router, prefix="")
