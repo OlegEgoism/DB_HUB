@@ -15,7 +15,7 @@ from backend.schemas.db_groups_schemas import (
 router = APIRouter(prefix="/db_connections/{connection_id}/groups", tags=["DB GROUPS"])
 
 
-@router.get("/", response_model=PaginatedDBGroupsResponse)
+@router.get("", response_model=PaginatedDBGroupsResponse)
 async def list_groups(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
@@ -68,7 +68,7 @@ async def update_group(
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении группы: {str(e)}")
 
 
-@router.post("/", response_model=dict, status_code=201)
+@router.post("", response_model=dict, status_code=201)
 async def create_group(
         create: DBGroupCreate,
         connection_id: int = Path(..., description="id подключения к базе данных"),

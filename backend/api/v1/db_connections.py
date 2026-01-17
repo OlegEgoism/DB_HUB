@@ -76,7 +76,7 @@ def build_connection_out(connection: DB_Connection, owner_username: str, status:
     )
 
 
-@router.get("/", response_model=PaginatedConnectionResponse)
+@router.get("", response_model=PaginatedConnectionResponse)
 async def list_connections(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1),
@@ -133,7 +133,7 @@ async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db))
     return build_connection_out(connection, owner_username, status_conn, size_mb, effective_description)
 
 
-@router.post("/", response_model=ConnectionOut, status_code=201)
+@router.post("", response_model=ConnectionOut, status_code=201)
 async def create_connection(connection: ConnectionCreate, db: AsyncSession = Depends(get_db)):
     """Создать новое подключение к базе данных"""
     if not (await db.execute(select(User).where(User.id == connection.owner_id))).scalar_one_or_none():

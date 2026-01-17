@@ -5,10 +5,10 @@ from backend.database.session import get_db
 from backend.schemas.db_views_schemas import PaginatedViewsResponse, PaginatedMaterializedViewsResponse
 from backend.services.db_views_services import DBViewsService
 
-router = APIRouter(prefix="/db_schemas", tags=["DB VIEWS"])
+router = APIRouter(prefix="/db_connections/{connection_id}", tags=["DB VIEWS"])
 
 
-@router.get("/connection/{connection_id}/views", response_model=PaginatedViewsResponse)
+@router.get("/views", response_model=PaginatedViewsResponse)
 async def get_views(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
@@ -27,7 +27,7 @@ async def get_views(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении представлений: {str(e)}")
 
 
-@router.get("/connection/{connection_id}/materialized_views", response_model=PaginatedMaterializedViewsResponse)
+@router.get("/materialized_views", response_model=PaginatedMaterializedViewsResponse)
 async def get_materialized_views(
         connection_id: int,
         db: AsyncSession = Depends(get_db),

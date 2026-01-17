@@ -13,7 +13,7 @@ from backend.api.v1 import (
     db_groups,
     db_users,
     db_schemas,
-    db_views
+    db_views, db_functions
 )
 
 """Настройка логирования"""
@@ -63,3 +63,4 @@ app.include_router(db_groups.router, prefix="/api/v1")
 app.include_router(db_users.router, prefix="/api/v1")
 app.include_router(db_schemas.router, prefix="/api/v1")
 app.include_router(db_views.router, prefix="/api/v1")
+app.include_router(db_functions.router, prefix="/api/v1")

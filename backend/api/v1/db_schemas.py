@@ -9,7 +9,7 @@ from backend.schemas.db_schemas_schemas import (
     PaginatedTemporaryTablesResponse,
     # PaginatedViewsResponse,
     # PaginatedMaterializedViewsResponse,
-    PaginatedFunctionsResponse,
+    # PaginatedFunctionsResponse,
     PaginatedIndexesResponse,
     SchemaPrivilegesUpdateResponse,
     SchemaPrivilegesUpdateRequest,
@@ -100,23 +100,23 @@ async def get_temporary_tables(
 #         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении материализованных представлений: {str(e)}")
 
 
-@router.get("/connection/{connection_id}/functions", response_model=PaginatedFunctionsResponse)
-async def get_functions(
-        connection_id: int,
-        db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1, description="Номер страницы"),
-        size: int = Query(20, ge=1, le=200, description="Количество функций на странице"),
-        search: str = Query(None, description="Поиск по имени/схеме/описанию функции"),
-):
-    """Получить список функций."""
-    try:
-        service = DBSchemaService(db)
-        result = await service.get_functions(connection_id=connection_id, page=page, size=size, search=search)
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении функций: {str(e)}")
+# @router.get("/connection/{connection_id}/functions", response_model=PaginatedFunctionsResponse)
+# async def get_functions(
+#         connection_id: int,
+#         db: AsyncSession = Depends(get_db),
+#         page: int = Query(1, ge=1, description="Номер страницы"),
+#         size: int = Query(20, ge=1, le=200, description="Количество функций на странице"),
+#         search: str = Query(None, description="Поиск по имени/схеме/описанию функции"),
+# ):
+#     """Получить список функций."""
+#     try:
+#         service = DBSchemaService(db)
+#         result = await service.get_functions(connection_id=connection_id, page=page, size=size, search=search)
+#         return result
+#     except ValueError as e:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+#     except Exception as e:
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении функций: {str(e)}")
 
 
 @router.get("/connection/{connection_id}/indexes", response_model=PaginatedIndexesResponse)

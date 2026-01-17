@@ -13,10 +13,10 @@ from backend.schemas.users_schemas import (
     PaginatedResponse
 )
 
-router = APIRouter(prefix="/users", tags=["APP USERS"])
+router = APIRouter(prefix="/app_users", tags=["APP USERS"])
 
 
-@router.get("/", response_model=PaginatedResponse)
+@router.get("", response_model=PaginatedResponse)
 async def list_users(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
@@ -71,7 +71,7 @@ async def list_users(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении пользователей: {str(e)}")
 
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Создать нового пользователя"""
     user_service = UserService(db)

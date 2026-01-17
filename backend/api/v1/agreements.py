@@ -7,10 +7,10 @@ from backend.models.agreement import Agreement
 from backend.schemas.agreements_schemas import AgreementResponse
 from sqlalchemy import select
 
-router = APIRouter(prefix="/agreements", tags=["APP AGREEMENTS"])
+router = APIRouter(prefix="/app_agreements", tags=["APP AGREEMENTS"])
 
 
-@router.get("/", response_model=List[AgreementResponse])
+@router.get("", response_model=List[AgreementResponse])
 async def get_all_agreements(db: AsyncSession = Depends(get_db), is_active: bool = None):
     """Получить список всех пользовательских соглашений"""
     try:

@@ -6,7 +6,7 @@ from backend.database.session import get_db
 from backend.services.users_services import UserService
 from backend.schemas.users_schemas import LoginRequest, Token, UserLoginResponse, UserProfile
 
-router = APIRouter(prefix="/auth", tags=["APP AUTHENTICATION"])
+router = APIRouter(prefix="/app_auth", tags=["APP AUTHENTICATION"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 

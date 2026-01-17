@@ -7,10 +7,10 @@ from backend.models.db import DB_Connection
 from backend.schemas.db_metrics_schemas import AllDatabaseMetricsResponse, ShowAllResponse
 from backend.services.db_metrics_services import DBMetricsService
 
-router = APIRouter(prefix="/db_metrics", tags=["DB METRIC"])
+router = APIRouter(prefix="/db_connections/{connection_id}", tags=["DB METRIC"])
 
 
-@router.get("/{connection_id}", response_model=AllDatabaseMetricsResponse)
+@router.get("/metrics", response_model=AllDatabaseMetricsResponse)
 async def get_database_metrics(connection_id: int, db: AsyncSession = Depends(get_db)):
     """Получить все метрики базы данных одним запросом"""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
@@ -38,7 +38,7 @@ async def get_database_metrics(connection_id: int, db: AsyncSession = Depends(ge
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении метрик: {str(e)}")
 
 
-@router.get("/{connection_id}/settings", response_model=ShowAllResponse)
+@router.get("/settings", response_model=ShowAllResponse)
 async def get_database_settings(connection_id: int, db: AsyncSession = Depends(get_db)):
     """Получить все настройки базы данных"""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))

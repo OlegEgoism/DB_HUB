@@ -9,7 +9,7 @@ from backend.services.db_users_services import DBUserService
 router = APIRouter(prefix="/db_connections/{connection_id}/users", tags=["DB USERS"])
 
 
-@router.get("/", response_model=PaginatedDBUsersResponse)
+@router.get("", response_model=PaginatedDBUsersResponse)
 async def list_users(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
@@ -43,7 +43,7 @@ async def get_user(
         raise HTTPException(status_code=500, detail=f"Ошибка при получении пользователя: {str(e)}")
 
 
-@router.post("/", response_model=DBUserOut, status_code=201)
+@router.post("", response_model=DBUserOut, status_code=201)
 async def create_user(
         user_data: DBUserCreate,
         connection_id: int = Path(..., description="id подключения к базе данных"),
