@@ -1,13 +1,14 @@
 # backend/api/v1/db_schemas.py
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 from backend.database.session import get_db
 from backend.services.db_schemas_services import DBSchemaService
 from backend.schemas.db_schemas_schemas import (
     PaginatedSchemasWithTablesResponse,
     PaginatedTemporaryTablesResponse,
-    PaginatedViewsResponse,
-    PaginatedMaterializedViewsResponse,
+    # PaginatedViewsResponse,
+    # PaginatedMaterializedViewsResponse,
     PaginatedFunctionsResponse,
     PaginatedIndexesResponse,
     SchemaPrivilegesUpdateResponse,
@@ -29,7 +30,7 @@ async def get_schemas_with_physical_tables(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы"),
         size: int = Query(20, ge=1, le=200, description="Количество схем на странице"),
-        search: str = Query(None, description="Поиск по имени/описанию схемы, имени/описанию таблицы"),
+        search: str = Query(None, description="Поиск по: имени/описанию схемы, имени/описанию таблицы"),
 ):
     """Получить список схем и физических таблиц."""
     try:
@@ -60,43 +61,43 @@ async def get_temporary_tables(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении временных таблиц: {str(e)}")
 
-
-@router.get("/connection/{connection_id}/views", response_model=PaginatedViewsResponse)
-async def get_views(
-        connection_id: int,
-        db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1, description="Номер страницы"),
-        size: int = Query(20, ge=1, le=200, description="Количество представлений на странице"),
-        search: str = Query(None, description="Поиск по имени/описанию представления"),
-):
-    """Получить список представлений (views)."""
-    try:
-        service = DBSchemaService(db)
-        result = await service.get_views(connection_id=connection_id, page=page, size=size, search=search)
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении представлений: {str(e)}")
-
-
-@router.get("/connection/{connection_id}/materialized_views", response_model=PaginatedMaterializedViewsResponse)
-async def get_materialized_views(
-        connection_id: int,
-        db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1, description="Номер страницы"),
-        size: int = Query(20, ge=1, le=200, description="Количество материализованных представлений на странице"),
-        search: str = Query(None, description="Поиск по имени/схеме/описанию материализованного представления"),
-):
-    """Получить список материализованных представлений (materialized views)."""
-    try:
-        service = DBSchemaService(db)
-        result = await service.get_materialized_views(connection_id=connection_id, page=page, size=size, search=search)
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении материализованных представлений: {str(e)}")
+#
+# @router.get("/connection/{connection_id}/views", response_model=PaginatedViewsResponse)
+# async def get_views(
+#         connection_id: int,
+#         db: AsyncSession = Depends(get_db),
+#         page: int = Query(1, ge=1, description="Номер страницы"),
+#         size: int = Query(20, ge=1, le=200, description="Количество представлений на странице"),
+#         search: str = Query(None, description="Поиск по имени/описанию представления"),
+# ):
+#     """Получить список представлений (views)."""
+#     try:
+#         service = DBSchemaService(db)
+#         result = await service.get_views(connection_id=connection_id, page=page, size=size, search=search)
+#         return result
+#     except ValueError as e:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+#     except Exception as e:
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении представлений: {str(e)}")
+#
+#
+# @router.get("/connection/{connection_id}/materialized_views", response_model=PaginatedMaterializedViewsResponse)
+# async def get_materialized_views(
+#         connection_id: int,
+#         db: AsyncSession = Depends(get_db),
+#         page: int = Query(1, ge=1, description="Номер страницы"),
+#         size: int = Query(20, ge=1, le=200, description="Количество материализованных представлений на странице"),
+#         search: str = Query(None, description="Поиск по имени/схеме/описанию материализованного представления"),
+# ):
+#     """Получить список материализованных представлений (materialized views)."""
+#     try:
+#         service = DBSchemaService(db)
+#         result = await service.get_materialized_views(connection_id=connection_id, page=page, size=size, search=search)
+#         return result
+#     except ValueError as e:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+#     except Exception as e:
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении материализованных представлений: {str(e)}")
 
 
 @router.get("/connection/{connection_id}/functions", response_model=PaginatedFunctionsResponse)
@@ -314,8 +315,7 @@ async def update_table_privileges_for_groups(connection_id: int, request: TableP
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав групп: {str(e)}")
 
 
-from fastapi import Query
-from typing import List
+
 
 
 @router.get("/connection/{connection_id}/table_privileges_groups_filtered", response_model=PaginatedTablePrivilegesGroupsResponse)

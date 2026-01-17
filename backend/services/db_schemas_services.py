@@ -252,152 +252,152 @@ class DBSchemaService:
             i += 1
         return f"{size:.1f} {units[i]}"
 
-    async def get_views(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
-        """Получить список представлений"""
-        connection = await self._get_connection(connection_id)
-        base_query = """
-        SELECT
-            schemaname AS schema_name,
-            viewname AS view_name,
-            definition,
-            pg_catalog.obj_description(pgc.oid, 'pg_class') AS description
-        FROM pg_catalog.pg_views v
-        JOIN pg_catalog.pg_class pgc ON pgc.relname = v.viewname
-        JOIN pg_catalog.pg_namespace pgn ON pgn.oid = pgc.relnamespace AND pgn.nspname = v.schemaname
-        WHERE v.schemaname NOT IN ('pg_catalog', 'information_schema')
-        """
-        search_term = search.strip().lower() if search and search.strip() else None
-        filtered_query = base_query
-        count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
-        params = []
-        if search_term:
-            filtered_query += """
-            AND (
-                LOWER(v.viewname) LIKE $1
-                OR LOWER(v.definition) LIKE $1
-                OR LOWER(pg_catalog.obj_description(pgc.oid, 'pg_class')) LIKE $1
-            )
-            """
-            count_query = f"""
-            SELECT COUNT(*) AS total FROM (
-                {base_query}
-                AND (
-                    LOWER(v.viewname) LIKE $1
-                    OR LOWER(v.definition) LIKE $1
-                    OR LOWER(pg_catalog.obj_description(pgc.oid, 'pg_class')) LIKE $1
-                )
-            ) AS sub
-            """
-            params.append(f"%{search_term}%")
-        total_all_res = await self._execute_query(connection, f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
-        total_all = total_all_res[0]["total"] if total_all_res else 0
-        total_filtered_res = await self._execute_query(connection, count_query, *params)
-        total_filtered = total_filtered_res[0]["total"] if total_filtered_res else 0
-        offset = (page - 1) * size
-        paginated_query = f"""
-        {filtered_query}
-        ORDER BY v.schemaname, v.viewname
-        LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
-        """
-        paginated_params = params + [size, offset]
-        rows = await self._execute_query(connection, paginated_query, *paginated_params)
-        views = []
-        for row in rows:
-            views.append({
-                "schema_name": row["schema_name"],
-                "view_name": row["view_name"],
-                "description": row["description"],
-                "definition": row["definition"],
-            })
-        pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
-        has_next = page < pages
-        has_prev = page > 1
-        return {
-            "connection_id": connection.id,
-            "connection_name": connection.name,
-            "total_views": total_all,
-            "total_filtered_views": total_filtered,
-            "page": page,
-            "size": size,
-            "pages": pages,
-            "has_next": has_next,
-            "has_prev": has_prev,
-            "views": views,
-        }
-
-    async def get_materialized_views(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
-        """Получить список материализованных представлений"""
-        connection = await self._get_connection(connection_id)
-        base_query = """
-        SELECT
-            n.nspname AS schema_name,
-            c.relname AS view_name,
-            pg_catalog.obj_description(c.oid, 'pg_class') AS description,
-            pg_get_viewdef(c.oid) AS definition
-        FROM pg_catalog.pg_class c
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-        WHERE c.relkind = 'm'
-          AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-        """
-        search_term = search.strip().lower() if search and search.strip() else None
-        filtered_query = base_query
-        count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
-        params = []
-        if search_term:
-            filtered_query += """
-            AND (
-                LOWER(c.relname) LIKE $1
-                OR LOWER(n.nspname) LIKE $1
-                OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $1
-            )
-            """
-            count_query = f"""
-            SELECT COUNT(*) AS total FROM (
-                {base_query}
-                AND (
-                    LOWER(c.relname) LIKE $1
-                    OR LOWER(n.nspname) LIKE $1
-                    OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $1
-                )
-            ) AS sub
-            """
-            params.append(f"%{search_term}%")
-        total_all_res = await self._execute_query(connection, f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
-        total_all = total_all_res[0]["total"] if total_all_res else 0
-        total_filtered_res = await self._execute_query(connection, count_query, *params)
-        total_filtered = total_filtered_res[0]["total"] if total_filtered_res else 0
-        offset = (page - 1) * size
-        paginated_query = f"""
-        {filtered_query}
-        ORDER BY n.nspname, c.relname
-        LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
-        """
-        paginated_params = params + [size, offset]
-        rows = await self._execute_query(connection, paginated_query, *paginated_params)
-        materialized_views = []
-        for row in rows:
-            definition = (row["definition"] or "").replace("\\n", "\n")
-            materialized_views.append({
-                "schema_name": row["schema_name"],
-                "view_name": row["view_name"],
-                "description": row["description"],
-                "definition": definition,
-            })
-        pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
-        has_next = page < pages
-        has_prev = page > 1
-        return {
-            "connection_id": connection.id,
-            "connection_name": connection.name,
-            "total_materialized_views": total_all,
-            "total_filtered_materialized_views": total_filtered,
-            "page": page,
-            "size": size,
-            "pages": pages,
-            "has_next": has_next,
-            "has_prev": has_prev,
-            "materialized_views": materialized_views,
-        }
+    # async def get_views(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    #     """Получить список представлений"""
+    #     connection = await self._get_connection(connection_id)
+    #     base_query = """
+    #     SELECT
+    #         schemaname AS schema_name,
+    #         viewname AS view_name,
+    #         definition,
+    #         pg_catalog.obj_description(pgc.oid, 'pg_class') AS description
+    #     FROM pg_catalog.pg_views v
+    #     JOIN pg_catalog.pg_class pgc ON pgc.relname = v.viewname
+    #     JOIN pg_catalog.pg_namespace pgn ON pgn.oid = pgc.relnamespace AND pgn.nspname = v.schemaname
+    #     WHERE v.schemaname NOT IN ('pg_catalog', 'information_schema')
+    #     """
+    #     search_term = search.strip().lower() if search and search.strip() else None
+    #     filtered_query = base_query
+    #     count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
+    #     params = []
+    #     if search_term:
+    #         filtered_query += """
+    #         AND (
+    #             LOWER(v.viewname) LIKE $1
+    #             OR LOWER(v.definition) LIKE $1
+    #             OR LOWER(pg_catalog.obj_description(pgc.oid, 'pg_class')) LIKE $1
+    #         )
+    #         """
+    #         count_query = f"""
+    #         SELECT COUNT(*) AS total FROM (
+    #             {base_query}
+    #             AND (
+    #                 LOWER(v.viewname) LIKE $1
+    #                 OR LOWER(v.definition) LIKE $1
+    #                 OR LOWER(pg_catalog.obj_description(pgc.oid, 'pg_class')) LIKE $1
+    #             )
+    #         ) AS sub
+    #         """
+    #         params.append(f"%{search_term}%")
+    #     total_all_res = await self._execute_query(connection, f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
+    #     total_all = total_all_res[0]["total"] if total_all_res else 0
+    #     total_filtered_res = await self._execute_query(connection, count_query, *params)
+    #     total_filtered = total_filtered_res[0]["total"] if total_filtered_res else 0
+    #     offset = (page - 1) * size
+    #     paginated_query = f"""
+    #     {filtered_query}
+    #     ORDER BY v.schemaname, v.viewname
+    #     LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
+    #     """
+    #     paginated_params = params + [size, offset]
+    #     rows = await self._execute_query(connection, paginated_query, *paginated_params)
+    #     views = []
+    #     for row in rows:
+    #         views.append({
+    #             "schema_name": row["schema_name"],
+    #             "view_name": row["view_name"],
+    #             "description": row["description"],
+    #             "definition": row["definition"],
+    #         })
+    #     pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+    #     has_next = page < pages
+    #     has_prev = page > 1
+    #     return {
+    #         "connection_id": connection.id,
+    #         "connection_name": connection.name,
+    #         "total_views": total_all,
+    #         "total_filtered_views": total_filtered,
+    #         "page": page,
+    #         "size": size,
+    #         "pages": pages,
+    #         "has_next": has_next,
+    #         "has_prev": has_prev,
+    #         "views": views,
+    #     }
+    #
+    # async def get_materialized_views(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    #     """Получить список материализованных представлений"""
+    #     connection = await self._get_connection(connection_id)
+    #     base_query = """
+    #     SELECT
+    #         n.nspname AS schema_name,
+    #         c.relname AS view_name,
+    #         pg_catalog.obj_description(c.oid, 'pg_class') AS description,
+    #         pg_get_viewdef(c.oid) AS definition
+    #     FROM pg_catalog.pg_class c
+    #     JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+    #     WHERE c.relkind = 'm'
+    #       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+    #     """
+    #     search_term = search.strip().lower() if search and search.strip() else None
+    #     filtered_query = base_query
+    #     count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
+    #     params = []
+    #     if search_term:
+    #         filtered_query += """
+    #         AND (
+    #             LOWER(c.relname) LIKE $1
+    #             OR LOWER(n.nspname) LIKE $1
+    #             OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $1
+    #         )
+    #         """
+    #         count_query = f"""
+    #         SELECT COUNT(*) AS total FROM (
+    #             {base_query}
+    #             AND (
+    #                 LOWER(c.relname) LIKE $1
+    #                 OR LOWER(n.nspname) LIKE $1
+    #                 OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $1
+    #             )
+    #         ) AS sub
+    #         """
+    #         params.append(f"%{search_term}%")
+    #     total_all_res = await self._execute_query(connection, f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
+    #     total_all = total_all_res[0]["total"] if total_all_res else 0
+    #     total_filtered_res = await self._execute_query(connection, count_query, *params)
+    #     total_filtered = total_filtered_res[0]["total"] if total_filtered_res else 0
+    #     offset = (page - 1) * size
+    #     paginated_query = f"""
+    #     {filtered_query}
+    #     ORDER BY n.nspname, c.relname
+    #     LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
+    #     """
+    #     paginated_params = params + [size, offset]
+    #     rows = await self._execute_query(connection, paginated_query, *paginated_params)
+    #     materialized_views = []
+    #     for row in rows:
+    #         definition = (row["definition"] or "").replace("\\n", "\n")
+    #         materialized_views.append({
+    #             "schema_name": row["schema_name"],
+    #             "view_name": row["view_name"],
+    #             "description": row["description"],
+    #             "definition": definition,
+    #         })
+    #     pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+    #     has_next = page < pages
+    #     has_prev = page > 1
+    #     return {
+    #         "connection_id": connection.id,
+    #         "connection_name": connection.name,
+    #         "total_materialized_views": total_all,
+    #         "total_filtered_materialized_views": total_filtered,
+    #         "page": page,
+    #         "size": size,
+    #         "pages": pages,
+    #         "has_next": has_next,
+    #         "has_prev": has_prev,
+    #         "materialized_views": materialized_views,
+    #     }
 
     async def get_functions(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         """Получить список функций"""
@@ -999,6 +999,7 @@ class DBSchemaService:
         group_oids = {row["oid"] for row in group_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
         all_groupnames = sorted(oid_to_rolname.values())
+
         tables_query = """
         SELECT
             n.nspname AS schema_name,
@@ -1028,6 +1029,7 @@ class DBSchemaService:
             }
             for row in table_rows
         }
+
         acl_query = """
         SELECT
             c.oid AS table_oid,
@@ -1042,15 +1044,23 @@ class DBSchemaService:
         """
         acl_rows = await self._execute_query(connection, acl_query)
         target_privileges = {"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"}
+
         for row in acl_rows:
             table_oid = row["table_oid"]
             grantee_oid = row["grantee_oid"]
             privilege = row["privilege_type"]
+
+            # Пропускаем PUBLIC (OID=0) и неизвестные OID
+            if grantee_oid == 0 or grantee_oid not in oid_to_rolname:
+                continue
+
             if grantee_oid not in group_oids or privilege not in target_privileges:
                 continue
+
             groupname = oid_to_rolname[grantee_oid]
             if table_oid in table_info and groupname in table_info[table_oid]["privileges"]:
                 table_info[table_oid]["privileges"][groupname][privilege] = True
+
         all_entries = []
         for info in table_info.values():
             entry = {
@@ -1070,6 +1080,7 @@ class DBSchemaService:
                 ]
             }
             all_entries.append(entry)
+
         search_term = search.strip().lower() if search and search.strip() else None
         filtered_entries = []
         if not search_term:
@@ -1092,14 +1103,17 @@ class DBSchemaService:
                     entry_copy = entry.copy()
                     entry_copy["group_privileges"] = matching_groups
                     filtered_entries.append(entry_copy)
+
         total_tables = len(all_entries)
         total_filtered = len(filtered_entries)
         start = (page - 1) * size
         end = start + size
         paginated = filtered_entries[start:end]
+
         pages = (total_filtered + size - 1) // size if size > 0 else 1
         has_next = page < pages
         has_prev = page > 1
+
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
@@ -1112,7 +1126,6 @@ class DBSchemaService:
             "has_prev": has_prev,
             "table_privileges": paginated,
         }
-
     async def update_table_privileges_for_groups(self, connection_id: int, schema_name: str, table_name: str, group_privileges: List[Dict[str, Any]], ) -> List[str]:
         connection = await self._get_connection(connection_id)
         exists = await self._execute_query(
