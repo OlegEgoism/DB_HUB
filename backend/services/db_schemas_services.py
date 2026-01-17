@@ -1,6 +1,5 @@
 # backend/services/db_schemas_services.py
 import asyncpg
-import math
 from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -34,17 +33,6 @@ class DBSchemaService:
             return rows
         finally:
             await conn.close()
-
-    def _human_readable_size(self, size_bytes: int) -> str:
-        if size_bytes == 0:
-            return "0 B"
-        units = ["B", "KB", "MB", "GB", "TB"]
-        i = 0
-        size = float(size_bytes)
-        while size >= 1024.0 and i < len(units) - 1:
-            size /= 1024.0
-            i += 1
-        return f"{size:.1f} {units[i]}"
 
     async def get_schema_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)

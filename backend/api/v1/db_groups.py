@@ -21,9 +21,9 @@ async def list_groups(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-        search: Optional[str] = Query(None, description="Поиск по названию и описанию группы")
+        search: Optional[str] = Query(None, description="Поиск по названию/описанию группы")
 ):
-    """Получить список групп в базе данных"""
+    """Получить список групп"""
     try:
         service = DBGroupService(db)
         return await service.list_groups(connection_id=connection_id, page=page, size=size, search=search)
@@ -39,7 +39,7 @@ async def get_group(
         oid: int = Path(..., description="oid группы в базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Получить информацию о группе в базе данных"""
+    """Получить информацию о группе"""
     try:
         service = DBGroupService(db)
         group_data = await service.get_group(connection_id, oid)
@@ -57,7 +57,7 @@ async def update_group(
         oid: int = Path(..., description="oid группы в базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Обновить данные группу в базе данных"""
+    """Обновить группу"""
     try:
         service = DBGroupService(db)
         result = await service.update_group(connection_id, oid, update)
@@ -74,7 +74,7 @@ async def create_group(
         connection_id: int = Path(..., description="id подключения к базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Создать новую группу в базе данных"""
+    """Создать новую группу"""
     try:
         service = DBGroupService(db)
         result = await service.create_group(connection_id, create)
@@ -91,7 +91,7 @@ async def delete_group(
         oid: int = Path(..., description="oid группы в базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Удалить группу из базы данных"""
+    """Удалить группу"""
     try:
         service = DBGroupService(db)
         result = await service.delete_group(connection_id, oid)
@@ -108,7 +108,7 @@ async def get_group_with_users(
         oid: int = Path(..., description="oid группы в базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Получить информацию о группе и список её пользователей из базы данных"""
+    """Получить группу и список пользователей"""
     try:
         service = DBGroupService(db)
         group_data = await service.get_group_with_users(connection_id, oid)

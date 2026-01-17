@@ -15,9 +15,9 @@ async def list_users(
         db: AsyncSession = Depends(get_db),
         page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-        search: Optional[str] = Query(None, description="Поиск по имени и описанию пользователя")
+        search: Optional[str] = Query(None, description="Поиск по имени/описанию пользователя")
 ):
-    """Получить список пользователей из базы данных"""
+    """Получить список пользователей"""
     try:
         service = DBUserService(db)
         return await service.list_users(connection_id=connection_id, page=page, size=size, search=search)
@@ -33,7 +33,7 @@ async def get_user(
         oid: int = Path(..., description="oid пользователя в базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Получить информацию о пользователе из базы данных"""
+    """Получить пользователя"""
     try:
         service = DBUserService(db)
         return await service.get_user(connection_id, oid)
@@ -49,7 +49,7 @@ async def create_user(
         connection_id: int = Path(..., description="id подключения к базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Создать нового пользователя в базе данных"""
+    """Создать нового пользователя"""
     try:
         service = DBUserService(db)
         return await service.create_user(connection_id=connection_id, username=user_data.username, password=user_data.password, description=user_data.description, email=user_data.email)
@@ -66,7 +66,7 @@ async def update_user(
         oid: int = Path(..., description="oid пользователя в базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Обновить данные пользователя в базе данных"""
+    """Обновить пользователя"""
     try:
         service = DBUserService(db)
         return await service.update_user(connection_id=connection_id, user_oid=oid, password=user_data.password, description=user_data.description, email=user_data.email)
@@ -82,7 +82,7 @@ async def delete_user(
         oid: int = Path(..., description="oid пользователя в базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Удалить пользователя из базы данных"""
+    """Удалить пользователя"""
     try:
         service = DBUserService(db)
         await service.delete_user(connection_id=connection_id, user_oid=oid)
@@ -98,7 +98,7 @@ async def get_user_with_groups(
         oid: int = Path(..., description="oid пользователя в базе данных"),
         db: AsyncSession = Depends(get_db)
 ):
-    """Получить список групп, в которых состоит пользователь"""
+    """Получить группы, в которых состоит пользователь"""
     try:
         service = DBUserService(db)
         return await service.get_user_with_groups(connection_id=connection_id, user_oid=oid)

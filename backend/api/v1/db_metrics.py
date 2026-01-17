@@ -12,7 +12,7 @@ router = APIRouter(prefix="/db_connections/{connection_id}", tags=["DB METRIC"])
 
 @router.get("/metrics", response_model=AllDatabaseMetricsResponse)
 async def get_database_metrics(connection_id: int, db: AsyncSession = Depends(get_db)):
-    """Получить все метрики базы данных одним запросом"""
+    """Получить все метрики базы данных"""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     connection = result.scalar_one_or_none()
     if not connection:

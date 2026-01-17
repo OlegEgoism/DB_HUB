@@ -79,14 +79,14 @@ def build_connection_out(connection: DB_Connection, owner_username: str, status:
 @router.get("", response_model=PaginatedConnectionResponse)
 async def list_connections(
         db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1),
-        size: int = Query(20, ge=1, le=200),
-        search: Optional[str] = Query(None),
+        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
+        search: Optional[str] = Query(None, description="Поиск по названию/описанию базы данных"),
         database_type: Optional[str] = Query(None),
         environment: Optional[str] = Query(None),
         is_favorite: Optional[bool] = Query(None),
 ):
-    """Получить список подключенных баз данных"""
+    """Получить список баз данных"""
     try:
         query = select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id)
         filters = []
@@ -120,7 +120,7 @@ async def list_connections(
 
 @router.get("/{connection_id}", response_model=ConnectionOut)
 async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
-    """Получить информацию о подключенных баз данных по id"""
+    """Получить информацию о базе данных"""
     result = await db.execute(select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id).where(DB_Connection.id == connection_id))
     row = result.first()
     if not row:
@@ -135,7 +135,7 @@ async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db))
 
 @router.post("", response_model=ConnectionOut, status_code=201)
 async def create_connection(connection: ConnectionCreate, db: AsyncSession = Depends(get_db)):
-    """Создать новое подключение к базе данных"""
+    """Создать подключение"""
     if not (await db.execute(select(User).where(User.id == connection.owner_id))).scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Владелец не найден")
     encrypted_password = encrypt_password(connection.password)
@@ -153,7 +153,7 @@ async def create_connection(connection: ConnectionCreate, db: AsyncSession = Dep
 
 @router.put("/{connection_id}", response_model=ConnectionOut)
 async def update_connection(connection_id: int, connection: ConnectionUpdate, db: AsyncSession = Depends(get_db)):
-    """Обновить подключение к базе данных"""
+    """Обновить подключение"""
     result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
     db_connection = result.scalar_one_or_none()
     if not db_connection:
@@ -183,7 +183,7 @@ async def update_connection(connection_id: int, connection: ConnectionUpdate, db
 
 @router.delete("/{connection_id}", status_code=204)
 async def delete_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
-    """Удалить подключение к базе данных"""
+    """Удалить подключение"""
     db_connection = (await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))).scalar_one_or_none()
     if not db_connection:
         raise HTTPException(status_code=404, detail="Подключение не найдено")
@@ -199,7 +199,7 @@ async def list_active_connections(
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
         username: Optional[str] = Query(None, description="Поиск по имени пользователя")
 ):
-    """Получить список активных подключений к базе данных"""
+    """Получить список процессов в базе данных"""
     try:
         service = DBConnectionService(db)
         return await service.get_active_connections(connection_id=connection_id, page=page, size=size, username=username)
@@ -211,7 +211,7 @@ async def list_active_connections(
 
 @router.delete("/{connection_id}/active_connections", response_model=dict)
 async def delete_active_connection(connection_id: int, request: TerminateConnectionRequest, db: AsyncSession = Depends(get_db)):
-    """Удалить активное подключение (процесс) к базе данных по pid"""
+    """Удалить процесс в базе данных"""
     try:
         service = DBConnectionService(db)
         return await service.terminate_backend_process(connection_id, request.pid)
@@ -223,7 +223,7 @@ async def delete_active_connection(connection_id: int, request: TerminateConnect
 
 @router.patch("/{connection_id}/favorite", response_model=ConnectionOut)
 async def update_connection_favorite(connection_id: int, favorite_update: ConnectionFavoriteUpdate, db: AsyncSession = Depends(get_db)):
-    """Обновить статус избранного подключения к базе данных"""
+    """Обновить статус избранного подключения"""
     db_connection = (await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))).scalar_one_or_none()
     if not db_connection:
         raise HTTPException(status_code=404, detail="Подключение не найдено")

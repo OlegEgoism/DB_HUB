@@ -14,7 +14,7 @@ class UserService:
         self.db = db
 
     async def get_user(self, user_id: int) -> Optional[User]:
-        """Получить пользователя по ID"""
+        """Получить пользователя по id"""
         result = await self.db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         return user

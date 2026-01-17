@@ -19,16 +19,16 @@ router = APIRouter(prefix="/app_users", tags=["APP USERS"])
 @router.get("", response_model=PaginatedResponse)
 async def list_users(
         db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1, description="Номер страницы"),
-        size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
-        search: Optional[str] = Query(None, description="""Поиск по нескольким полям"""),
+        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
+        search: Optional[str] = Query(None, description="""Поиск по логину, ФИО, почте пользователя"""),
         is_active: Optional[bool] = Query(None, description="Фильтр по активности (true/false)"),
         is_superuser: Optional[bool] = Query(None, description="Фильтр по правам суперпользователя (true/false)"),
         role: Optional[str] = Query(None, description="Фильтр по роли (Администратор БД, Аналитик, Разработчик, Тестировщик, Пользователь)"),
         sort_by: str = Query("id", description="Поле для сортировки (id, username, email, created_at, last_login)"),
         sort_order: str = Query("asc", description="Порядок сортировки (asc или desc)")
 ):
-    """Получить список пользователей с поддержкой поиска, фильтрации и сортировки."""
+    """Получить список пользователей"""
     try:
         query = select(User)
         filters = []
@@ -73,7 +73,7 @@ async def list_users(
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
-    """Создать нового пользователя"""
+    """Создать пользователя"""
     user_service = UserService(db)
     try:
         user = await user_service.create_user(user_data)
@@ -87,7 +87,7 @@ async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db))
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
-    """Получить пользователя по ID"""
+    """Получить пользователя"""
     user_service = UserService(db)
     try:
         user = await user_service.get_user(user_id)
@@ -101,7 +101,7 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(user_id: int, user_data: UserUpdate, db: AsyncSession = Depends(get_db)):
-    """Обновить пользователя по ID"""
+    """Обновить пользователя"""
     user_service = UserService(db)
     try:
         user = await user_service.update_user(user_id, user_data)
@@ -117,7 +117,7 @@ async def update_user(user_id: int, user_data: UserUpdate, db: AsyncSession = De
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
-    """Удалить пользователя по ID"""
+    """Удалить пользователя"""
     user_service = UserService(db)
     try:
         success = await user_service.delete_user(user_id)
