@@ -19,7 +19,6 @@ class DBViewsService:
         return connection
 
     async def get_views(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
-        """Получить список представлений (views) с поиском по схеме, имени и описанию"""
         connection = await self._get_connection(connection_id)
         base_query = """
         SELECT

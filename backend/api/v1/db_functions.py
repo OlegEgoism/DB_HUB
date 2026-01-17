@@ -16,7 +16,7 @@ async def get_functions(
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
         search: str = Query(None, description="Поиск по схеме, названию/описанию функции"),
 ):
-    """Получить список функций (functions)"""
+    """Получить список функций"""
     try:
         service = DBFunctionService(db)
         return await service.get_functions(connection_id, page, size, search)

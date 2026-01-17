@@ -6,10 +6,10 @@ from backend.database.session import get_db
 from backend.schemas.db_tables_schemas import PaginatedSchemasWithTablesResponse, PaginatedTemporaryTablesResponse, TablePrivilegesUpdateResponse, TablePrivilegesUpdateRequest, TablePrivilegesGroupsUpdateResponse, PaginatedTablePrivilegesGroupsResponse, TablePrivilegesGroupsUpdateRequest, PaginatedTablePrivilegesUsersResponse
 from backend.services.db_tables_services import DBTablesService
 
-router = APIRouter(prefix="/db_connections/{connection_id}", tags=["DB TABLES"])
+router = APIRouter(prefix="/db_connections/{connection_id}/tables", tags=["DB TABLES"])
 
 
-@router.get("/tables", response_model=PaginatedSchemasWithTablesResponse)
+@router.get("", response_model=PaginatedSchemasWithTablesResponse)
 async def get_tables(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
@@ -20,7 +20,7 @@ async def get_tables(
     """Получить список таблиц"""
     try:
         service = DBTablesService(db)
-        result = await service.get_schemas_with_tables(connection_id=connection_id, page=page, size=size, search=search)
+        result = await service.get_tables(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -28,7 +28,7 @@ async def get_tables(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении схем и таблиц: {str(e)}")
 
 
-@router.get("/temporary_tables", response_model=PaginatedTemporaryTablesResponse)
+@router.get("/temporary", response_model=PaginatedTemporaryTablesResponse)
 async def get_temporary_tables(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
@@ -47,7 +47,7 @@ async def get_temporary_tables(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении временных таблиц: {str(e)}")
 
 
-@router.get("/table_privileges_users", response_model=PaginatedTablePrivilegesUsersResponse)
+@router.get("/privileges_users", response_model=PaginatedTablePrivilegesUsersResponse)
 async def get_table_privileges_for_users(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
@@ -66,7 +66,7 @@ async def get_table_privileges_for_users(
         raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий таблиц: {str(e)}")
 
 
-@router.post("/table_privileges_users", response_model=TablePrivilegesUpdateResponse)
+@router.post("/privileges_users", response_model=TablePrivilegesUpdateResponse)
 async def update_table_privileges_for_users(connection_id: int, request: TablePrivilegesUpdateRequest, db: AsyncSession = Depends(get_db), ):
     """Обновить права на таблицу для пользователя"""
     try:
@@ -94,7 +94,7 @@ async def update_table_privileges_for_users(connection_id: int, request: TablePr
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав: {str(e)}")
 
 
-@router.get("/table_privileges_groups", response_model=PaginatedTablePrivilegesGroupsResponse)
+@router.get("/privileges_groups", response_model=PaginatedTablePrivilegesGroupsResponse)
 async def get_table_privileges_for_groups(
         connection_id: int,
         db: AsyncSession = Depends(get_db),
@@ -113,7 +113,7 @@ async def get_table_privileges_for_groups(
         raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий групп: {str(e)}")
 
 
-@router.post("/table_privileges_groups", response_model=TablePrivilegesGroupsUpdateResponse)
+@router.post("/privileges_groups", response_model=TablePrivilegesGroupsUpdateResponse)
 async def update_table_privileges_for_groups(connection_id: int, request: TablePrivilegesGroupsUpdateRequest, db: AsyncSession = Depends(get_db), ):
     """Обновить права SELECT/INSERT/UPDATE/DELETE/TRUNCATE на таблицу для группы"""
     try:
@@ -144,23 +144,5 @@ async def update_table_privileges_for_groups(connection_id: int, request: TableP
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав групп: {str(e)}")
 
 
-@router.get("/table_privileges_groups_filtered", response_model=PaginatedTablePrivilegesGroupsResponse)
-async def get_table_privileges_for_selected_groups(
-        connection_id: int,
-        groups: List[str] = Query(..., description="Список имён групп (например: ?groups=analysts&groups=reporters)"),
-        db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1, description="Номер страницы"),
-        size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
-        search: str = Query(None, description="Поиск по schema_name, table_name, owner или имени группы"),
-):
-    """Получить права указанных групп на все таблицы."""
-    if not groups:
-        raise HTTPException(status_code=400, detail="Параметр 'groups' обязателен и не может быть пустым")
-    try:
-        service = DBTablesService(db)
-        result = await service.get_table_privileges_for_selected_groups(connection_id=connection_id, group_names=groups, page=page, size=size, search=search)
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")
+
+

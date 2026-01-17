@@ -16,7 +16,7 @@ async def get_views(
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
         search: str = Query(None, description="Поиск по схеме, названию/описанию представления"),
 ):
-    """Получить список представлений (views)"""
+    """Получить список представлений"""
     try:
         service = DBViewsService(db)
         result = await service.get_views(connection_id=connection_id, page=page, size=size, search=search)
@@ -35,7 +35,7 @@ async def get_materialized_views(
         size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
         search: str = Query(None, description="Поиск по схеме, названию/описанию материализованного представления"),
 ):
-    """Получить список материализованных представлений (materialized views)"""
+    """Получить список материализованных представлений"""
     try:
         service = DBViewsService(db)
         result = await service.get_materialized_views(connection_id=connection_id, page=page, size=size, search=search)
