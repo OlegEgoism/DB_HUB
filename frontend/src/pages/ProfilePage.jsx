@@ -25,7 +25,7 @@ const ProfilePage = () => {
                 const userId = parsedUser.id;
 
                 // Используем прямой URL для надёжности (или настройте прокси в vite.config.js)
-                const response = await fetch(`http://localhost:8000/api/v1/users/${userId}`, {
+                const response = await fetch(`http://localhost:8000/api/v1/app_users/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'

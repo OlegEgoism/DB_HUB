@@ -99,7 +99,7 @@ const RegisterPage = () => {
             password: formData.password
         };
         try {
-            await axios.post('http://localhost:8000/api/v1/users/', payload);
+            await axios.post('http://localhost:8000/api/v1/app_users/', payload);
             setShowModal(true);
         } catch (err) {
             let msg = 'Ошибка при регистрации';

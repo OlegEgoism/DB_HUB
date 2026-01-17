@@ -1,10 +1,8 @@
 # backend/utils/external_db.py
 import asyncpg
 from contextlib import asynccontextmanager
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from backend.models.db import DB_Connection
 from backend.core.security import decrypt_password
 

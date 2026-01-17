@@ -49,7 +49,7 @@ const ConnectionMonitoringPage = () => {
             }
 
             try {
-                const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}`, {
+                const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionId}/metrics`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
@@ -251,7 +251,7 @@ const ConnectionMonitoringPage = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/api/v1/db_metrics/${connectionId}/settings`, {
+            const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionId}/settings`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },

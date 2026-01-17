@@ -59,7 +59,7 @@ const EditProfilePage = () => {
                 const parsedUser = JSON.parse(storedUser);
                 const userId = parsedUser.id;
 
-                const response = await fetch(`http://localhost:8000/api/v1/users/${userId}`, {
+                const response = await fetch(`http://localhost:8000/api/v1/app_users/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -129,7 +129,7 @@ const EditProfilePage = () => {
         setSuccess(false);
 
         try {
-            const response = await fetch(`http://localhost:8000/api/v1/users/${userId}`, {
+            const response = await fetch(`http://localhost:8000/api/v1/app_users/${userId}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,

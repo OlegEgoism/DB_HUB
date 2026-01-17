@@ -147,8 +147,8 @@ class PaginatedTablePrivilegesGroupsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DropTemporaryTableResponse(BaseModel):
-    success: bool
-    message: str
-    table_name: str
-    connection_id: int
+# class DropTemporaryTableResponse(BaseModel):
+#     success: bool
+#     message: str
+#     table_name: str
+#     connection_id: int

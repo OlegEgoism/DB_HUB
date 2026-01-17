@@ -14,7 +14,7 @@ const AgreementPage = () => {
                 const token = localStorage.getItem('access_token');
                 const headers = token ? {Authorization: `Bearer ${token}`} : {};
 
-                const response = await fetch('http://localhost:8000/api/v1/agreements/', {
+                const response = await fetch('http://localhost:8000/api/v1/app_agreements/', {
                     headers
                 });
 

@@ -233,23 +233,23 @@ class DBTablesService:
             "temporary_tables": tables,
         }
 
-    async def drop_tables_temporary(self, connection_id: int, table_name: str) -> dict:
-        """Удалить временную таблицу"""
-        connection = await self._get_connection(connection_id)
-        if not table_name or '"' in table_name or ";" in table_name:
-            raise ValueError("Недопустимое имя таблицы")
-        async with external_db_connection(connection) as conn:
-            exists = await conn.fetchval("""
-                SELECT 1
-                FROM pg_class c
-                WHERE c.relname = $1
-                  AND c.relpersistence = 't'
-                  AND c.relkind = 'r'
-            """, table_name)
-            if not exists:
-                raise ValueError(f"Временная таблица '{table_name}' не найдена")
-            await conn.execute(f'DROP TABLE IF EXISTS "{table_name}" CASCADE')
-        return {"success": True, "message": f"Временная таблица '{table_name}' успешно удалена", "table_name": table_name, "connection_id": connection_id}
+    # async def drop_tables_temporary(self, connection_id: int, table_name: str) -> dict:
+    #     """Удалить временную таблицу"""
+    #     connection = await self._get_connection(connection_id)
+    #     if not table_name or '"' in table_name or ";" in table_name:
+    #         raise ValueError("Недопустимое имя таблицы")
+    #     async with external_db_connection(connection) as conn:
+    #         exists = await conn.fetchval("""
+    #             SELECT 1
+    #             FROM pg_class c
+    #             WHERE c.relname = $1
+    #               AND c.relpersistence = 't'
+    #               AND c.relkind = 'r'
+    #         """, table_name)
+    #         if not exists:
+    #             raise ValueError(f"Временная таблица '{table_name}' не найдена")
+    #         await conn.execute(f'DROP TABLE IF EXISTS "{table_name}" CASCADE')
+    #     return {"success": True, "message": f"Временная таблица '{table_name}' успешно удалена", "table_name": table_name, "connection_id": connection_id}
 
     async def get_tables_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)

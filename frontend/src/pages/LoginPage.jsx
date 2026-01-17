@@ -85,7 +85,7 @@ const LoginPage = () => {
         setErrors(prev => ({...prev, general: ''}));
 
         try {
-            const response = await axios.post('http://localhost:8000/api/v1/auth/login', {
+            const response = await axios.post('http://localhost:8000/api/v1/app_auth/login', {
                 username: formData.username.trim(),
                 password: formData.password
             }, {
