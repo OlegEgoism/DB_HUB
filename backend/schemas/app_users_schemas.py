@@ -1,4 +1,4 @@
-# backend/schemas/users_schemas.py
+# backend/schemas/app_users_schemas.py
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import datetime

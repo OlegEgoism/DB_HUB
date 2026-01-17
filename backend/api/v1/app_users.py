@@ -1,12 +1,12 @@
-# backend/api/v1/users.py
+# backend/api/v1/app_users.py
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_, func
 from backend.database.session import get_db
 from backend.models.user import User
-from backend.services.users_services import UserService
-from backend.schemas.users_schemas import (
+from backend.services.app_users_services import UserService
+from backend.schemas.app_users_schemas import (
     UserResponse,
     UserCreate,
     UserUpdate,

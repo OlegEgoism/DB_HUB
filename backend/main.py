@@ -5,10 +5,10 @@ from backend.database.session import engine, Base
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 from backend.api.v1 import (
-    users,
-    auth,
+    app_users,
+    app_auth,
     db_connections,
-    agreements,
+    app_agreements,
     db_metrics,
     db_groups,
     db_users,
@@ -55,7 +55,7 @@ app.add_middleware(
 
 """Подключаем роутеры"""
 app.include_router(agreements.router, prefix="")
-app.include_router(auth.router, prefix="")
+app.include_router(app_auth.router, prefix="")
 app.include_router(users.router, prefix="")
 app.include_router(db_connections.router, prefix="")
 app.include_router(db_metrics.router, prefix="")

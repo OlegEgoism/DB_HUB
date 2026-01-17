@@ -1,10 +1,10 @@
-# backend/services/users_services.py
+# backend/services/app_users_services.py
 import re
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from backend.models.user import User
-from backend.schemas.users_schemas import UserCreate, UserUpdate
+from backend.schemas.app_users_schemas import UserCreate, UserUpdate
 from datetime import datetime
 from backend.core.security import verify_password, create_access_token, get_password_hash
 

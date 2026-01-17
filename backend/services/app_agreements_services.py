@@ -1,4 +1,4 @@
-# backend/services/agreements_services.py
+# backend/services/app_agreements_services.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.models.agreement import Agreement

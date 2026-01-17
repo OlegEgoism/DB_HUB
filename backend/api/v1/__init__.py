@@ -5,7 +5,7 @@
 #     "users",
 #     "auth",
 #     "db_connections.py",
-#     "agreements.py",
+#     "app_agreements.py",
 #     "db_metrics",
 #     "db_groups",
 #     "db_users",
