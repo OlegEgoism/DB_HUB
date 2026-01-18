@@ -63,15 +63,7 @@ class UserService:
         if existing_user:
             raise ValueError("Пользователь с таким username уже существует")
         hashed_password = self.hash_password(user_data.password)
-        user = User(
-            username=user_data.username,
-            email=user_data.email,
-            hashed_password=hashed_password,
-            fio=user_data.fio,
-            role=user_data.role,
-            is_active=False,
-            is_superuser=False
-        )
+        user = User(username=user_data.username, email=user_data.email, hashed_password=hashed_password, fio=user_data.fio, role=user_data.role, is_active=False, is_superuser=False)
         self.db.add(user)
         await self.db.commit()
         await self.db.refresh(user)
@@ -125,20 +117,7 @@ class UserService:
             return None
         await self.update_last_login(user.id)
         access_token = create_access_token(data={"sub": user.username, "user_id": user.id, "role": user.role})
-        return {
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "fio": user.fio,
-                "role": user.role,
-                "is_active": user.is_active,
-                "is_superuser": user.is_superuser,
-                "last_login": user.last_login
-            },
-            "access_token": access_token,
-            "token_type": "bearer"
-        }
+        return {"user": {"id": user.id, "username": user.username, "email": user.email, "fio": user.fio, "role": user.role, "is_active": user.is_active, "is_superuser": user.is_superuser, "last_login": user.last_login}, "access_token": access_token, "token_type": "bearer"}
 
     async def get_current_user_from_token(self, token: str) -> Optional[User]:
         """Получение текущего пользователя из токена"""

@@ -16,8 +16,22 @@ class DBIndexesService:
             raise ValueError(f"Подключение с id {connection_id} не найдено")
         return connection
 
-    async def get_indexes(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def get_indexes(
+            self,
+            connection_id: int,
+            page: int = 1,
+            size: int = 20,
+            search: Optional[str] = None
+    ) -> Dict[str, Any]:
+        if page < 1:
+            page = 1
+        if size < 1:
+            size = 1
+        if size > 1000:
+            size = 1000
+
         connection = await self._get_connection(connection_id)
+
         base_query = """
         SELECT
             n.nspname AS schema_name,
@@ -30,8 +44,8 @@ class DBIndexesService:
         JOIN pg_catalog.pg_class t ON t.oid = idx.indrelid
         JOIN pg_catalog.pg_namespace n ON n.oid = t.relnamespace
         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
-          AND t.relkind = 'r'  -- только обычные таблицы (не представления, не TOAST и т.п.)
-          AND i.relkind = 'i'  -- явно указываем: только индексы
+          AND t.relkind = 'r'  -- только обычные таблицы
+          AND i.relkind = 'i'  -- только индексы
         """
         search_term = search.strip().lower() if search and search.strip() else None
         filtered_query = base_query
@@ -67,15 +81,31 @@ class DBIndexesService:
             paginated_query = f"""
             {filtered_query}
             ORDER BY n.nspname, t.relname, i.relname
-            LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
+            LIMIT {size} OFFSET {offset}
             """
-            paginated_params = params + [size, offset]
-            rows = await conn.fetch(paginated_query, *paginated_params)
+            rows = await conn.fetch(paginated_query, *params)
         indexes = []
         for row in rows:
             definition = (row["definition"] or "").replace("\\n", "\n")
-            indexes.append({"schema_name": row["schema_name"], "index_name": row["index_name"], "table_name": row["table_name"], "description": row["description"], "definition": definition, })
+            indexes.append({
+                "schema_name": row["schema_name"],
+                "index_name": row["index_name"],
+                "table_name": row["table_name"],
+                "description": row["description"],
+                "definition": definition,
+            })
         pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
         has_next = page < pages
         has_prev = page > 1
-        return {"connection_id": connection.id, "connection_name": connection.name, "total_indexes": total_all, "total_filtered_indexes": total_filtered, "page": page, "size": size, "pages": pages, "has_next": has_next, "has_prev": has_prev, "indexes": indexes, }
+        return {
+            "connection_id": connection.id,
+            "connection_name": connection.name,
+            "total_indexes": total_all,
+            "total_filtered_indexes": total_filtered,
+            "page": page,
+            "size": size,
+            "pages": pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
+            "indexes": indexes,
+        }

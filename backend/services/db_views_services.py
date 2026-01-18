@@ -16,7 +16,19 @@ class DBViewsService:
             raise ValueError(f"Подключение с id {connection_id} не найдено")
         return connection
 
-    async def get_views(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def get_views(
+            self,
+            connection_id: int,
+            page: int = 1,
+            size: int = 20,
+            search: Optional[str] = None
+    ) -> Dict[str, Any]:
+        if page < 1:
+            page = 1
+        if size < 1:
+            size = 1
+        if size > 1000:
+            size = 1000
         connection = await self._get_connection(connection_id)
         base_query = """
         SELECT
@@ -63,20 +75,47 @@ class DBViewsService:
             paginated_query = f"""
             {filtered_query}
             ORDER BY v.schemaname, v.viewname
-            LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
+            LIMIT {size} OFFSET {offset}
             """
-            paginated_params = params + [size, offset]
-            rows = await conn.fetch(paginated_query, *paginated_params)
+            rows = await conn.fetch(paginated_query, *params)
         views = []
         for row in rows:
-            views.append({"schema_name": row["schema_name"], "view_name": row["view_name"], "description": row["description"], "definition": row["definition"], })
+            views.append({
+                "schema_name": row["schema_name"],
+                "view_name": row["view_name"],
+                "description": row["description"],
+                "definition": row["definition"],
+            })
         pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
         has_next = page < pages
         has_prev = page > 1
-        return {"connection_id": connection.id, "connection_name": connection.name, "total_views": total_all, "total_filtered_views": total_filtered, "page": page, "size": size, "pages": pages, "has_next": has_next, "has_prev": has_prev, "views": views, }
+        return {
+            "connection_id": connection.id,
+            "connection_name": connection.name,
+            "total_views": total_all,
+            "total_filtered_views": total_filtered,
+            "page": page,
+            "size": size,
+            "pages": pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
+            "views": views,
+        }
 
-    async def get_materialized_views(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def get_materialized_views(
+            self,
+            connection_id: int,
+            page: int = 1,
+            size: int = 20,
+            search: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Получить список материализованных представлений"""
+        if page < 1:
+            page = 1
+        if size < 1:
+            size = 1
+        if size > 1000:
+            size = 1000
         connection = await self._get_connection(connection_id)
         base_query = """
         SELECT
@@ -121,15 +160,30 @@ class DBViewsService:
             paginated_query = f"""
             {filtered_query}
             ORDER BY n.nspname, c.relname
-            LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
+            LIMIT {size} OFFSET {offset}
             """
-            paginated_params = params + [size, offset]
-            rows = await conn.fetch(paginated_query, *paginated_params)
+            rows = await conn.fetch(paginated_query, *params)
         materialized_views = []
         for row in rows:
             definition = (row["definition"] or "").replace("\\n", "\n")
-            materialized_views.append({"schema_name": row["schema_name"], "view_name": row["view_name"], "description": row["description"], "definition": definition, })
+            materialized_views.append({
+                "schema_name": row["schema_name"],
+                "view_name": row["view_name"],
+                "description": row["description"],
+                "definition": definition,
+            })
         pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
         has_next = page < pages
         has_prev = page > 1
-        return {"connection_id": connection.id, "connection_name": connection.name, "total_materialized_views": total_all, "total_filtered_materialized_views": total_filtered, "page": page, "size": size, "pages": pages, "has_next": has_next, "has_prev": has_prev, "materialized_views": materialized_views, }
+        return {
+            "connection_id": connection.id,
+            "connection_name": connection.name,
+            "total_materialized_views": total_all,
+            "total_filtered_materialized_views": total_filtered,
+            "page": page,
+            "size": size,
+            "pages": pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
+            "materialized_views": materialized_views,
+        }

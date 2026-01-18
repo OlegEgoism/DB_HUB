@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.db import DB_Connection
 from backend.schemas.db_groups_schemas import DBGroupOut, PaginatedDBGroupsResponse
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
+from asyncpg.utils import _quote_ident
 
 
 class DBGroupService:
@@ -93,8 +94,9 @@ class DBGroupService:
             exists = await conn.fetchval("SELECT 1 FROM pg_roles WHERE rolname = $1", group_name)
             if exists:
                 raise ValueError(f"Группа с именем '{group_name}' уже существует")
-            await conn.execute(f'CREATE ROLE {group_name} NOLOGIN')
-            await conn.execute(f'COMMENT ON ROLE {group_name} IS $${description}$$')
+            quoted_name = _quote_ident(group_name)
+            await conn.execute(f'CREATE ROLE {quoted_name} NOLOGIN')
+            await conn.execute(f'COMMENT ON ROLE {quoted_name} IS $${description}$$')
             oid = await conn.fetchval("SELECT oid FROM pg_roles WHERE rolname = $1", group_name)
             if not oid:
                 raise Exception("Не удалось получить oid созданной группы")
@@ -126,10 +128,13 @@ class DBGroupService:
                 taken = await conn.fetchval("SELECT 1 FROM pg_roles WHERE rolname = $1", new_name)
                 if taken:
                     raise ValueError(f"Группа с именем '{new_name}' уже существует")
-                await conn.execute(f'ALTER ROLE {current_name} RENAME TO {new_name}')
+                quoted_old = _quote_ident(current_name)
+                quoted_new = _quote_ident(new_name)
+                await conn.execute(f'ALTER ROLE {quoted_old} RENAME TO {quoted_new}')
                 effective_name = new_name
+            quoted_eff = _quote_ident(effective_name)
             comment_value = new_description if new_description is not None else ''
-            await conn.execute(f'COMMENT ON ROLE {effective_name} IS $${comment_value}$$')
+            await conn.execute(f'COMMENT ON ROLE {quoted_eff} IS $${comment_value}$$')
             return {"success": True, "oid": group_oid, "old_name": current_name, "new_name": effective_name, "description": new_description}
 
     async def delete_group(self, connection_id: int, group_oid: int) -> dict:
@@ -149,15 +154,16 @@ class DBGroupService:
             if not row:
                 raise ValueError(f"Группа с oid {group_oid} не найдена или является системной")
             group_name = row["rolname"]
+            quoted_name = _quote_ident(group_name)
             try:
-                await conn.execute(f'DROP OWNED BY {group_name} CASCADE')
-                await conn.execute(f'DROP ROLE {group_name}')
+                await conn.execute(f'DROP OWNED BY {quoted_name} CASCADE')
+                await conn.execute(f'DROP ROLE {quoted_name}')
             except Exception as e:
-                error_msg = str(e)
+                error_msg = str(e).lower()
                 if "does not exist" in error_msg or "could not find role" in error_msg:
                     pass
                 else:
-                    raise ValueError(f"Не удалось удалить группу из внешней БД: {error_msg}")
+                    raise ValueError(f"Не удалось удалить группу из внешней БД: {e}")
         return {"success": True, "oid": group_oid, "name": group_name, "message": f"Группа '{group_name}' успешно удалена"}
 
     async def get_group_with_users(self, connection_id: int, group_oid: int) -> dict:
@@ -192,7 +198,13 @@ class DBGroupService:
             """, group_oid)
             user_count = len(users_rows)
             users = [{"oid": row["oid"], "name": row["name"], "description": row["description"] or None} for row in users_rows]
-            return {"oid": group_row["oid"], "name": group_row["name"], "description": group_row["description"] or None, "user_count": user_count, "users": users, }
+            return {
+                "oid": group_row["oid"],
+                "name": group_row["name"],
+                "description": group_row["description"] or None,
+                "user_count": user_count,
+                "users": users,
+            }
 
     async def add_user_to_group(self, connection_id: int, user_oid: int, group_oid: int) -> dict:
         if user_oid <= 0 or group_oid <= 0:
@@ -220,9 +232,21 @@ class DBGroupService:
                 WHERE member = $1 AND roleid = $2
             """, user_oid, group_oid)
             if already_member:
-                return {"success": True, "message": f"Пользователь '{username}' уже состоит в группе '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
-            await conn.execute(f'GRANT "{groupname}" TO "{username}"')
-            return {"success": True, "message": f"Пользователь '{username}' успешно добавлен в группу '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
+                return {
+                    "success": True,
+                    "message": f"Пользователь '{username}' уже состоит в группе '{groupname}'",
+                    "user_oid": user_oid,
+                    "group_oid": group_oid
+                }
+            quoted_group = _quote_ident(groupname)
+            quoted_user = _quote_ident(username)
+            await conn.execute(f'GRANT {quoted_group} TO {quoted_user}')
+            return {
+                "success": True,
+                "message": f"Пользователь '{username}' успешно добавлен в группу '{groupname}'",
+                "user_oid": user_oid,
+                "group_oid": group_oid
+            }
 
     async def remove_user_from_group(self, connection_id: int, user_oid: int, group_oid: int) -> dict:
         if user_oid <= 0 or group_oid <= 0:
@@ -250,6 +274,18 @@ class DBGroupService:
                 WHERE member = $1 AND roleid = $2
             """, user_oid, group_oid)
             if not is_member:
-                return {"success": True, "message": f"Пользователь '{username}' не состоит в группе '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
-            await conn.execute(f'REVOKE "{groupname}" FROM "{username}"')
-            return {"success": True, "message": f"Пользователь '{username}' успешно удалён из группы '{groupname}'", "user_oid": user_oid, "group_oid": group_oid}
+                return {
+                    "success": True,
+                    "message": f"Пользователь '{username}' не состоит в группе '{groupname}'",
+                    "user_oid": user_oid,
+                    "group_oid": group_oid
+                }
+            quoted_group = _quote_ident(groupname)
+            quoted_user = _quote_ident(username)
+            await conn.execute(f'REVOKE {quoted_group} FROM {quoted_user}')
+            return {
+                "success": True,
+                "message": f"Пользователь '{username}' успешно удалён из группы '{groupname}'",
+                "user_oid": user_oid,
+                "group_oid": group_oid
+            }

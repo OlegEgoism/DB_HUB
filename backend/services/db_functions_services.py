@@ -16,7 +16,19 @@ class DBFunctionService:
             raise ValueError(f"Подключение с id {connection_id} не найдено")
         return connection
 
-    async def get_functions(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def get_functions(
+        self,
+        connection_id: int,
+        page: int = 1,
+        size: int = 20,
+        search: Optional[str] = None
+    ) -> Dict[str, Any]:
+        if page < 1:
+            page = 1
+        if size < 1:
+            size = 1
+        if size > 1000:
+            size = 1000
         connection = await self._get_connection(connection_id)
         base_query = """
         SELECT
@@ -60,15 +72,30 @@ class DBFunctionService:
             paginated_query = f"""
             {filtered_query}
             ORDER BY n.nspname, p.proname
-            LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
+            LIMIT {size} OFFSET {offset}
             """
-            paginated_params = params + [size, offset]
-            rows = await conn.fetch(paginated_query, *paginated_params)
+            rows = await conn.fetch(paginated_query, *params)
         functions = []
         for row in rows:
             definition = (row["definition"] or "").replace("\\n", "\n")
-            functions.append({"schema_name": row["schema_name"], "function_name": row["function_name"], "description": row["description"], "definition": definition, })
+            functions.append({
+                "schema_name": row["schema_name"],
+                "function_name": row["function_name"],
+                "description": row["description"],
+                "definition": definition,
+            })
         pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
         has_next = page < pages
         has_prev = page > 1
-        return {"connection_id": connection.id, "connection_name": connection.name, "total_functions": total_all, "total_filtered_functions": total_filtered, "page": page, "size": size, "pages": pages, "has_next": has_next, "has_prev": has_prev, "functions": functions, }
+        return {
+            "connection_id": connection.id,
+            "connection_name": connection.name,
+            "total_functions": total_all,
+            "total_filtered_functions": total_filtered,
+            "page": page,
+            "size": size,
+            "pages": pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
+            "functions": functions,
+        }

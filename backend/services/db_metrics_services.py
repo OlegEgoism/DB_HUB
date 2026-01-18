@@ -11,11 +11,15 @@ class DBMetricsService:
         """Получить все метрики базы данных"""
         try:
             async with external_db_connection(connection) as conn:
-                # === Базовые метрики ===
+                # === Базовые метрики (статический запрос — безопасен) ===
                 basic_metrics_query = """
                 SELECT name as metric, setting as value
                 FROM pg_settings
-                WHERE name IN ('autovacuum', 'client_encoding', 'effective_cache_size', 'listen_addresses', 'log_statement_stats', 'server_encoding','server_version', 'shared_buffers', 'TimeZone', 'work_mem')
+                WHERE name IN (
+                    'autovacuum', 'client_encoding', 'effective_cache_size',
+                    'listen_addresses', 'log_statement_stats', 'server_encoding',
+                    'server_version', 'shared_buffers', 'TimeZone', 'work_mem'
+                )
                 UNION ALL
                 SELECT 'database_collation' as metric, datcollate as value
                 FROM pg_database
@@ -29,7 +33,8 @@ class DBMetricsService:
                 UNION ALL
                 SELECT 'table_count', COUNT(*)::TEXT
                 FROM information_schema.tables
-                WHERE table_schema NOT IN ('information_schema', 'pg_catalog') AND table_type = 'BASE TABLE'
+                WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
+                  AND table_type = 'BASE TABLE'
                 UNION ALL
                 SELECT 'table_size', pg_size_pretty(COALESCE(SUM(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))), 0))
                 FROM pg_tables
@@ -45,7 +50,8 @@ class DBMetricsService:
                 UNION ALL
                 SELECT 'system_table_count', COUNT(*)::TEXT
                 FROM information_schema.tables
-                WHERE table_schema IN ('pg_catalog', 'information_schema') AND table_type = 'BASE TABLE'
+                WHERE table_schema IN ('pg_catalog', 'information_schema')
+                  AND table_type = 'BASE TABLE'
                 UNION ALL
                 SELECT 'system_table_size', pg_size_pretty(COALESCE(SUM(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))), 0))
                 FROM pg_tables
@@ -69,15 +75,24 @@ class DBMetricsService:
                 UNION ALL
                 SELECT 'materialized_view_count' AS metric, COUNT(*)::TEXT AS value
                 FROM pg_class
-                WHERE relkind = 'm' AND relnamespace NOT IN (SELECT oid FROM pg_namespace WHERE nspname IN ('information_schema', 'pg_catalog'))
+                WHERE relkind = 'm'
+                  AND relnamespace NOT IN (
+                      SELECT oid FROM pg_namespace
+                      WHERE nspname IN ('information_schema', 'pg_catalog')
+                  )
                 UNION ALL
                 SELECT 'materialized_views_size', pg_size_pretty(COALESCE(SUM(pg_total_relation_size(oid)), 0))
                 FROM pg_class
-                WHERE relkind = 'm' AND relnamespace NOT IN (SELECT oid FROM pg_namespace WHERE nspname IN ('information_schema', 'pg_catalog'))
+                WHERE relkind = 'm'
+                  AND relnamespace NOT IN (
+                      SELECT oid FROM pg_namespace
+                      WHERE nspname IN ('information_schema', 'pg_catalog')
+                  )
                 UNION ALL
                 SELECT 'procedure_count', COUNT(*)::TEXT
                 FROM information_schema.routines
-                WHERE routine_schema NOT IN ('information_schema', 'pg_catalog') AND routine_type = 'PROCEDURE'
+                WHERE routine_schema NOT IN ('information_schema', 'pg_catalog')
+                  AND routine_type = 'PROCEDURE'
                 UNION ALL
                 SELECT 'trigger_count', COUNT(*)::TEXT
                 FROM information_schema.triggers
@@ -95,11 +110,11 @@ class DBMetricsService:
                 UNION ALL
                 SELECT 'role_count', COUNT(*)::TEXT
                 FROM pg_roles
-                WHERE rolname NOT LIKE 'pg\_%' AND rolcanlogin IS NOT TRUE
+                WHERE rolname NOT LIKE 'pg\\_%' AND rolcanlogin IS NOT TRUE
                 UNION ALL
                 SELECT 'pg_role_count', COUNT(*)::TEXT
                 FROM pg_roles
-                WHERE rolname LIKE 'pg\_%' AND rolcanlogin IS NOT TRUE
+                WHERE rolname LIKE 'pg\\_%' AND rolcanlogin IS NOT TRUE
                 UNION ALL
                 SELECT 'max_connections', setting
                 FROM pg_settings
@@ -107,7 +122,7 @@ class DBMetricsService:
                 UNION ALL
                 SELECT 'current_connections', COUNT(*)::TEXT
                 FROM pg_stat_activity
-                WHERE state IS NOT null;
+                WHERE state IS NOT NULL;
                 """
                 rows = await conn.fetch(basic_metrics_query)
                 basic_metrics = [{"metric": r["metric"], "value": r["value"]} for r in rows]
@@ -123,14 +138,11 @@ class DBMetricsService:
                 """
                 ext_rows = await conn.fetch(extensions_query)
                 extensions = [
-                    {
-                        "name": r["name"],
-                        "version": r["version"]
-                    }
+                    {"name": r["name"], "version": r["version"]}
                     for r in ext_rows
                 ]
 
-                # === Сводка по сегментам (метрики) ===
+                # === Сводка по сегментам (Greenplum-specific) ===
                 cluster_replication_query = """
                 SELECT 'total_segments', COUNT(*)::numeric
                 FROM gp_segment_configuration
@@ -172,21 +184,26 @@ class DBMetricsService:
                 try:
                     segment_rows = await conn.fetch("""
                     SELECT
-                    content,
-                    role,
-                    status,
-                    port,
-                    address
+                        content,
+                        role,
+                        status,
+                        port,
+                        address
                     FROM pg_catalog.gp_segment_configuration
                     ORDER BY dbid ASC;
                     """)
                     segment_details = [
-                        {"content": r["content"], "role": r["role"], "status": r["status"], "port": r["port"], "address": r["address"]}
+                        {
+                            "content": r["content"],
+                            "role": r["role"],
+                            "status": r["status"],
+                            "port": r["port"],
+                            "address": r["address"]
+                        }
                         for r in segment_rows
                     ]
                 except Exception:
                     segment_details = []
-
                 return {
                     "status": "connected",
                     "basic_metrics": basic_metrics,
@@ -194,10 +211,12 @@ class DBMetricsService:
                     "cluster_replication": cluster_info,
                     "segment_details": segment_details,
                 }
+
         except Exception as e:
+            error_msg = "Ошибка подключения к базе данных"
             return {
                 "status": "error",
-                "basic_metrics": [{"metric": "connection_error", "value": str(e)}],
+                "basic_metrics": [{"metric": "connection_error", "value": error_msg}],
                 "extensions": [],
                 "cluster_replication": [],
                 "segment_details": [],
@@ -216,4 +235,4 @@ class DBMetricsService:
                 rows = await conn.fetch(query)
                 return [{"name": r["name"], "setting": r["setting"]} for r in rows]
         except Exception as e:
-            raise Exception(f"Ошибка при выполнении SHOW ALL: {str(e)}")
+            raise Exception("Не удалось получить настройки базы данных") from e

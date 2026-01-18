@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 from backend.models.db import DB_Connection, DB_User
 from backend.schemas.db_users_schemas import DBUserOut, PaginatedDBUsersResponse
+from asyncpg.utils import _quote_ident
 
 
 class DBUserService:
@@ -86,11 +87,12 @@ class DBUserService:
             if exists_row:
                 raise ValueError(f"Пользователь с именем '{username}' уже существует во внешней базе")
             quoted_password = await conn.fetchval("SELECT quote_literal($1)", password)
-            create_sql = f'CREATE ROLE "{username}" WITH LOGIN PASSWORD {quoted_password}'
+            quoted_username = _quote_ident(username)
+            create_sql = f'CREATE ROLE {quoted_username} WITH LOGIN PASSWORD {quoted_password}'
             await conn.execute(create_sql)
             if description is not None:
                 quoted_desc = await conn.fetchval("SELECT quote_literal($1)", description)
-                comment_sql = f'COMMENT ON ROLE "{username}" IS {quoted_desc}'
+                comment_sql = f'COMMENT ON ROLE {quoted_username} IS {quoted_desc}'
                 await conn.execute(comment_sql)
         await self.sync_users_from_external_db(connection_id)
         result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.name == username))
@@ -114,17 +116,18 @@ class DBUserService:
             raise ValueError(f"Пользователь с oid {user_oid} не найден")
         username = local_user.name
         async with external_db_connection(connection) as conn:
+            quoted_username = _quote_ident(username)
             if password is not None:
                 quoted_password = await conn.fetchval("SELECT quote_literal($1)", password)
-                alter_sql = f'ALTER ROLE "{username}" PASSWORD {quoted_password}'
+                alter_sql = f'ALTER ROLE {quoted_username} PASSWORD {quoted_password}'
                 await conn.execute(alter_sql)
             current_desc = await conn.fetchval("SELECT pg_catalog.shobj_description($1, 'pg_authid')", user_oid)
             if description is not None and description != current_desc:
                 quoted_desc = await conn.fetchval("SELECT quote_literal($1)", description)
-                comment_sql = f'COMMENT ON ROLE "{username}" IS {quoted_desc}'
+                comment_sql = f'COMMENT ON ROLE {quoted_username} IS {quoted_desc}'
                 await conn.execute(comment_sql)
             elif description is None and current_desc is not None:
-                await conn.execute(f'COMMENT ON ROLE "{username}" IS NULL')
+                await conn.execute(f'COMMENT ON ROLE {quoted_username} IS NULL')
         await self.sync_users_from_external_db(connection_id)
         result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         updated_user = result.scalar_one_or_none()
@@ -152,7 +155,8 @@ class DBUserService:
             exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)", username)
             if exists:
                 try:
-                    drop_sql = f'DROP ROLE IF EXISTS "{username}"'
+                    quoted_username = _quote_ident(username)
+                    drop_sql = f'DROP ROLE IF EXISTS {quoted_username}'
                     await conn.execute(drop_sql)
                 except Exception as e:
                     error_msg = str(e).lower()

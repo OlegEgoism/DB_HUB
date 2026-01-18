@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
+from asyncpg.utils import _quote_ident
 
 
 class DBTablesService:
@@ -233,24 +234,6 @@ class DBTablesService:
             "temporary_tables": tables,
         }
 
-    # async def drop_tables_temporary(self, connection_id: int, table_name: str) -> dict:
-    #     """Удалить временную таблицу"""
-    #     connection = await self._get_connection(connection_id)
-    #     if not table_name or '"' in table_name or ";" in table_name:
-    #         raise ValueError("Недопустимое имя таблицы")
-    #     async with external_db_connection(connection) as conn:
-    #         exists = await conn.fetchval("""
-    #             SELECT 1
-    #             FROM pg_class c
-    #             WHERE c.relname = $1
-    #               AND c.relpersistence = 't'
-    #               AND c.relkind = 'r'
-    #         """, table_name)
-    #         if not exists:
-    #             raise ValueError(f"Временная таблица '{table_name}' не найдена")
-    #         await conn.execute(f'DROP TABLE IF EXISTS "{table_name}" CASCADE')
-    #     return {"success": True, "message": f"Временная таблица '{table_name}' успешно удалена", "table_name": table_name, "connection_id": connection_id}
-
     async def get_tables_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
@@ -385,8 +368,9 @@ class DBTablesService:
             if username not in valid_users:
                 raise ValueError(f"Пользователь '{username}' не существует или не является логин-ролью.")
             updated_users.append(username)
-            if '"' in schema_name or '"' in table_name or '"' in username:
-                raise ValueError("Имена схемы, таблицы или пользователя не должны содержать кавычки")
+            quoted_schema = _quote_ident(schema_name)
+            quoted_table = _quote_ident(table_name)
+            quoted_user = _quote_ident(username)
             target_privileges = ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"]
             async with external_db_connection(connection) as conn:
                 acl_rows = await conn.fetch("""
@@ -405,9 +389,9 @@ class DBTablesService:
                     desired = item[priv.lower()]
                     current = priv in current_privs
                     if desired and not current:
-                        await conn.execute(f'GRANT {priv} ON TABLE "{schema_name}"."{table_name}" TO "{username}";')
+                        await conn.execute(f'GRANT {priv} ON TABLE {quoted_schema}.{quoted_table} TO {quoted_user};')
                     elif not desired and current:
-                        await conn.execute(f'REVOKE {priv} ON TABLE "{schema_name}"."{table_name}" FROM "{username}";')
+                        await conn.execute(f'REVOKE {priv} ON TABLE {quoted_schema}.{quoted_table} FROM {quoted_user};')
         return updated_users
 
     async def get_tables_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
@@ -547,9 +531,10 @@ class DBTablesService:
             groupname = item["groupname"]
             if groupname not in valid_groups:
                 raise ValueError(f"Группа '{groupname}' не существует или не является группой.")
-            if '"' in schema_name or '"' in table_name or '"' in groupname:
-                raise ValueError("Имена не должны содержать кавычки")
             updated_groups.append(groupname)
+            quoted_schema = _quote_ident(schema_name)
+            quoted_table = _quote_ident(table_name)
+            quoted_group = _quote_ident(groupname)
             async with external_db_connection(connection) as conn:
                 acl_rows = await conn.fetch("""
                     SELECT (aclexplode(relacl)).grantee AS grantee_oid,
@@ -567,7 +552,7 @@ class DBTablesService:
                     desired = item[priv.lower()]
                     current = priv in current_privs
                     if desired and not current:
-                        await conn.execute(f'GRANT {priv} ON TABLE "{schema_name}"."{table_name}" TO "{groupname}";')
+                        await conn.execute(f'GRANT {priv} ON TABLE {quoted_schema}.{quoted_table} TO {quoted_group};')
                     elif not desired and current:
-                        await conn.execute(f'REVOKE {priv} ON TABLE "{schema_name}"."{table_name}" FROM "{groupname}";')
+                        await conn.execute(f'REVOKE {priv} ON TABLE {quoted_schema}.{quoted_table} FROM {quoted_group};')
         return updated_groups

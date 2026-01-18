@@ -15,11 +15,11 @@ class DBConnectionService:
         return await get_db_connection_by_id(self.db, connection_id)
 
     async def get_active_connections(
-            self,
-            connection_id: int,
-            page: int = 1,
-            size: int = 20,
-            username: Optional[str] = None
+        self,
+        connection_id: int,
+        page: int = 1,
+        size: int = 20,
+        username: Optional[str] = None
     ) -> PaginatedActiveConnectionsResponse:
         connection = await self.get_connection(connection_id)
         if not connection:
@@ -33,19 +33,23 @@ class DBConnectionService:
             param_index += 1
         where_clause = " AND ".join(where_conditions)
         async with external_db_connection(connection) as conn:
-            total_all = (await conn.fetchrow("""
-                SELECT COUNT(*) as total
+            total_all_row = await conn.fetchrow("""
+                SELECT COUNT(*) AS total
                 FROM pg_stat_activity
                 WHERE state IS NOT NULL AND pid <> pg_backend_pid()
-            """))["total"] or 0
-            total_filtered = (await conn.fetchrow(f"""
-                SELECT COUNT(*) as total
-                FROM pg_stat_activity
-                WHERE {where_clause}
-            """, *params))["total"] or 0
+            """)
+            total_all = total_all_row["total"] if total_all_row else 0
+
+            total_filtered_row = await conn.fetchrow(
+                f"SELECT COUNT(*) AS total FROM pg_stat_activity WHERE {where_clause}",
+                *params
+            )
+            total_filtered = total_filtered_row["total"] if total_filtered_row else 0
             offset = (page - 1) * size
             limit = size
-            rows = await conn.fetch(f"""
+
+            rows = await conn.fetch(
+                f"""
                 SELECT
                     pid,
                     usename AS username,
@@ -62,7 +66,11 @@ class DBConnectionService:
                 WHERE {where_clause}
                 ORDER BY backend_start DESC
                 LIMIT ${param_index} OFFSET ${param_index + 1}
-            """, *params, limit, offset)
+                """,
+                *params,
+                limit,
+                offset
+            )
             active_connections = [
                 {
                     "pid": r["pid"],
@@ -108,6 +116,11 @@ class DBConnectionService:
                 raise ValueError(f"Процесс с PID {pid} не найден или уже завершён")
             result = await conn.fetchval("SELECT pg_terminate_backend($1)", pid)
             if result:
-                return {"success": True, "message": f"Процесс с PID {pid} успешно завершён", "pid": pid, "connection_id": connection_id}
+                return {
+                    "success": True,
+                    "message": f"Процесс с PID {pid} успешно завершён",
+                    "pid": pid,
+                    "connection_id": connection_id
+                }
             else:
                 raise Exception(f"Не удалось завершить процесс с PID {pid}")

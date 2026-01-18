@@ -2,9 +2,9 @@
 import asyncpg
 from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
+from asyncpg.utils import _quote_ident
 
 
 class DBSchemaService:
@@ -139,17 +139,17 @@ class DBSchemaService:
             if username not in valid_users:
                 raise ValueError(f"Пользователь '{username}' не существует или не является логин-ролью.")
             updated_users.append(username)
-            if '"' in schema_name or '"' in username:
-                raise ValueError("Имя схемы или пользователя не должно содержать кавычки")
+            quoted_schema = _quote_ident(schema_name)
+            quoted_user = _quote_ident(username)
             async with external_db_connection(connection) as conn:
                 if usage:
-                    await conn.execute(f'GRANT USAGE ON SCHEMA "{schema_name}" TO "{username}";')
+                    await conn.execute(f'GRANT USAGE ON SCHEMA {quoted_schema} TO {quoted_user};')
                 else:
-                    await conn.execute(f'REVOKE USAGE ON SCHEMA "{schema_name}" FROM "{username}";')
+                    await conn.execute(f'REVOKE USAGE ON SCHEMA {quoted_schema} FROM {quoted_user};')
                 if create:
-                    await conn.execute(f'GRANT CREATE ON SCHEMA "{schema_name}" TO "{username}";')
+                    await conn.execute(f'GRANT CREATE ON SCHEMA {quoted_schema} TO {quoted_user};')
                 else:
-                    await conn.execute(f'REVOKE CREATE ON SCHEMA "{schema_name}" FROM "{username}";')
+                    await conn.execute(f'REVOKE CREATE ON SCHEMA {quoted_schema} FROM {quoted_user};')
         return updated_users
 
     async def get_schema_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
@@ -274,15 +274,15 @@ class DBSchemaService:
             if groupname not in valid_groups:
                 raise ValueError(f"Группа '{groupname}' не существует или не является группой (ожидается rolcanlogin = false).")
             updated_groups.append(groupname)
-            if '"' in schema_name or '"' in groupname:
-                raise ValueError("Имя схемы или группы не должно содержать кавычки")
+            quoted_schema = _quote_ident(schema_name)
+            quoted_group = _quote_ident(groupname)
             async with external_db_connection(connection) as conn:
                 if usage:
-                    await conn.execute(f'GRANT USAGE ON SCHEMA "{schema_name}" TO "{groupname}";')
+                    await conn.execute(f'GRANT USAGE ON SCHEMA {quoted_schema} TO {quoted_group};')
                 else:
-                    await conn.execute(f'REVOKE USAGE ON SCHEMA "{schema_name}" FROM "{groupname}";')
+                    await conn.execute(f'REVOKE USAGE ON SCHEMA {quoted_schema} FROM {quoted_group};')
                 if create:
-                    await conn.execute(f'GRANT CREATE ON SCHEMA "{schema_name}" TO "{groupname}";')
+                    await conn.execute(f'GRANT CREATE ON SCHEMA {quoted_schema} TO {quoted_group};')
                 else:
-                    await conn.execute(f'REVOKE CREATE ON SCHEMA "{schema_name}" FROM "{groupname}";')
+                    await conn.execute(f'REVOKE CREATE ON SCHEMA {quoted_schema} FROM {quoted_group};')
         return updated_groups
