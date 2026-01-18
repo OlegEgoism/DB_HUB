@@ -1,11 +1,11 @@
 // src/pages/ConnectionMonitoringPage.jsx
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, {useState, useEffect, useCallback} from 'react';
+import {useParams, useNavigate} from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const ConnectionMonitoringPage = () => {
-    const { id: connectionId } = useParams();
+    const {id: connectionId} = useParams();
     const navigate = useNavigate();
 
     // Общие состояния
@@ -13,6 +13,7 @@ const ConnectionMonitoringPage = () => {
     const [error, setError] = useState(null);
     const [metrics, setMetrics] = useState(null);
     const [connectionData, setConnectionData] = useState(null);
+    const [extensions, setExtensions] = useState([]);
     const [activeTab, setActiveTab] = useState('info');
 
     // Состояния для вкладки "Группы"
@@ -29,11 +30,11 @@ const ConnectionMonitoringPage = () => {
     const [groupToDelete, setGroupToDelete] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingGroup, setEditingGroup] = useState(null);
-    const [editForm, setEditForm] = useState({ name: '', description: '' });
+    const [editForm, setEditForm] = useState({name: '', description: ''});
 
     const parseMetrics = (basicMetrics) => {
         const parsed = {};
-        basicMetrics?.forEach(({ metric, value }) => {
+        basicMetrics?.forEach(({metric, value}) => {
             parsed[metric] = value;
         });
         return parsed;
@@ -47,7 +48,6 @@ const ConnectionMonitoringPage = () => {
                 navigate('/login');
                 return;
             }
-
             try {
                 const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionId}/metrics`, {
                     headers: {
@@ -55,14 +55,11 @@ const ConnectionMonitoringPage = () => {
                         'Content-Type': 'application/json',
                     },
                 });
-
                 if (!response.ok) {
                     const errData = await response.json().catch(() => ({}));
                     throw new Error(errData.detail || `Ошибка: ${response.status}`);
                 }
-
                 const data = await response.json();
-
                 setConnectionData({
                     connection_id: data.connection_id,
                     connection_name: data.connection_name,
@@ -73,11 +70,11 @@ const ConnectionMonitoringPage = () => {
                     database_name: data.database_name,
                     environment: data.environment,
                     database_type: data.database_type,
-                    status: data.status
+                    status: data.status,
                 });
-
                 const parsedMetrics = parseMetrics(data.basic_metrics);
                 setMetrics(parsedMetrics);
+                setExtensions(data.extensions || []);
             } catch (err) {
                 console.error('Ошибка загрузки метрик:', err);
                 setError(err.message);
@@ -85,7 +82,6 @@ const ConnectionMonitoringPage = () => {
                 setLoading(false);
             }
         };
-
         loadMetrics();
     }, [connectionId, navigate]);
 
@@ -96,10 +92,8 @@ const ConnectionMonitoringPage = () => {
             navigate('/login');
             return;
         }
-
         setGroupsLoading(true);
         setGroupsError(null);
-
         try {
             const params = new URLSearchParams();
             params.append('page', currentPage);
@@ -107,21 +101,17 @@ const ConnectionMonitoringPage = () => {
             if (searchQuery.trim()) {
                 params.append('search', searchQuery.trim());
             }
-
             const url = `http://localhost:8000/api/v1/db_connections/${connectionId}/groups/?${params.toString()}`;
-
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
             });
-
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.detail || `Ошибка загрузки групп: ${response.status}`);
             }
-
             const data = await response.json();
             setGroupsData(data);
         } catch (err) {
@@ -150,21 +140,18 @@ const ConnectionMonitoringPage = () => {
             navigate('/login');
             return;
         }
-
         try {
             const response = await fetch(
                 `http://localhost:8000/api/v1/db_connections/${connectionId}/groups/${groupToDelete.oid}`,
                 {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` },
+                    headers: {'Authorization': `Bearer ${token}`},
                 }
             );
-
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.detail || `Ошибка: ${response.status}`);
             }
-
             await loadGroups();
             setShowDeleteModal(false);
             setGroupToDelete(null);
@@ -186,8 +173,8 @@ const ConnectionMonitoringPage = () => {
     };
 
     const handleEditChange = (e) => {
-        const { name, value } = e.target;
-        setEditForm((prev) => ({ ...prev, [name]: value }));
+        const {name, value} = e.target;
+        setEditForm((prev) => ({...prev, [name]: value}));
     };
 
     const saveEditGroup = async () => {
@@ -196,7 +183,6 @@ const ConnectionMonitoringPage = () => {
             navigate('/login');
             return;
         }
-
         try {
             const response = await fetch(
                 `http://localhost:8000/api/v1/db_connections/${connectionId}/groups/${editingGroup.oid}`,
@@ -209,12 +195,10 @@ const ConnectionMonitoringPage = () => {
                     body: JSON.stringify(editForm),
                 }
             );
-
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.detail || `Ошибка: ${response.status}`);
             }
-
             await loadGroups();
             setShowEditModal(false);
             setEditingGroup(null);
@@ -249,30 +233,25 @@ const ConnectionMonitoringPage = () => {
             navigate('/login');
             return;
         }
-
         try {
             const response = await fetch(`http://localhost:8000/api/v1/db_connections/${connectionId}/settings`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
             });
-
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 alert(`Ошибка при загрузке настроек: ${errData.detail || response.statusText}`);
                 return;
             }
-
             const data = await response.json();
-
             const csvContent = [
                 ['Параметр', 'Значение'],
                 ...data.settings.map(item => [item.name, item.setting])
             ]
                 .map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
                 .join('\n');
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -296,23 +275,27 @@ const ConnectionMonitoringPage = () => {
 
     const envLabel = (env) => {
         switch (env?.toLowerCase()) {
-            case 'production': return 'ПРОДАКШЕН';
-            case 'testing': return 'ТЕСТИРОВАНИЕ';
-            case 'analytics': return 'АНАЛИТИКА';
-            default: return 'РАЗРАБОТКА';
+            case 'production':
+                return 'ПРОДАКШЕН';
+            case 'testing':
+                return 'ТЕСТИРОВАНИЕ';
+            case 'analytics':
+                return 'АНАЛИТИКА';
+            default:
+                return 'РАЗРАБОТКА';
         }
     };
 
     if (loading) {
         return (
             <>
-                <Header isAuthenticated={true} />
+                <Header isAuthenticated={true}/>
                 <main>
                     <div className="loading-message">
                         <i className="fas fa-spinner fa-spin"></i> Загрузка данных мониторинга...
                     </div>
                 </main>
-                <Footer />
+                <Footer/>
             </>
         );
     }
@@ -320,20 +303,19 @@ const ConnectionMonitoringPage = () => {
     if (error) {
         return (
             <>
-                <Header isAuthenticated={true} />
+                <Header isAuthenticated={true}/>
                 <main>
                     <div className="error-message">
                         <i className="fas fa-exclamation-circle"></i> {error}
                     </div>
                 </main>
-                <Footer />
+                <Footer/>
             </>
         );
     }
 
     const m = metrics;
     const conn = connectionData;
-
     const dbName = conn?.database_name || 'Неизвестно';
     const connectionName = conn?.connection_name || 'Без имени';
     const connectionDescription = conn?.connection_description || 'Без описания';
@@ -341,7 +323,6 @@ const ConnectionMonitoringPage = () => {
     const host = conn?.host || 'localhost';
     const port = conn?.port || '5432';
     const env = conn?.environment || 'development';
-
     const serverVersion = m?.server_version || '—';
     const clientEncoding = m?.client_encoding || '—';
     const serverEncoding = m?.server_encoding || '—';
@@ -353,10 +334,8 @@ const ConnectionMonitoringPage = () => {
     const databaseCollation = m?.database_collation || '—';
     const serverStartTime = m?.server_start_time || '—';
     const serverUptime = m?.server_uptime || '—';
-
     const sharedBuffers = m?.shared_buffers || '—';
     const workMem = m?.work_mem || '—';
-
     const dbSize = m?.db_size || '—';
     const tableSize = m?.table_size || '—';
     const tempTableSize = m?.temp_table_size || '—';
@@ -364,7 +343,6 @@ const ConnectionMonitoringPage = () => {
     const indexSize = m?.index_size || '—';
     const viewsSize = m?.views_size || '—';
     const materializedViewsSize = m?.materialized_views_size || '—';
-
     const tableCount = formatCount(m?.table_count);
     const tempTableCount = formatCount(m?.temp_table_count);
     const systemTableCount = formatCount(m?.system_table_count);
@@ -373,7 +351,6 @@ const ConnectionMonitoringPage = () => {
     const materializedViewCount = formatCount(m?.materialized_view_count);
     const procedureCount = formatCount(m?.procedure_count);
     const triggerCount = formatCount(m?.trigger_count);
-
     const totalUsers = formatCount(m?.total_users);
     const superuserCount = formatCount(m?.superuser_count);
     const activeUsers = formatCount(m?.active_users);
@@ -384,7 +361,7 @@ const ConnectionMonitoringPage = () => {
 
     return (
         <>
-            <Header isAuthenticated={true} />
+            <Header isAuthenticated={true}/>
             <main>
                 <section className="database-detail-section">
                     <div className="database-header">
@@ -398,12 +375,12 @@ const ConnectionMonitoringPage = () => {
                                     <div className="database-meta">
                                         <span className="database-type">{dbType}</span>
                                         <span className={`status-indicator status-${conn?.status || 'unknown'}`}>
-                                            {conn?.status === 'connected'
-                                                ? 'Подключено'
-                                                : conn?.status === 'error'
-                                                    ? 'Ошибка'
-                                                    : 'Неизвестно'}
-                                        </span>
+                      {conn?.status === 'connected'
+                          ? 'Подключено'
+                          : conn?.status === 'error'
+                              ? 'Ошибка'
+                              : 'Неизвестно'}
+                    </span>
                                     </div>
                                 </div>
                                 <div className="card-badge-log">{envLabel(env)}</div>
@@ -439,6 +416,7 @@ const ConnectionMonitoringPage = () => {
                     {activeTab === 'info' && (
                         <div className="tab-pane active" id="info-tab">
                             <div className="info-db">
+
                                 {/* Общая информация */}
                                 <div className="info-section">
                                     <h4><i className="fas fa-database"></i> Общая информация</h4>
@@ -494,6 +472,8 @@ const ConnectionMonitoringPage = () => {
                                         <span className="info-label_db">Время работы:</span>
                                         <span className="info-value">{serverUptime}</span>
                                     </div>
+
+
                                 </div>
 
                                 {/* Структура базы */}
@@ -590,6 +570,22 @@ const ConnectionMonitoringPage = () => {
                                     </div>
                                 </div>
 
+
+                                {/* Расширения — НОВАЯ СЕКЦИЯ */}
+                                {extensions.length > 0 && (
+                                    <div className="info-section">
+                                        <h4><i className="fas fa-plug"></i> Расширения</h4>
+                                        {extensions.map((ext, idx) => (
+                                            <div key={idx} className="info-row">
+                                                    <span className="info-value">
+                                                    {ext.name} (v{ext.version}) {ext.schema && (<span style={{fontSize: '0.85em', color: '#666'}}>  </span>)}
+                                                    </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+
                                 {/* Кластер Greenplum */}
                                 {(m?.total_segments || m?.up_segments) && (
                                     <div className="info-section">
@@ -633,17 +629,16 @@ const ConnectionMonitoringPage = () => {
 
                     {activeTab === 'groups' && (
                         <div className="tab-pane active" id="groups-tab">
-                            <div className="tab-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="tab-header" style={{marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                 <input
                                     type="text"
                                     placeholder="Поиск по названию и описанию группы"
                                     value={searchQuery}
                                     onChange={handleSearchChange}
                                     className="form-control"
-                                    style={{ width: '300px' }}
+                                    style={{width: '300px'}}
                                 />
                             </div>
-
                             {groupsLoading ? (
                                 <div className="loading-message">
                                     <i className="fas fa-spinner fa-spin"></i> Загрузка групп...
@@ -657,46 +652,45 @@ const ConnectionMonitoringPage = () => {
                                     <div className="groups-list">
                                         <table className="table table-striped">
                                             <thead>
-                                                <tr>
-                                                    <th>OID</th>
-                                                    <th>Название</th>
-                                                    <th>Описание</th>
-                                                    <th>Кол-во пользователей</th>
-                                                    <th>Действия</th>
-                                                </tr>
+                                            <tr>
+                                                <th>OID</th>
+                                                <th>Название</th>
+                                                <th>Описание</th>
+                                                <th>Кол-во пользователей</th>
+                                                <th>Действия</th>
+                                            </tr>
                                             </thead>
                                             <tbody>
-                                                {groupsData.items.map(group => (
-                                                    <tr key={group.oid}>
-                                                        <td>{group.oid}</td>
-                                                        <td>{group.name}</td>
-                                                        <td>{group.description || '—'}</td>
-                                                        <td>{group.user_count}</td>
-                                                        <td>
-                                                            <button
-                                                                className="btn btn-sm btn-outline-primary me-2"
-                                                                onClick={() => openEditModal(group)}
-                                                                title="Редактировать"
-                                                            >
-                                                                <i className="fas fa-edit"></i>
-                                                            </button>
-                                                            <button
-                                                                className="btn btn-sm btn-outline-danger"
-                                                                onClick={() => openDeleteModal(group)}
-                                                                title="Удалить"
-                                                            >
-                                                                <i className="fas fa-trash"></i>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                            {groupsData.items.map(group => (
+                                                <tr key={group.oid}>
+                                                    <td>{group.oid}</td>
+                                                    <td>{group.name}</td>
+                                                    <td>{group.description || '—'}</td>
+                                                    <td>{group.user_count}</td>
+                                                    <td>
+                                                        <button
+                                                            className="btn btn-sm btn-outline-primary me-2"
+                                                            onClick={() => openEditModal(group)}
+                                                            title="Редактировать"
+                                                        >
+                                                            <i className="fas fa-edit"></i>
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm btn-outline-danger"
+                                                            onClick={() => openDeleteModal(group)}
+                                                            title="Удалить"
+                                                        >
+                                                            <i className="fas fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
                                             </tbody>
                                         </table>
                                     </div>
-
-                                    {/* Пагинация как в HomePage */}
+                                    {/* Пагинация */}
                                     {groupsData.total > 0 && (
-                                        <div className="pagination-container" style={{ marginTop: '24px' }}>
+                                        <div className="pagination-container" style={{marginTop: '24px'}}>
                                             <div className="pagination-info">
                                                 Показано {groupsData.items.length} из {groupsData.total} групп
                                             </div>
@@ -721,8 +715,8 @@ const ConnectionMonitoringPage = () => {
                                                         <i className="fas fa-chevron-left"></i>
                                                     </button>
                                                     <span className="pagination-page-info">
-                                                        Страница {currentPage} из {groupsData.pages}
-                                                    </span>
+                            Страница {currentPage} из {groupsData.pages}
+                          </span>
                                                     <button
                                                         className="btn btn-ghost"
                                                         onClick={() => handlePageChange(currentPage + 1)}
@@ -811,7 +805,7 @@ const ConnectionMonitoringPage = () => {
                 </div>
             )}
 
-            <Footer />
+            <Footer/>
         </>
     );
 };

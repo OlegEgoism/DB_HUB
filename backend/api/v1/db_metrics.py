@@ -31,6 +31,7 @@ async def get_database_metrics(connection_id: int, db: AsyncSession = Depends(ge
             database_type=connection.database_type,
             status=all_metrics["status"],
             basic_metrics=all_metrics["basic_metrics"],
+            extensions=all_metrics["extensions"],
             cluster_replication=all_metrics["cluster_replication"],
             segment_details=all_metrics["segment_details"],
         )
