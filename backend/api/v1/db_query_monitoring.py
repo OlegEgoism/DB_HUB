@@ -10,14 +10,14 @@ router = APIRouter(prefix="/db_connections/{connection_id}", tags=["DB QUERY MON
 
 @router.get("/slow_queries", response_model=PaginatedSlowQueriesResponse)
 async def get_slow_queries(
-        connection_id: int,
-        db: AsyncSession = Depends(get_db),
-        min_duration_ms: int = Query(1000, ge=0, description="Минимальная длительность запроса в миллисекундах"),
-        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
-        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-        search: str = Query(None, description="Поиск по тексту запроса, имени пользователя"),
+    connection_id: int,
+    db: AsyncSession = Depends(get_db),
+    min_duration_ms: int = Query(1000, ge=0, description="Минимальная длительность запроса в миллисекундах"),
+    page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+    size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
+    search: str = Query(None, description="Поиск по тексту запроса, имени пользователя или приложению"),
 ):
-    """Получить список медленных (долгих) активных запросов"""
+    """Получить список медленных (долгих) активных запросов без pg_stat_statements"""
     try:
         service = DBQueryMonitoringService(db)
         return await service.get_slow_queries(
@@ -31,5 +31,3 @@ async def get_slow_queries(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении медленных запросов: {str(e)}")
-
-

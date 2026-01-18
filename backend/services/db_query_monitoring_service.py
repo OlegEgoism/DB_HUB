@@ -17,12 +17,12 @@ class DBQueryMonitoringService:
         return connection
 
     async def get_slow_queries(
-            self,
-            connection_id: int,
-            min_duration_ms: int = 1000,
-            page: int = 1,
-            size: int = 20,
-            search: Optional[str] = None,
+        self,
+        connection_id: int,
+        min_duration_ms: int = 1000,
+        page: int = 1,
+        size: int = 20,
+        search: Optional[str] = None,
     ) -> Dict[str, Any]:
         if page < 1:
             page = 1
@@ -57,7 +57,7 @@ class DBQueryMonitoringService:
         params = [str(min_duration_ms)]
         if search and search.strip():
             search_term = f"%{search.strip().lower()}%"
-            base_query += " AND (LOWER(query) LIKE $2 OR LOWER(usename) LIKE $2 OR LOWER(application_name) LIKE $2)"
+            base_query += " AND (LOWER(COALESCE(query, '')) LIKE $2 OR LOWER(COALESCE(usename, '')) LIKE $2 OR LOWER(COALESCE(application_name, '')) LIKE $2)"
             count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
             params.append(search_term)
         async with external_db_connection(connection) as conn:

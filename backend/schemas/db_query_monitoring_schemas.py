@@ -6,14 +6,14 @@ from datetime import datetime
 
 class SlowQueryInfo(BaseModel):
     pid: int
-    username: str
-    database: str
-    client_addr: Optional[str]
-    application_name: Optional[str]
-    backend_start: datetime
-    query_start: Optional[datetime]
+    username: Optional[str] = None
+    database: Optional[str] = None
+    client_addr: Optional[str] = None
+    application_name: Optional[str] = None
+    backend_start: Optional[datetime] = None
+    query_start: Optional[datetime] = None
     duration_ms: int
-    state: str
+    state: Optional[str] = None
     query: str
 
 

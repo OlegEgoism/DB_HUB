@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 Environment = Literal['production', 'development', 'testing', 'analytics']
 DatabaseType = Literal['postgresql', 'greenplum']
 
-
 class ConnectionBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     database_type: DatabaseType
@@ -24,11 +23,9 @@ class ConnectionBase(BaseModel):
             raise ValueError("Порт должен быть в диапазоне 1–65535")
         return v
 
-
 class ConnectionCreate(ConnectionBase):
     password: str
     owner_id: int
-
 
 class ConnectionUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -50,10 +47,8 @@ class ConnectionUpdate(BaseModel):
             raise ValueError("Порт должен быть в диапазоне 1–65535")
         return v
 
-
 class ConnectionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     id: int
     database_name: str
     description: Optional[str] = None
@@ -71,10 +66,8 @@ class ConnectionOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-
 class PaginatedConnectionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     items: List[ConnectionOut]
     total: int
     page: int
@@ -83,12 +76,10 @@ class PaginatedConnectionResponse(BaseModel):
     has_next: bool
     has_prev: bool
 
-
 class ActiveConnectionInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     pid: int
-    username: str
+    username: Optional[str] = None  # ← ИСПРАВЛЕНО: было str → стало Optional[str]
     application_name: Optional[str] = None
     client_addr: Optional[str] = None
     client_hostname: Optional[str] = None
@@ -96,13 +87,11 @@ class ActiveConnectionInfo(BaseModel):
     backend_start: datetime
     query_start: Optional[datetime] = None
     state_change: Optional[datetime] = None
-    state: str
+    state: Optional[str] = None  # ← также может быть NULL
     query: str
-
 
 class PaginatedActiveConnectionsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     connection_id: int
     connection_name: str
     total_active_connections: int
@@ -114,10 +103,8 @@ class PaginatedActiveConnectionsResponse(BaseModel):
     has_prev: bool
     active_connections: List[ActiveConnectionInfo]
 
-
 class TerminateConnectionRequest(BaseModel):
     pid: int = Field(..., gt=0, description="PID процесса, который нужно завершить")
-
 
 class ConnectionFavoriteUpdate(BaseModel):
     is_favorite: bool
