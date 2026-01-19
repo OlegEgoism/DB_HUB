@@ -5,8 +5,17 @@ from pydantic import BaseModel, field_validator
 
 # Запрещённые имена
 FORBIDDEN_NAMES = {
-    "public", "none", "current_user", "session_user", "user",
-    "default", "all", "postgres", "admin", "root", "guest"
+    "public",
+    "none",
+    "current_user",
+    "session_user",
+    "user",
+    "default",
+    "all",
+    "postgres",
+    "admin",
+    "root",
+    "guest",
 }
 ROLE_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
@@ -39,7 +48,7 @@ class DBGroupCreate(BaseModel):
     description: Optional[str] = None
     model_config = {"extra": "forbid"}
 
-    @field_validator('name')
+    @field_validator("name")
     @classmethod
     def validate_name(cls, v: str) -> str:
         if not isinstance(v, str):
@@ -47,14 +56,18 @@ class DBGroupCreate(BaseModel):
         v = v.strip()
         if not v:
             raise ValueError("Имя группы не может быть пустым")
-        if len(v.encode('utf-8')) > 63:
+        if len(v.encode("utf-8")) > 63:
             raise ValueError("Имя группы не может превышать 63 символа")
         if v.lower().startswith("pg_"):
             raise ValueError("Имя группы не может начинаться с 'pg_'")
         if v.lower() in FORBIDDEN_NAMES:
-            raise ValueError(f"Имя '{v}' зарезервировано и не может использоваться для группы")
+            raise ValueError(
+                f"Имя '{v}' зарезервировано и не может использоваться для группы"
+            )
         if not ROLE_NAME_PATTERN.match(v):
-            raise ValueError("Имя группы должно начинаться с буквы или '_', и содержать только латинские буквы, цифры и символ '_'")
+            raise ValueError(
+                "Имя группы должно начинаться с буквы или '_', и содержать только латинские буквы, цифры и символ '_'"
+            )
         return v
 
 

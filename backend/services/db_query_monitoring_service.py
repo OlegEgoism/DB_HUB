@@ -74,20 +74,28 @@ class DBQueryMonitoringService:
             slow_queries = []
             for row in rows:
                 duration_td = row["duration"]
-                duration_ms = int(duration_td.total_seconds() * 1000) if duration_td else 0
-                slow_queries.append({
-                    "pid": row["pid"],
-                    "username": row["username"],
-                    "database": row["database"],
-                    "client_addr": row["client_addr"],
-                    "application_name": row["application_name"],
-                    "backend_start": row["backend_start"],
-                    "query_start": row["query_start"],
-                    "duration_ms": duration_ms,
-                    "state": row["state"],
-                    "query": (row["query"] or "").strip(),
-                })
-            pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+                duration_ms = (
+                    int(duration_td.total_seconds() * 1000) if duration_td else 0
+                )
+                slow_queries.append(
+                    {
+                        "pid": row["pid"],
+                        "username": row["username"],
+                        "database": row["database"],
+                        "client_addr": row["client_addr"],
+                        "application_name": row["application_name"],
+                        "backend_start": row["backend_start"],
+                        "query_start": row["query_start"],
+                        "duration_ms": duration_ms,
+                        "state": row["state"],
+                        "query": (row["query"] or "").strip(),
+                    }
+                )
+            pages = (
+                math.ceil(total_filtered / size)
+                if size > 0 and total_filtered > 0
+                else 1
+            )
             has_next = page < pages
             has_prev = page > 1
             return {

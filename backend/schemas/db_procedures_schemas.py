@@ -2,11 +2,13 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 
+
 class ProcedureInfo(BaseModel):
     schema_name: str
     procedure_name: str
     description: Optional[str] = None
     definition: str
+
 
 class PaginatedProceduresResponse(BaseModel):
     connection_id: int

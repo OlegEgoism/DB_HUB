@@ -17,7 +17,8 @@ from backend.api.v1 import (
     db_views,
     db_indexes,
     db_functions,
-    db_procedures, db_query_monitoring
+    db_procedures,
+    db_query_monitoring,
 )
 
 """Настройка логирования"""
@@ -42,11 +43,7 @@ async def lifespan(backend: FastAPI):
     await engine.dispose()
 
 
-app = FastAPI(
-    title="DB HUB API",
-    lifespan=lifespan,
-    version="1.0.0"
-)
+app = FastAPI(title="DB HUB API", lifespan=lifespan, version="1.0.0")
 
 # Настройка CORS
 app.add_middleware(

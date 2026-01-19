@@ -12,15 +12,15 @@ DB_NAME = os.getenv("DB_NAME", "name")
 DB_USER = os.getenv("DB_USER", "user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "pass")
 
-DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = (
+    f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
 print(f"🔗 Подключение к базе данных: {DB_HOST}:{DB_PORT}/{DB_NAME}")
 
 try:
     engine = create_async_engine(DATABASE_URL, echo=True)
     AsyncSessionLocal = async_sessionmaker(
-        engine,
-        class_=AsyncSession,
-        expire_on_commit=False
+        engine, class_=AsyncSession, expire_on_commit=False
     )
     print("✅ Движок базы данных успешно создан")
 except Exception as e:

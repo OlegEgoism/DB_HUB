@@ -7,8 +7,12 @@ class TableInfo(BaseModel):
     table_name: str
     owner: str
     description: Optional[str] = None
-    row_count: int = Field(..., description="Оценка количества строк (pg_class.reltuples)")
-    size_bytes: int = Field(..., description="Размер таблицы в байтах (pg_total_relation_size)")
+    row_count: int = Field(
+        ..., description="Оценка количества строк (pg_class.reltuples)"
+    )
+    size_bytes: int = Field(
+        ..., description="Размер таблицы в байтах (pg_total_relation_size)"
+    )
     size_pretty: str = Field(..., description="Человекочитаемый размер MB")
 
 

@@ -6,10 +6,12 @@ from backend.database.session import get_db
 from backend.services.db_groups_services import DBGroupService
 from backend.schemas.db_groups_schemas import (
     PaginatedDBGroupsResponse,
-    DBGroupUpdate, DBGroupCreate,
-    DBGroupOut, DBGroupWithUsersOut,
+    DBGroupUpdate,
+    DBGroupCreate,
+    DBGroupOut,
+    DBGroupWithUsersOut,
     AddUserToGroupRequest,
-    RemoveUserFromGroupRequest
+    RemoveUserFromGroupRequest,
 )
 
 router = APIRouter(prefix="/db_connections/{connection_id}/groups", tags=["DB GROUPS"])
@@ -17,27 +19,35 @@ router = APIRouter(prefix="/db_connections/{connection_id}/groups", tags=["DB GR
 
 @router.get("", response_model=PaginatedDBGroupsResponse)
 async def list_groups(
-        connection_id: int,
-        db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
-        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-        search: Optional[str] = Query(None, description="Поиск по названию/описанию группы")
+    connection_id: int,
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+    size: int = Query(
+        20, ge=1, le=200, description="Количество записей на странице (1–200)"
+    ),
+    search: Optional[str] = Query(
+        None, description="Поиск по названию/описанию группы"
+    ),
 ):
     """Получить список групп"""
     try:
         service = DBGroupService(db)
-        return await service.list_groups(connection_id=connection_id, page=page, size=size, search=search)
+        return await service.list_groups(
+            connection_id=connection_id, page=page, size=size, search=search
+        )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при получении списка групп: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Ошибка при получении списка групп: {str(e)}"
+        )
 
 
 @router.get("/{oid}", response_model=DBGroupOut)
 async def get_group(
-        connection_id: int = Path(..., description="id подключения к базе данных"),
-        oid: int = Path(..., description="oid группы в базе данных"),
-        db: AsyncSession = Depends(get_db)
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    oid: int = Path(..., description="oid группы в базе данных"),
+    db: AsyncSession = Depends(get_db),
 ):
     """Получить информацию о группе"""
     try:
@@ -47,15 +57,17 @@ async def get_group(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при получении группы: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Ошибка при получении группы: {str(e)}"
+        )
 
 
 @router.put("/{oid}", response_model=dict)
 async def update_group(
-        update: DBGroupUpdate,
-        connection_id: int = Path(..., description="id подключения к базе данных"),
-        oid: int = Path(..., description="oid группы в базе данных"),
-        db: AsyncSession = Depends(get_db)
+    update: DBGroupUpdate,
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    oid: int = Path(..., description="oid группы в базе данных"),
+    db: AsyncSession = Depends(get_db),
 ):
     """Обновить группу"""
     try:
@@ -65,14 +77,16 @@ async def update_group(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении группы: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Ошибка при обновлении группы: {str(e)}"
+        )
 
 
 @router.post("", response_model=dict, status_code=201)
 async def create_group(
-        create: DBGroupCreate,
-        connection_id: int = Path(..., description="id подключения к базе данных"),
-        db: AsyncSession = Depends(get_db)
+    create: DBGroupCreate,
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    db: AsyncSession = Depends(get_db),
 ):
     """Создать новую группу"""
     try:
@@ -82,14 +96,16 @@ async def create_group(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при создании группы: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Ошибка при создании группы: {str(e)}"
+        )
 
 
 @router.delete("/{oid}", status_code=200)
 async def delete_group(
-        connection_id: int = Path(..., description="id подключения к базе данных"),
-        oid: int = Path(..., description="oid группы в базе данных"),
-        db: AsyncSession = Depends(get_db)
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    oid: int = Path(..., description="oid группы в базе данных"),
+    db: AsyncSession = Depends(get_db),
 ):
     """Удалить группу"""
     try:
@@ -99,14 +115,16 @@ async def delete_group(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при удалении группы: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Ошибка при удалении группы: {str(e)}"
+        )
 
 
 @router.get("/{oid}/get_users", response_model=DBGroupWithUsersOut)
 async def get_group_with_users(
-        connection_id: int = Path(..., description="id подключения к базе данных"),
-        oid: int = Path(..., description="oid группы в базе данных"),
-        db: AsyncSession = Depends(get_db)
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    oid: int = Path(..., description="oid группы в базе данных"),
+    db: AsyncSession = Depends(get_db),
 ):
     """Получить группу и список пользователей"""
     try:
@@ -116,40 +134,53 @@ async def get_group_with_users(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при получении группы с пользователями: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при получении группы с пользователями: {str(e)}",
+        )
 
 
 @router.post("/{oid}/add_user", status_code=200)
 async def add_user_to_group(
-        request: AddUserToGroupRequest,
-        connection_id: int = Path(..., description="id подключения к базе данных"),
-        oid: int = Path(..., description="oid группы в базе данных"),
-        db: AsyncSession = Depends(get_db)
+    request: AddUserToGroupRequest,
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    oid: int = Path(..., description="oid группы в базе данных"),
+    db: AsyncSession = Depends(get_db),
 ):
     """Добавить пользователя в группу"""
     try:
         service = DBGroupService(db)
-        result = await service.add_user_to_group(connection_id=connection_id, user_oid=request.user_oid, group_oid=oid)
+        result = await service.add_user_to_group(
+            connection_id=connection_id, user_oid=request.user_oid, group_oid=oid
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при добавлении пользователя в группу: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при добавлении пользователя в группу: {str(e)}",
+        )
 
 
 @router.post("/{oid}/remove_user", status_code=200)
 async def remove_user_from_group(
-        request: RemoveUserFromGroupRequest,
-        connection_id: int = Path(..., description="id подключения к базе данных"),
-        oid: int = Path(..., description="oid группы в базе данных"),
-        db: AsyncSession = Depends(get_db)
+    request: RemoveUserFromGroupRequest,
+    connection_id: int = Path(..., description="id подключения к базе данных"),
+    oid: int = Path(..., description="oid группы в базе данных"),
+    db: AsyncSession = Depends(get_db),
 ):
     """Удалить пользователя из группы"""
     try:
         service = DBGroupService(db)
-        result = await service.remove_user_from_group(connection_id=connection_id, user_oid=request.user_oid, group_oid=oid)
+        result = await service.remove_user_from_group(
+            connection_id=connection_id, user_oid=request.user_oid, group_oid=oid
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при удалении пользователя из группы: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при удалении пользователя из группы: {str(e)}",
+        )

@@ -11,7 +11,9 @@ router = APIRouter(prefix="/app_agreements", tags=["APP AGREEMENTS"])
 
 
 @router.get("", response_model=List[AgreementResponse])
-async def get_all_agreements(db: AsyncSession = Depends(get_db), is_active: bool = None):
+async def get_all_agreements(
+    db: AsyncSession = Depends(get_db), is_active: bool = None
+):
     """Получить список всех пользовательских соглашений"""
     try:
         query = select(Agreement)
@@ -21,4 +23,7 @@ async def get_all_agreements(db: AsyncSession = Depends(get_db), is_active: bool
         agreements = result.scalars().all()
         return agreements
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении списка соглашений: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при получении списка соглашений: {str(e)}",
+        )

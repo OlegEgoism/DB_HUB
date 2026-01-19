@@ -125,7 +125,9 @@ class DBMetricsService:
                 WHERE state IS NOT NULL;
                 """
                 rows = await conn.fetch(basic_metrics_query)
-                basic_metrics = [{"metric": r["metric"], "value": r["value"]} for r in rows]
+                basic_metrics = [
+                    {"metric": r["metric"], "value": r["value"]} for r in rows
+                ]
 
                 # === Информация о расширениях ===
                 extensions_query = """
@@ -138,8 +140,7 @@ class DBMetricsService:
                 """
                 ext_rows = await conn.fetch(extensions_query)
                 extensions = [
-                    {"name": r["name"], "version": r["version"]}
-                    for r in ext_rows
+                    {"name": r["name"], "version": r["version"]} for r in ext_rows
                 ]
 
                 # === Сводка по сегментам (Greenplum-specific) ===
@@ -198,7 +199,7 @@ class DBMetricsService:
                             "role": r["role"],
                             "status": r["status"],
                             "port": r["port"],
-                            "address": r["address"]
+                            "address": r["address"],
                         }
                         for r in segment_rows
                     ]

@@ -17,11 +17,11 @@ class DBViewsService:
         return connection
 
     async def get_views(
-            self,
-            connection_id: int,
-            page: int = 1,
-            size: int = 20,
-            search: Optional[str] = None
+        self,
+        connection_id: int,
+        page: int = 1,
+        size: int = 20,
+        search: Optional[str] = None,
     ) -> Dict[str, Any]:
         if page < 1:
             page = 1
@@ -67,7 +67,9 @@ class DBViewsService:
             """
             params.append(f"%{search_term}%")
         async with external_db_connection(connection) as conn:
-            total_all_res = await conn.fetchrow(f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
+            total_all_res = await conn.fetchrow(
+                f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
+            )
             total_all = total_all_res["total"] if total_all_res else 0
             total_filtered_res = await conn.fetchrow(count_query, *params)
             total_filtered = total_filtered_res["total"] if total_filtered_res else 0
@@ -80,13 +82,17 @@ class DBViewsService:
             rows = await conn.fetch(paginated_query, *params)
         views = []
         for row in rows:
-            views.append({
-                "schema_name": row["schema_name"],
-                "view_name": row["view_name"],
-                "description": row["description"],
-                "definition": row["definition"],
-            })
-        pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+            views.append(
+                {
+                    "schema_name": row["schema_name"],
+                    "view_name": row["view_name"],
+                    "description": row["description"],
+                    "definition": row["definition"],
+                }
+            )
+        pages = (
+            math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+        )
         has_next = page < pages
         has_prev = page > 1
         return {
@@ -103,11 +109,11 @@ class DBViewsService:
         }
 
     async def get_materialized_views(
-            self,
-            connection_id: int,
-            page: int = 1,
-            size: int = 20,
-            search: Optional[str] = None
+        self,
+        connection_id: int,
+        page: int = 1,
+        size: int = 20,
+        search: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Получить список материализованных представлений"""
         if page < 1:
@@ -152,7 +158,9 @@ class DBViewsService:
             """
             params.append(f"%{search_term}%")
         async with external_db_connection(connection) as conn:
-            total_all_res = await conn.fetchrow(f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
+            total_all_res = await conn.fetchrow(
+                f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
+            )
             total_all = total_all_res["total"] if total_all_res else 0
             total_filtered_res = await conn.fetchrow(count_query, *params)
             total_filtered = total_filtered_res["total"] if total_filtered_res else 0
@@ -166,13 +174,17 @@ class DBViewsService:
         materialized_views = []
         for row in rows:
             definition = (row["definition"] or "").replace("\\n", "\n")
-            materialized_views.append({
-                "schema_name": row["schema_name"],
-                "view_name": row["view_name"],
-                "description": row["description"],
-                "definition": definition,
-            })
-        pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+            materialized_views.append(
+                {
+                    "schema_name": row["schema_name"],
+                    "view_name": row["view_name"],
+                    "description": row["description"],
+                    "definition": definition,
+                }
+            )
+        pages = (
+            math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+        )
         has_next = page < pages
         has_prev = page > 1
         return {

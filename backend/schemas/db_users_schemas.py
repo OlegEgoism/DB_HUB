@@ -5,8 +5,16 @@ from pydantic import BaseModel, field_validator, EmailStr
 
 # Запрещённые имена
 FORBIDDEN_NAMES = {
-    "public", "none", "current_user", "session_user", "user",
-    "admin", "root", "postgres", "guest", "test"
+    "public",
+    "none",
+    "current_user",
+    "session_user",
+    "user",
+    "admin",
+    "root",
+    "postgres",
+    "guest",
+    "test",
 }
 ROLE_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
@@ -17,7 +25,7 @@ class DBUserCreate(BaseModel):
     email: Optional[EmailStr] = None
     description: Optional[str] = None
 
-    @field_validator('username')
+    @field_validator("username")
     @classmethod
     def validate_username(cls, v: str) -> str:
         if not isinstance(v, str):
@@ -25,17 +33,21 @@ class DBUserCreate(BaseModel):
         v = v.strip()
         if not v:
             raise ValueError("Имя пользователя не может быть пустым")
-        if len(v.encode('utf-8')) > 63:
+        if len(v.encode("utf-8")) > 63:
             raise ValueError("Имя пользователя не может превышать 63 символа")
         if v.lower().startswith("pg_"):
             raise ValueError("Имя пользователя не может начинаться с 'pg_'")
         if v.lower() in FORBIDDEN_NAMES:
-            raise ValueError(f"Имя '{v}' зарезервировано и не может использоваться для пользователя")
+            raise ValueError(
+                f"Имя '{v}' зарезервировано и не может использоваться для пользователя"
+            )
         if not ROLE_NAME_PATTERN.match(v):
-            raise ValueError("Имя пользователя должно начинаться с латинской буквы или '_', и содержать только латинские буквы, цифры и символ '_'")
+            raise ValueError(
+                "Имя пользователя должно начинаться с латинской буквы или '_', и содержать только латинские буквы, цифры и символ '_'"
+            )
         return v
 
-    @field_validator('password')
+    @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
         if not isinstance(v, str):
@@ -69,7 +81,7 @@ class DBUserUpdate(BaseModel):
     description: Optional[str] = None
     email: Optional[EmailStr] = None
 
-    @field_validator('password')
+    @field_validator("password")
     @classmethod
     def validate_password(cls, v: Optional[str]) -> Optional[str]:
         if v is None:

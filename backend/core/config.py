@@ -6,6 +6,7 @@ import base64
 
 class Settings(BaseSettings):
     """PostgreSQL приложения"""
+
     DB_HOST: str = Field(..., env="DB_HOST")
     DB_PORT: int = Field(..., env="DB_PORT")
     DB_NAME: str = Field(..., env="DB_NAME")
@@ -32,7 +33,9 @@ class Settings(BaseSettings):
         try:
             base64.urlsafe_b64decode(v)
         except Exception as e:
-            raise ValueError("ENCRYPTION_KEY должен быть валидным 32-байтным base64-ключом") from e
+            raise ValueError(
+                "ENCRYPTION_KEY должен быть валидным 32-байтным base64-ключом"
+            ) from e
         return v
 
     class Config:

@@ -17,10 +17,18 @@ class DBSchemaService:
             raise ValueError(f"Подключение с id {connection_id} не найдено")
         return connection
 
-    async def get_schema_privileges_for_users(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def get_schema_privileges_for_users(
+        self,
+        connection_id: int,
+        page: int = 1,
+        size: int = 20,
+        search: Optional[str] = None,
+    ) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
-            user_rows = await conn.fetch("SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true ORDER BY rolname;")
+            user_rows = await conn.fetch(
+                "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true ORDER BY rolname;"
+            )
         user_oids = {row["oid"] for row in user_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
         all_usernames = sorted(oid_to_rolname.values())
@@ -42,7 +50,7 @@ class DBSchemaService:
                     "privileges": {
                         username: {"CREATE": False, "USAGE": False}
                         for username in all_usernames
-                    }
+                    },
                 }
                 for row in all_schemas_rows
             }
@@ -72,13 +80,9 @@ class DBSchemaService:
                 "owner": info["owner"],
                 "description": info["description"],
                 "role_privileges": [
-                    {
-                        "role": user,
-                        "create": priv["CREATE"],
-                        "usage": priv["USAGE"]
-                    }
+                    {"role": user, "create": priv["CREATE"], "usage": priv["USAGE"]}
                     for user, priv in info["privileges"].items()
-                ]
+                ],
             }
             all_entries.append(schema_entry)
         search_term = search.strip().lower() if search and search.strip() else None
@@ -88,15 +92,19 @@ class DBSchemaService:
         else:
             for entry in all_entries:
                 matches_schema = (
-                        search_term in entry["schema_name"].lower()
-                        or (entry["description"] and search_term in entry["description"].lower())
-                        or search_term in entry["owner"].lower()
+                    search_term in entry["schema_name"].lower()
+                    or (
+                        entry["description"]
+                        and search_term in entry["description"].lower()
+                    )
+                    or search_term in entry["owner"].lower()
                 )
                 if matches_schema:
                     filtered_entries.append(entry)
                     continue
                 matching_roles = [
-                    rp for rp in entry["role_privileges"]
+                    rp
+                    for rp in entry["role_privileges"]
                     if search_term in rp["role"].lower()
                 ]
                 if matching_roles:
@@ -124,38 +132,68 @@ class DBSchemaService:
             "schema_privileges": paginated,
         }
 
-    async def update_schema_privileges_for_users(self, connection_id: int, schema_name: str, user_privileges: List[Dict[str, Any]]) -> List[str]:
+    async def update_schema_privileges_for_users(
+        self,
+        connection_id: int,
+        schema_name: str,
+        user_privileges: List[Dict[str, Any]],
+    ) -> List[str]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
-            exists = await conn.fetchval("SELECT 1 FROM pg_namespace WHERE nspname = $1;", schema_name)
+            exists = await conn.fetchval(
+                "SELECT 1 FROM pg_namespace WHERE nspname = $1;", schema_name
+            )
             if not exists:
                 raise ValueError(f"Схема '{schema_name}' не существует.")
-            valid_users = {row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = true;")}
+            valid_users = {
+                row["rolname"]
+                for row in await conn.fetch(
+                    "SELECT rolname FROM pg_roles WHERE rolcanlogin = true;"
+                )
+            }
         updated_users = []
         for item in user_privileges:
             username = item["username"]
             create = item["create"]
             usage = item["usage"]
             if username not in valid_users:
-                raise ValueError(f"Пользователь '{username}' не существует или не является логин-ролью.")
+                raise ValueError(
+                    f"Пользователь '{username}' не существует или не является логин-ролью."
+                )
             updated_users.append(username)
             quoted_schema = _quote_ident(schema_name)
             quoted_user = _quote_ident(username)
             async with external_db_connection(connection) as conn:
                 if usage:
-                    await conn.execute(f'GRANT USAGE ON SCHEMA {quoted_schema} TO {quoted_user};')
+                    await conn.execute(
+                        f"GRANT USAGE ON SCHEMA {quoted_schema} TO {quoted_user};"
+                    )
                 else:
-                    await conn.execute(f'REVOKE USAGE ON SCHEMA {quoted_schema} FROM {quoted_user};')
+                    await conn.execute(
+                        f"REVOKE USAGE ON SCHEMA {quoted_schema} FROM {quoted_user};"
+                    )
                 if create:
-                    await conn.execute(f'GRANT CREATE ON SCHEMA {quoted_schema} TO {quoted_user};')
+                    await conn.execute(
+                        f"GRANT CREATE ON SCHEMA {quoted_schema} TO {quoted_user};"
+                    )
                 else:
-                    await conn.execute(f'REVOKE CREATE ON SCHEMA {quoted_schema} FROM {quoted_user};')
+                    await conn.execute(
+                        f"REVOKE CREATE ON SCHEMA {quoted_schema} FROM {quoted_user};"
+                    )
         return updated_users
 
-    async def get_schema_privileges_for_groups(self, connection_id: int, page: int = 1, size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def get_schema_privileges_for_groups(
+        self,
+        connection_id: int,
+        page: int = 1,
+        size: int = 20,
+        search: Optional[str] = None,
+    ) -> Dict[str, Any]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
-            group_rows = await conn.fetch("SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;")
+            group_rows = await conn.fetch(
+                "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;"
+            )
         group_oids = {row["oid"] for row in group_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
         all_groupnames = sorted(oid_to_rolname.values())
@@ -177,7 +215,7 @@ class DBSchemaService:
                     "privileges": {
                         groupname: {"CREATE": False, "USAGE": False}
                         for groupname in all_groupnames
-                    }
+                    },
                 }
                 for row in all_schemas_rows
             }
@@ -207,13 +245,9 @@ class DBSchemaService:
                 "owner": info["owner"],
                 "description": info["description"],
                 "role_privileges": [
-                    {
-                        "role": group,
-                        "create": priv["CREATE"],
-                        "usage": priv["USAGE"]
-                    }
+                    {"role": group, "create": priv["CREATE"], "usage": priv["USAGE"]}
                     for group, priv in info["privileges"].items()
-                ]
+                ],
             }
             all_entries.append(schema_entry)
         search_term = search.strip().lower() if search and search.strip() else None
@@ -223,15 +257,19 @@ class DBSchemaService:
         else:
             for entry in all_entries:
                 matches_schema = (
-                        search_term in entry["schema_name"].lower()
-                        or (entry["description"] and search_term in entry["description"].lower())
-                        or search_term in entry["owner"].lower()
+                    search_term in entry["schema_name"].lower()
+                    or (
+                        entry["description"]
+                        and search_term in entry["description"].lower()
+                    )
+                    or search_term in entry["owner"].lower()
                 )
                 if matches_schema:
                     filtered_entries.append(entry)
                     continue
                 matching_roles = [
-                    rp for rp in entry["role_privileges"]
+                    rp
+                    for rp in entry["role_privileges"]
                     if search_term in rp["role"].lower()
                 ]
                 if matching_roles:
@@ -259,30 +297,52 @@ class DBSchemaService:
             "schema_privileges": paginated,
         }
 
-    async def update_schema_privileges_for_groups(self, connection_id: int, schema_name: str, group_privileges: List[Dict[str, Any]]) -> List[str]:
+    async def update_schema_privileges_for_groups(
+        self,
+        connection_id: int,
+        schema_name: str,
+        group_privileges: List[Dict[str, Any]],
+    ) -> List[str]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
-            exists = await conn.fetchval("SELECT 1 FROM pg_namespace WHERE nspname = $1", schema_name)
+            exists = await conn.fetchval(
+                "SELECT 1 FROM pg_namespace WHERE nspname = $1", schema_name
+            )
             if not exists:
                 raise ValueError(f"Схема '{schema_name}' не существует.")
-            valid_groups = {row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = false;")}
+            valid_groups = {
+                row["rolname"]
+                for row in await conn.fetch(
+                    "SELECT rolname FROM pg_roles WHERE rolcanlogin = false;"
+                )
+            }
         updated_groups = []
         for item in group_privileges:
             groupname = item["groupname"]
             create = item["create"]
             usage = item["usage"]
             if groupname not in valid_groups:
-                raise ValueError(f"Группа '{groupname}' не существует или не является группой (ожидается rolcanlogin = false).")
+                raise ValueError(
+                    f"Группа '{groupname}' не существует или не является группой (ожидается rolcanlogin = false)."
+                )
             updated_groups.append(groupname)
             quoted_schema = _quote_ident(schema_name)
             quoted_group = _quote_ident(groupname)
             async with external_db_connection(connection) as conn:
                 if usage:
-                    await conn.execute(f'GRANT USAGE ON SCHEMA {quoted_schema} TO {quoted_group};')
+                    await conn.execute(
+                        f"GRANT USAGE ON SCHEMA {quoted_schema} TO {quoted_group};"
+                    )
                 else:
-                    await conn.execute(f'REVOKE USAGE ON SCHEMA {quoted_schema} FROM {quoted_group};')
+                    await conn.execute(
+                        f"REVOKE USAGE ON SCHEMA {quoted_schema} FROM {quoted_group};"
+                    )
                 if create:
-                    await conn.execute(f'GRANT CREATE ON SCHEMA {quoted_schema} TO {quoted_group};')
+                    await conn.execute(
+                        f"GRANT CREATE ON SCHEMA {quoted_schema} TO {quoted_group};"
+                    )
                 else:
-                    await conn.execute(f'REVOKE CREATE ON SCHEMA {quoted_schema} FROM {quoted_group};')
+                    await conn.execute(
+                        f"REVOKE CREATE ON SCHEMA {quoted_schema} FROM {quoted_group};"
+                    )
         return updated_groups

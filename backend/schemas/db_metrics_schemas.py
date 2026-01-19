@@ -2,9 +2,11 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 
+
 class DatabaseMetric(BaseModel):
     metric: str
     value: str
+
 
 class SegmentDetail(BaseModel):
     content: int
@@ -13,12 +15,15 @@ class SegmentDetail(BaseModel):
     port: int
     address: str
 
+
 class ExtensionInfo(BaseModel):
     name: str
     version: str
 
+
 class AllDatabaseMetricsResponse(BaseModel):
     """Общая схема для всех метрик базы данных"""
+
     connection_id: int
     connection_name: str
     connection_description: Optional[str] = None
@@ -35,9 +40,11 @@ class AllDatabaseMetricsResponse(BaseModel):
     segment_details: List[SegmentDetail]
     model_config = ConfigDict(from_attributes=True)
 
+
 class ShowAllItem(BaseModel):
     name: str
     setting: str
+
 
 class ShowAllResponse(BaseModel):
     settings: List[ShowAllItem]

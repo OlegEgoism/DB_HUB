@@ -8,8 +8,19 @@ class DateTimeMixin:
 
     @declared_attr
     def created_at(cls):
-        return Column(DateTime(timezone=True), server_default=func.now(), nullable=False, comment="Дата и время создания записи")
+        return Column(
+            DateTime(timezone=True),
+            server_default=func.now(),
+            nullable=False,
+            comment="Дата и время создания записи",
+        )
 
     @declared_attr
     def updated_at(cls):
-        return Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False, comment="Дата и время обновления записи")
+        return Column(
+            DateTime(timezone=True),
+            server_default=func.now(),
+            onupdate=func.now(),
+            nullable=False,
+            comment="Дата и время обновления записи",
+        )

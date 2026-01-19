@@ -25,7 +25,11 @@ async def external_db_connection(db_connection: DB_Connection, timeout: int = 10
         await conn.close()
 
 
-async def get_db_connection_by_id(db: AsyncSession, connection_id: int) -> DB_Connection | None:
+async def get_db_connection_by_id(
+    db: AsyncSession, connection_id: int
+) -> DB_Connection | None:
     """Получить запись подключения к внешней базе данных"""
-    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+    result = await db.execute(
+        select(DB_Connection).where(DB_Connection.id == connection_id)
+    )
     return result.scalar_one_or_none()

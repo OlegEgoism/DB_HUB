@@ -13,7 +13,7 @@ class UserBase(BaseModel):
     is_active: Optional[bool] = False
     is_superuser: Optional[bool] = False
 
-    @field_validator('role')
+    @field_validator("role")
     @classmethod
     def validate_role(cls, v):
         if v not in ROLE_CHOICES:
@@ -28,14 +28,12 @@ class UserCreate(BaseModel):
     role: str = Field(default="Пользователь")
     password: str
 
-    @field_validator('role')
+    @field_validator("role")
     @classmethod
     def validate_role(cls, v):
         if v not in ROLE_CHOICES:
             raise ValueError(f"Роль должна быть одной из: {', '.join(ROLE_CHOICES)}")
         return v
-
-
 
 
 class UserUpdate(BaseModel):
@@ -45,7 +43,7 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     is_superuser: Optional[bool] = None
 
-    @field_validator('role')
+    @field_validator("role")
     @classmethod
     def validate_role(cls, v):
         if v is not None and v not in ROLE_CHOICES:
@@ -106,6 +104,7 @@ class UserProfile(BaseModel):
 
 class PaginatedResponse(BaseModel):
     """Схема для ответа с пагинацией"""
+
     items: List[UserResponse]
     total: int
     page: int

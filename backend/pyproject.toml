@@ -1,0 +1,135 @@
+[tool.black]
+# Максимальная длина строки (по умолчанию: 88)
+line-length = 120
+
+# Целевые версии Python
+target-version = [
+    "py312", # Python 3.12
+    "py313", # Python 3.13
+]
+
+# Паттерны файлов для включения (регулярное выражение)
+include = '\.pyi?$'  # *.py и *.pyi файлы
+
+# Паттерны для исключения (регулярное выражение)
+exclude = '''
+/(
+    \.eggs           # директории eggs
+  | \.git            # Git директория
+  | \.hg             # Mercurial директория
+  | \.mypy_cache     # кэш mypy
+  | \.tox            # tox директория
+  | \.venv           # виртуальные окружения
+  | \.svn            # SVN директория
+  | _build           # сборки
+  | buck-out         # buck выход
+  | build            # директории сборки
+  | dist             # дистрибутивы
+  | venv             # виртуальные окружения
+  | node_modules     # node.js модули
+  | __pycache__      # кэш Python
+  | \.pytest_cache   # кэш pytest
+  | \.idea           # IDEA IDE
+  | \.vscode         # VSCode
+  | \.history        # история редакторов
+)/
+'''
+
+# Дополнительные паттерны для исключения
+extend-exclude = '''
+/(
+    migrations       # миграции Django/алембик
+  | tests/fixtures   # фикстуры тестов
+  | data             # данные
+  | docs             # документация
+  | examples         # примеры
+)/
+'''
+
+# Принудительно исключить определенные паттерны
+force-exclude = ''
+
+# Включить строковый режим обработки (по умолчанию: false)
+skip-string-normalization = false
+
+# Включить магическую запятую (по умолчанию: true)
+skip-magic-trailing-comma = false
+
+# Использовать быстрый режим (по умолчанию: false)
+fast = false
+
+# Псевдонимы для импортов с несколькими строками
+known-first-party = [
+    "mypackage",
+    "myapp",
+]
+
+known-third-party = [
+    "requests",
+    "django",
+    "flask",
+    "numpy",
+    "pandas",
+]
+
+known-local-folder = [
+    "utils",
+    "core",
+]
+
+# Настройки для Jupyter Notebooks
+[tool.black.jupyter]
+# Форматировать notebooks (по умолчанию: false)
+notebooks = true
+
+# Максимальная длина строки для notebooks
+line-length = 120
+
+# Пропустить нормализацию строк в notebooks
+skip-string-normalization = false
+
+# Настройки предварительных коммитов
+[tool.black.pre-commit]
+# Проверять форматирование в pre-commit хуках
+check = true
+
+# Показывать diff в pre-commit
+diff = true
+
+# Настройки отступов
+[tool.black.indentation]
+# Использовать табы вместо пробелов (по умолчанию: false)
+use-tabs = false
+
+# Размер отступа при использовании пробелов (по умолчанию: 4)
+indent-size = 4
+
+# Размер таба при использовании табов (по умолчанию: 4)
+tab-size = 4
+
+# Форматирование комментариев
+[tool.black.comments]
+# Выравнивание комментариев (по умолчанию: true)
+align = true
+
+# Максимальная длина комментариев
+max-length = 120
+
+# Настройки кавычек
+[tool.black.quotes]
+# Использовать двойные кавычки (по умолчанию: true)
+double-quotes = true
+
+# Экранировать Unicode (по умолчанию: false)
+escape-unicode = false
+
+# Настройки импортов
+[tool.black.imports]
+# Разделять импорты на секции (по умолчанию: true)
+split-imports = true
+
+# Максимальная длина строки для импортов
+import-line-length = 120
+
+# Минимальное количество импортов для разделения
+split-count = 5

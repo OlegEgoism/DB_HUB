@@ -3,8 +3,9 @@ from datetime import datetime
 from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
-Environment = Literal['production', 'development', 'testing', 'analytics']
-DatabaseType = Literal['postgresql', 'greenplum']
+Environment = Literal["production", "development", "testing", "analytics"]
+DatabaseType = Literal["postgresql", "greenplum"]
+
 
 class ConnectionBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
@@ -16,16 +17,18 @@ class ConnectionBase(BaseModel):
     database_name: str
     username: str
 
-    @field_validator('port')
+    @field_validator("port")
     @classmethod
     def validate_port(cls, v: int) -> int:
         if not (1 <= v <= 65535):
             raise ValueError("Порт должен быть в диапазоне 1–65535")
         return v
 
+
 class ConnectionCreate(ConnectionBase):
     password: str
     owner_id: int
+
 
 class ConnectionUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -40,12 +43,13 @@ class ConnectionUpdate(BaseModel):
     password: Optional[str] = None
     owner_id: Optional[int] = None
 
-    @field_validator('port')
+    @field_validator("port")
     @classmethod
     def validate_port_update(cls, v: Optional[int]) -> Optional[int]:
         if v is not None and not (1 <= v <= 65535):
             raise ValueError("Порт должен быть в диапазоне 1–65535")
         return v
+
 
 class ConnectionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -66,6 +70,7 @@ class ConnectionOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
 class PaginatedConnectionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     items: List[ConnectionOut]
@@ -75,6 +80,7 @@ class PaginatedConnectionResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
+
 
 class ActiveConnectionInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -90,6 +96,7 @@ class ActiveConnectionInfo(BaseModel):
     state: Optional[str] = None  # ← также может быть NULL
     query: str
 
+
 class PaginatedActiveConnectionsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     connection_id: int
@@ -103,8 +110,10 @@ class PaginatedActiveConnectionsResponse(BaseModel):
     has_prev: bool
     active_connections: List[ActiveConnectionInfo]
 
+
 class TerminateConnectionRequest(BaseModel):
     pid: int = Field(..., gt=0, description="PID процесса, который нужно завершить")
+
 
 class ConnectionFavoriteUpdate(BaseModel):
     is_favorite: bool

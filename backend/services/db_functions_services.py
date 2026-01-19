@@ -21,7 +21,7 @@ class DBFunctionService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None
+        search: Optional[str] = None,
     ) -> Dict[str, Any]:
         if page < 1:
             page = 1
@@ -64,7 +64,9 @@ class DBFunctionService:
             """
             params.append(f"%{search_term}%")
         async with external_db_connection(connection) as conn:
-            total_all_res = await conn.fetchrow(f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
+            total_all_res = await conn.fetchrow(
+                f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
+            )
             total_all = total_all_res["total"] if total_all_res else 0
             total_filtered_res = await conn.fetchrow(count_query, *params)
             total_filtered = total_filtered_res["total"] if total_filtered_res else 0
@@ -78,13 +80,17 @@ class DBFunctionService:
         functions = []
         for row in rows:
             definition = (row["definition"] or "").replace("\\n", "\n")
-            functions.append({
-                "schema_name": row["schema_name"],
-                "function_name": row["function_name"],
-                "description": row["description"],
-                "definition": definition,
-            })
-        pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+            functions.append(
+                {
+                    "schema_name": row["schema_name"],
+                    "function_name": row["function_name"],
+                    "description": row["description"],
+                    "definition": definition,
+                }
+            )
+        pages = (
+            math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+        )
         has_next = page < pages
         has_prev = page > 1
         return {

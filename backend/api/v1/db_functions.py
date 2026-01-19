@@ -10,11 +10,13 @@ router = APIRouter(prefix="/db_connections/{connection_id}", tags=["DB FUNCTIONS
 
 @router.get("/functions", response_model=PaginatedFunctionsResponse)
 async def get_functions(
-        connection_id: int,
-        db: AsyncSession = Depends(get_db),
-        page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
-        size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-        search: str = Query(None, description="Поиск по схеме, названию/описанию функции"),
+    connection_id: int,
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+    size: int = Query(
+        20, ge=1, le=200, description="Количество записей на странице (1–200)"
+    ),
+    search: str = Query(None, description="Поиск по схеме, названию/описанию функции"),
 ):
     """Получить список функций"""
     try:

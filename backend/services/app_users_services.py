@@ -6,7 +6,11 @@ from sqlalchemy import select, update
 from backend.models.user import User
 from backend.schemas.app_users_schemas import UserCreate, UserUpdate
 from datetime import datetime
-from backend.core.security import verify_password, create_access_token, get_password_hash
+from backend.core.security import (
+    verify_password,
+    create_access_token,
+    get_password_hash,
+)
 
 
 class UserService:
@@ -32,7 +36,7 @@ class UserService:
             raise ValueError("Пароль должен содержать минимум 4 символа")
         if password == username:
             raise ValueError("Пароль не должен совпадать с логином")
-        if re.search(r'\s', password):
+        if re.search(r"\s", password):
             raise ValueError("Пароль не должен содержать пробелы")
 
     @staticmethod
@@ -45,7 +49,9 @@ class UserService:
         """Проверка пароля"""
         return verify_password(plain_password, hashed_password)
 
-    async def check_email_exists(self, email: str, exclude_user_id: Optional[int] = None) -> bool:
+    async def check_email_exists(
+        self, email: str, exclude_user_id: Optional[int] = None
+    ) -> bool:
         """Проверка, используется ли email другим пользователем"""
         query = select(User).where(User.email == email)
         if exclude_user_id:
@@ -63,7 +69,15 @@ class UserService:
         if existing_user:
             raise ValueError("Пользователь с таким username уже существует")
         hashed_password = self.hash_password(user_data.password)
-        user = User(username=user_data.username, email=user_data.email, hashed_password=hashed_password, fio=user_data.fio, role=user_data.role, is_active=False, is_superuser=False)
+        user = User(
+            username=user_data.username,
+            email=user_data.email,
+            hashed_password=hashed_password,
+            fio=user_data.fio,
+            role=user_data.role,
+            is_active=False,
+            is_superuser=False,
+        )
         self.db.add(user)
         await self.db.commit()
         await self.db.refresh(user)
@@ -107,7 +121,9 @@ class UserService:
 
     async def update_last_login(self, user_id: int) -> None:
         """Обновление времени последнего входа"""
-        await self.db.execute(update(User).where(User.id == user_id).values(last_login=datetime.utcnow()))
+        await self.db.execute(
+            update(User).where(User.id == user_id).values(last_login=datetime.utcnow())
+        )
         await self.db.commit()
 
     async def login_user(self, username: str, password: str) -> Optional[dict]:
@@ -116,12 +132,28 @@ class UserService:
         if not user:
             return None
         await self.update_last_login(user.id)
-        access_token = create_access_token(data={"sub": user.username, "user_id": user.id, "role": user.role})
-        return {"user": {"id": user.id, "username": user.username, "email": user.email, "fio": user.fio, "role": user.role, "is_active": user.is_active, "is_superuser": user.is_superuser, "last_login": user.last_login}, "access_token": access_token, "token_type": "bearer"}
+        access_token = create_access_token(
+            data={"sub": user.username, "user_id": user.id, "role": user.role}
+        )
+        return {
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "fio": user.fio,
+                "role": user.role,
+                "is_active": user.is_active,
+                "is_superuser": user.is_superuser,
+                "last_login": user.last_login,
+            },
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
 
     async def get_current_user_from_token(self, token: str) -> Optional[User]:
         """Получение текущего пользователя из токена"""
         from backend.core.security import decode_access_token
+
         payload = decode_access_token(token)
         if not payload:
             return None
