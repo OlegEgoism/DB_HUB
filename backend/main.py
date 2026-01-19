@@ -18,7 +18,6 @@ from backend.api.v1 import (
     db_indexes,
     db_functions,
     db_procedures,
-    db_query_monitoring,
 )
 
 """Настройка логирования"""
@@ -68,4 +67,3 @@ app.include_router(db_views.router, prefix="/api/v1")
 app.include_router(db_indexes.router, prefix="/api/v1")
 app.include_router(db_functions.router, prefix="/api/v1")
 app.include_router(db_procedures.router, prefix="/api/v1")
-app.include_router(db_query_monitoring.router, prefix="/api/v1")
