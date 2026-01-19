@@ -82,10 +82,15 @@ class PaginatedConnectionResponse(BaseModel):
     has_prev: bool
 
 
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
+
 class ActiveConnectionInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
     pid: int
-    username: Optional[str] = None  # ← ИСПРАВЛЕНО: было str → стало Optional[str]
+    username: Optional[str] = None
     application_name: Optional[str] = None
     client_addr: Optional[str] = None
     client_hostname: Optional[str] = None
@@ -93,8 +98,9 @@ class ActiveConnectionInfo(BaseModel):
     backend_start: datetime
     query_start: Optional[datetime] = None
     state_change: Optional[datetime] = None
-    state: Optional[str] = None  # ← также может быть NULL
+    state: Optional[str] = None
     query: str
+    duration_ms: Optional[int] = None
 
 
 class PaginatedActiveConnectionsResponse(BaseModel):

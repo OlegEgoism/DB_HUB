@@ -303,12 +303,23 @@ async def list_active_connections(
         20, ge=1, le=200, description="Количество записей на странице (1–200)"
     ),
     username: Optional[str] = Query(None, description="Поиск по имени пользователя"),
+    min_duration_ms: Optional[int] = Query(
+        None, ge=0, description="Минимальная длительность запроса в миллисекундах"
+    ),
+    max_duration_ms: Optional[int] = Query(
+        None, ge=0, description="Максимальная длительность запроса в миллисекундах"
+    ),
 ):
     """Получить список процессов в базе данных"""
     try:
         service = DBConnectionService(db)
         return await service.get_active_connections(
-            connection_id=connection_id, page=page, size=size, username=username
+            connection_id=connection_id,
+            page=page,
+            size=size,
+            username=username,
+            min_duration_ms=min_duration_ms,
+            max_duration_ms=max_duration_ms,
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

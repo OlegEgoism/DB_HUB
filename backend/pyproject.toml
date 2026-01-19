@@ -58,30 +58,6 @@ skip-magic-trailing-comma = false
 # Использовать быстрый режим (по умолчанию: false)
 fast = false
 
-# Псевдонимы для импортов с несколькими строками
-known-first-party = [
-    "mypackage",
-    "myapp",
-]
-
-known-third-party = [
-    "requests",
-    "django",
-    "flask",
-    "numpy",
-    "pandas",
-]
-
-known-local-folder = [
-    "utils",
-    "core",
-]
-
-# Настройки для Jupyter Notebooks
-[tool.black.jupyter]
-# Форматировать notebooks (по умолчанию: false)
-notebooks = true
-
 # Максимальная длина строки для notebooks
 line-length = 120
 
