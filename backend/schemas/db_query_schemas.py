@@ -12,6 +12,7 @@ class SQLQueryRequest(BaseModel):
         description="Максимальное количество строк в результате (от 1 до 1000)"
     )
 
+
 class SQLQueryResponse(BaseModel):
     connection_id: int
     query: str

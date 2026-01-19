@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 
+
 class DBQueryService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -19,8 +20,8 @@ class DBQueryService:
     @staticmethod
     def is_safe_select_query(query: str) -> bool:
         """Проверяет, что запрос — только SELECT без опасных конструкций"""
-        normalized = re.sub(r"--.*", "", query)  # удаляем однострочные комментарии
-        normalized = re.sub(r"/\*.*?\*/", "", normalized, flags=re.DOTALL)  # многострочные
+        normalized = re.sub(r"--.*", "", query)
+        normalized = re.sub(r"/\*.*?\*/", "", normalized, flags=re.DOTALL)
         normalized = normalized.strip().lower()
 
         if not normalized.startswith("select"):
@@ -49,7 +50,6 @@ class DBQueryService:
 
         async with external_db_connection(connection, timeout=30) as conn:
             try:
-                # Применяем лимит из запроса (уже валидирован Pydantic)
                 limited_query = f"({query.strip().rstrip(';')}) LIMIT {limit + 1}"
                 stmt = await conn.prepare(limited_query)
                 columns = [col.name for col in stmt.get_attributes()]

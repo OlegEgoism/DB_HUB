@@ -10,16 +10,14 @@ router = APIRouter(
     tags=["DB QUERY"]
 )
 
+
 @router.post("/query", response_model=SQLQueryResponse)
 async def execute_sql_query(
-    connection_id: int,
-    request: SQLQueryRequest,
-    db: AsyncSession = Depends(get_db)
+        connection_id: int,
+        request: SQLQueryRequest,
+        db: AsyncSession = Depends(get_db)
 ):
-    """
-    Выполнить безопасный SQL-запрос (только SELECT).
-    Поддерживается параметр `limit` (1–1000 строк).
-    """
+    """SQL-запрос (только SELECT). Поддерживается параметр `limit` (1–1000 строк)"""
     try:
         service = DBQueryService(db)
         result = await service.execute_query(
