@@ -1,12 +1,5 @@
 # DB HUB 
 
-```
-- Версия: Python 3.13 / PostgreSQL 13+ / Greenplum 6+
-- При первом запуске приложения все таблицы будут созданы автоматически
-- API документация: 
-        http://127.0.0.1:8000/docs
-        http://127.0.0.1:8000/redoc
-```
 # Функционал приложения
 ```
 - Управление подключениями к PostgreSQL/Greenplum.
@@ -130,6 +123,11 @@ python -c "import sys; sys.path_importer_cache.clear()"
 <h3 style="color: #2486b5; text-align: center">
 Запуск backend приложения DB_HUB
 </h3>
+
+- При первом запуске приложения все таблицы будут созданы автоматически
+- API документация: 
+        http://127.0.0.1:8000/docs
+        http://127.0.0.1:8000/redoc
 
 ```bash
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
