@@ -1,0 +1,77 @@
+[tool.black]
+# Максимальная длина строки (по умолчанию: 88)
+line-length = 120
+
+# Целевые версии Python
+target-version = ["py312", "py313"]
+
+# Паттерны файлов для включения (регулярное выражение)
+include = '\.pyi?$'
+
+# Паттерны для исключения (регулярное выражение)
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | \.svn
+  | _build
+  | buck-out
+  | build
+  | dist
+  | venv
+  | node_modules
+  | __pycache__
+  | \.pytest_cache
+  | \.idea
+  | \.vscode
+  | \.history
+)/
+'''
+
+# Дополнительные паттерны для исключения
+extend-exclude = '''
+/(
+    migrations
+  | tests/fixtures
+  | data
+  | docs
+  | examples
+)/
+'''
+
+# Принудительно исключить определенные паттерны (если нужно)
+force-exclude = ''
+
+# Включить строковый режим обработки (по умолчанию: false)
+skip-string-normalization = false
+
+# Включить магическую запятую (по умолчанию: true)
+skip-magic-trailing-comma = false
+
+# Использовать быстрый режим (по умолчанию: false)
+fast = false
+
+# Настройки предварительных коммитов (не является частью основного конфига black)
+# [tool.black.pre-commit] — это неверный секция, black не поддерживает такие вложенные секции.
+# Для pre-commit используйте отдельный .pre-commit-config.yaml
+
+# Настройки отступов (через параметр indent, но black не поддерживает настройку tab-size или use-tabs напрямую)
+# Black всегда использует пробелы (4) и не поддерживает табы.
+# Поэтому эти секции будут проигнорированы:
+# [tool.black.indentation] — УДАЛИТЬ
+
+# Форматирование комментариев (black не имеет таких настроек)
+# [tool.black.comments] — УДАЛИТЬ
+
+# Настройки кавычек
+double-quotes = true
+escape-unicode = false
+
+# Настройки импортов
+split-imports = true
+import-line-length = 120
+split-count = 5
