@@ -2,6 +2,7 @@
 from typing import List, Optional
 import re
 from pydantic import BaseModel, field_validator
+from backend.utils.pagination import PaginatedResponse as BasePaginatedResponse
 
 # Запрещённые имена
 FORBIDDEN_NAMES = {
@@ -27,14 +28,10 @@ class DBGroupOut(BaseModel):
     user_count: int
 
 
-class PaginatedDBGroupsResponse(BaseModel):
-    items: List[DBGroupOut]
-    total: int
-    page: int
-    size: int
-    pages: int
-    has_next: bool
-    has_prev: bool
+class PaginatedDBGroupsResponse(BasePaginatedResponse[DBGroupOut]):
+    """Пагинация групп"""
+
+    pass
 
 
 class DBGroupUpdate(BaseModel):

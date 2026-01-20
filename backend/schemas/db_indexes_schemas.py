@@ -1,6 +1,7 @@
 # backend/schemas/db_indexes_schemas.py
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
+from backend.utils.pagination import PaginatedServiceResponse
 
 
 class IndexInfo(BaseModel):
@@ -11,15 +12,6 @@ class IndexInfo(BaseModel):
     definition: str
 
 
-class PaginatedIndexesResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    total_indexes: int
-    total_filtered_indexes: int
-    page: int
-    size: int
-    pages: int
-    has_next: bool
-    has_prev: bool
+class PaginatedIndexesResponse(PaginatedServiceResponse):
     indexes: List[IndexInfo]
     model_config = ConfigDict(from_attributes=True)

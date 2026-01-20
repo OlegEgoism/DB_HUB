@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from backend.models.user import ROLE_CHOICES
+from backend.utils.pagination import PaginatedResponse as BasePaginatedResponse
 
 
 class UserBase(BaseModel):
@@ -102,16 +103,7 @@ class UserProfile(BaseModel):
         from_attributes = True
 
 
-class PaginatedResponse(BaseModel):
+class PaginatedResponse(BasePaginatedResponse[UserResponse]):
     """Схема для ответа с пагинацией"""
 
-    items: List[UserResponse]
-    total: int
-    page: int
-    size: int
-    pages: int
-    has_next: bool
-    has_prev: bool
-
-    class Config:
-        from_attributes = True
+    pass

@@ -2,6 +2,7 @@
 import re
 from typing import List, Optional
 from pydantic import BaseModel, field_validator, EmailStr
+from backend.utils.pagination import PaginatedResponse as BasePaginatedResponse
 
 # Запрещённые имена
 FORBIDDEN_NAMES = {
@@ -66,14 +67,10 @@ class DBUserOut(BaseModel):
     email: Optional[str] = None
 
 
-class PaginatedDBUsersResponse(BaseModel):
-    items: List[DBUserOut]
-    total: int
-    page: int
-    size: int
-    pages: int
-    has_next: bool
-    has_prev: bool
+class PaginatedDBUsersResponse(BasePaginatedResponse[DBUserOut]):
+    """Пагинация пользователей БД"""
+
+    pass
 
 
 class DBUserUpdate(BaseModel):

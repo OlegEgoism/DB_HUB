@@ -28,8 +28,21 @@ class DBQueryService:
             return False
 
         dangerous_keywords = [
-            "insert", "update", "delete", "drop", "create", "alter", "truncate",
-            "grant", "revoke", "execute", "copy", "vacuum", "analyze", "do", "call"
+            "insert",
+            "update",
+            "delete",
+            "drop",
+            "create",
+            "alter",
+            "truncate",
+            "grant",
+            "revoke",
+            "execute",
+            "copy",
+            "vacuum",
+            "analyze",
+            "do",
+            "call",
         ]
         for kw in dangerous_keywords:
             if re.search(rf"\b{kw}\b", normalized):
@@ -38,10 +51,7 @@ class DBQueryService:
         return True
 
     async def execute_query(
-            self,
-            connection_id: int,
-            query: str,
-            limit: int = 100
+        self, connection_id: int, query: str, limit: int = 100
     ) -> Dict[str, Any]:
         if not self.is_safe_select_query(query):
             raise ValueError("Разрешены только безопасные SELECT-запросы")

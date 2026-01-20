@@ -149,10 +149,3 @@ class PaginatedTablePrivilegesGroupsResponse(BaseModel):
     has_prev: bool
     table_privileges: List[TablePrivilegeGroupInfo]
     model_config = ConfigDict(from_attributes=True)
-
-
-# class DropTemporaryTableResponse(BaseModel):
-#     success: bool
-#     message: str
-#     table_name: str
-#     connection_id: int

@@ -1,9 +1,9 @@
 # backend/services/db_indexes_services.py
-import math
 from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
+from backend.utils.pagination import PaginatedServiceResponse
 
 
 class DBIndexesService:
@@ -31,7 +31,6 @@ class DBIndexesService:
             size = 1000
 
         connection = await self._get_connection(connection_id)
-
         base_query = """
         SELECT
             n.nspname AS schema_name,
@@ -98,20 +97,13 @@ class DBIndexesService:
                     "definition": definition,
                 }
             )
-        pages = (
-            math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+        response = PaginatedServiceResponse.prepare_response(
+            connection_id=connection.id,
+            connection_name=connection.name,
+            total_items=total_all,
+            total_filtered_items=total_filtered,
+            page=page,
+            size=size,
         )
-        has_next = page < pages
-        has_prev = page > 1
-        return {
-            "connection_id": connection.id,
-            "connection_name": connection.name,
-            "total_indexes": total_all,
-            "total_filtered_indexes": total_filtered,
-            "page": page,
-            "size": size,
-            "pages": pages,
-            "has_next": has_next,
-            "has_prev": has_prev,
-            "indexes": indexes,
-        }
+        response["indexes"] = indexes
+        return response

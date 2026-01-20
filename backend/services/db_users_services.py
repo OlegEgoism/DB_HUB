@@ -5,8 +5,10 @@ from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 from backend.models.db import DB_Connection, DB_User
-from backend.schemas.db_users_schemas import DBUserOut, PaginatedDBUsersResponse
+from backend.schemas.db_users_schemas import DBUserOut
 from asyncpg.utils import _quote_ident
+
+from backend.utils.pagination import PaginatedResponse
 
 
 class DBUserService:
@@ -78,7 +80,7 @@ class DBUserService:
         page: int = 1,
         size: int = 20,
         search: Optional[str] = None,
-    ) -> PaginatedDBUsersResponse:
+    ) -> dict:
         await self.sync_users_from_external_db(connection_id)
         query = select(DB_User).where(DB_User.connection_id == connection_id)
         count_stmt = select(func.count(DB_User.id)).where(
@@ -104,16 +106,7 @@ class DBUserService:
             )
             for user in users
         ]
-        pages = math.ceil(total / size) if size > 0 and total > 0 else 1
-        return PaginatedDBUsersResponse(
-            items=items,
-            total=total,
-            page=page,
-            size=size,
-            pages=pages,
-            has_next=page < pages,
-            has_prev=page > 1,
-        )
+        return PaginatedResponse.create(items=items, total=total, page=page, size=size)
 
     async def get_user(self, connection_id: int, user_oid: int) -> DBUserOut:
         await self.sync_users_from_external_db(connection_id)

@@ -1,0 +1,6 @@
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/OlegEgoism/DB_HUB
+    rev: 24.4.2
+    hooks:
+      - id: black

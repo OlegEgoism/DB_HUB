@@ -1,11 +1,12 @@
 # backend/services/db_groups_services.py
-import math
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.db import DB_Connection
-from backend.schemas.db_groups_schemas import DBGroupOut, PaginatedDBGroupsResponse
+from backend.schemas.db_groups_schemas import DBGroupOut
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 from asyncpg.utils import _quote_ident
+
+from backend.utils.pagination import PaginatedResponse
 
 
 class DBGroupService:
@@ -21,7 +22,7 @@ class DBGroupService:
         page: int = 1,
         size: int = 20,
         search: Optional[str] = None,
-    ) -> PaginatedDBGroupsResponse:
+    ) -> dict:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
@@ -29,35 +30,35 @@ class DBGroupService:
             if search and search.strip():
                 search_term = f"%{search.strip()}%"
                 query = """
-                    SELECT
-                        r.oid,
-                        r.rolname AS name,
-                        pg_catalog.shobj_description(r.oid, 'pg_authid') AS description,
-                        COUNT(m.member) AS user_count
-                    FROM pg_roles r
-                    LEFT JOIN pg_auth_members m ON r.oid = m.roleid
-                    WHERE r.rolcanlogin = false 
-                      AND r.rolname !~ '^pg_'
-                      AND (r.rolname ILIKE $1 
-                           OR pg_catalog.shobj_description(r.oid, 'pg_authid') ILIKE $1)
-                    GROUP BY r.oid, r.rolname
-                    ORDER BY r.rolname
-                """
+                       SELECT
+                           r.oid,
+                           r.rolname AS name,
+                           pg_catalog.shobj_description(r.oid, 'pg_authid') AS description,
+                           COUNT(m.member) AS user_count
+                       FROM pg_roles r
+                       LEFT JOIN pg_auth_members m ON r.oid = m.roleid
+                       WHERE r.rolcanlogin = false 
+                         AND r.rolname !~ '^pg_'
+                         AND (r.rolname ILIKE $1 
+                              OR pg_catalog.shobj_description(r.oid, 'pg_authid') ILIKE $1)
+                       GROUP BY r.oid, r.rolname
+                       ORDER BY r.rolname
+                   """
                 rows = await conn.fetch(query, search_term)
             else:
                 query = """
-                    SELECT
-                        r.oid,
-                        r.rolname AS name,
-                        pg_catalog.shobj_description(r.oid, 'pg_authid') AS description,
-                        COUNT(m.member) AS user_count
-                    FROM pg_roles r
-                    LEFT JOIN pg_auth_members m ON r.oid = m.roleid
-                    WHERE r.rolcanlogin = false 
-                      AND r.rolname !~ '^pg_'
-                    GROUP BY r.oid, r.rolname
-                    ORDER BY r.rolname
-                """
+                       SELECT
+                           r.oid,
+                           r.rolname AS name,
+                           pg_catalog.shobj_description(r.oid, 'pg_authid') AS description,
+                           COUNT(m.member) AS user_count
+                       FROM pg_roles r
+                       LEFT JOIN pg_auth_members m ON r.oid = m.roleid
+                       WHERE r.rolcanlogin = false 
+                         AND r.rolname !~ '^pg_'
+                       GROUP BY r.oid, r.rolname
+                       ORDER BY r.rolname
+                   """
                 rows = await conn.fetch(query)
         total = len(rows)
         start = (page - 1) * size
@@ -71,16 +72,7 @@ class DBGroupService:
             )
             for row in paginated_rows
         ]
-        pages = math.ceil(total / size) if size > 0 and total > 0 else 1
-        return PaginatedDBGroupsResponse(
-            items=items,
-            total=total,
-            page=page,
-            size=size,
-            pages=pages,
-            has_next=page < pages,
-            has_prev=page > 1,
-        )
+        return PaginatedResponse.create(items=items, total=total, page=page, size=size)
 
     async def get_group(self, connection_id: int, group_oid: int) -> DBGroupOut:
         connection = await self.get_connection(connection_id)

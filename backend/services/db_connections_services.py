@@ -36,7 +36,9 @@ class DBConnectionService:
             params.append(f"%{username.strip()}%")
             param_index += 1
 
-        duration_filter_used = min_duration_ms is not None or max_duration_ms is not None
+        duration_filter_used = (
+            min_duration_ms is not None or max_duration_ms is not None
+        )
         if duration_filter_used:
             where_conditions.append("query_start IS NOT NULL")
 
@@ -105,24 +107,32 @@ class DBConnectionService:
             active_connections = []
             for r in rows:
                 duration_ms = (
-                    int(round(r["duration_ms"])) if r["duration_ms"] is not None else None
+                    int(round(r["duration_ms"]))
+                    if r["duration_ms"] is not None
+                    else None
                 )
-                active_connections.append({
-                    "pid": r["pid"],
-                    "username": r["username"],
-                    "application_name": r["application_name"],
-                    "client_addr": r["client_addr"],
-                    "client_hostname": r["client_hostname"],
-                    "client_port": r["client_port"],
-                    "backend_start": r["backend_start"],
-                    "query_start": r["query_start"],
-                    "state_change": r["state_change"],
-                    "state": r["state"],
-                    "query": r["query"] or "",
-                    "duration_ms": duration_ms,
-                })
+                active_connections.append(
+                    {
+                        "pid": r["pid"],
+                        "username": r["username"],
+                        "application_name": r["application_name"],
+                        "client_addr": r["client_addr"],
+                        "client_hostname": r["client_hostname"],
+                        "client_port": r["client_port"],
+                        "backend_start": r["backend_start"],
+                        "query_start": r["query_start"],
+                        "state_change": r["state_change"],
+                        "state": r["state"],
+                        "query": r["query"] or "",
+                        "duration_ms": duration_ms,
+                    }
+                )
 
-            pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
+            pages = (
+                math.ceil(total_filtered / size)
+                if size > 0 and total_filtered > 0
+                else 1
+            )
 
             return PaginatedActiveConnectionsResponse(
                 connection_id=connection.id,

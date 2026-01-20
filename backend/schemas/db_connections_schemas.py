@@ -2,6 +2,7 @@
 from datetime import datetime
 from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, field_validator, ConfigDict
+from backend.utils.pagination import PaginatedResponse as BasePaginatedResponse
 
 Environment = Literal["production", "development", "testing", "analytics"]
 DatabaseType = Literal["postgresql", "greenplum"]
@@ -71,20 +72,11 @@ class ConnectionOut(BaseModel):
     updated_at: datetime
 
 
-class PaginatedConnectionResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    items: List[ConnectionOut]
-    total: int
-    page: int
-    size: int
-    pages: int
-    has_next: bool
-    has_prev: bool
+class PaginatedConnectionResponse(BasePaginatedResponse[ConnectionOut]):
+    """Пагинация подключений"""
 
+    pass
 
-from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, ConfigDict
 
 class ActiveConnectionInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
