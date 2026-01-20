@@ -1,6 +1,0 @@
-# .gitignore
-.venv/
-.idea/
-/.env
-backend/collect_app_code.py
-backend/all_code.txt
