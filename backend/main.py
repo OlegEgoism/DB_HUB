@@ -20,6 +20,9 @@ from backend.api.v1 import (
     db_procedures,
     db_query,
 )
+from backend.core.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 """Настройка логирования"""
 logging.basicConfig(level=logging.INFO)
@@ -33,17 +36,19 @@ async def lifespan(backend: FastAPI):
         async with engine.begin() as conn:
             logger.info("🔄 Создание таблиц базы данных...")
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("✅ Таблицы базы данных успешно созданы")
+            logger.info("✅ Таблицы базы данных успешно созданы")
     except Exception as e:
         logger.error(f"❌ Ошибка при создании таблиц: {e}")
         raise
-
     yield
-
     await engine.dispose()
 
 
 app = FastAPI(title="DB HUB API", lifespan=lifespan, version="1.0.0")
+
+# Подключаем limiter к приложению
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Настройка CORS
 app.add_middleware(
