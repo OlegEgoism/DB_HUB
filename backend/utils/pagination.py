@@ -1,14 +1,12 @@
 # backend/utils/pagination.py
 import math
-from typing import TypeVar, Generic, List, Dict, Any
+from typing import TypeVar, Generic, List, Dict, Any, Optional, Callable
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
 
 class PaginatedResponse(BaseModel, Generic[T]):
-    """Общий класс для пагинации"""
-
     items: List[T]
     total: int
     page: int
@@ -24,32 +22,20 @@ class PaginatedResponse(BaseModel, Generic[T]):
         total: int,
         page: int,
         size: int,
-        pages: int = None,
-        has_next: bool = None,
-        has_prev: bool = None,
     ) -> Dict[str, Any]:
-        """Создать пагинированный ответ"""
-        if pages is None:
-            pages = math.ceil(total / size) if size > 0 and total > 0 else 1
-        if has_next is None:
-            has_next = page < pages
-        if has_prev is None:
-            has_prev = page > 1
-
+        pages = math.ceil(total / size) if size > 0 and total > 0 else 1
         return {
             "items": items,
             "total": total,
             "page": page,
             "size": size,
             "pages": pages,
-            "has_next": has_next,
-            "has_prev": has_prev,
+            "has_next": page < pages,
+            "has_prev": page > 1,
         }
 
 
 class PaginatedServiceResponse(BaseModel):
-    """Класс для пагинации в сервисах (без generic)"""
-
     connection_id: int
     connection_name: str
     total_items: int
@@ -70,11 +56,7 @@ class PaginatedServiceResponse(BaseModel):
         page: int,
         size: int,
     ) -> Dict[str, Any]:
-        """Подготовить базовую структуру для ответа сервиса"""
         pages = math.ceil(total_filtered_items / size) if size > 0 and total_filtered_items > 0 else 1
-        has_next = page < pages
-        has_prev = page > 1
-
         return {
             "connection_id": connection_id,
             "connection_name": connection_name,
@@ -83,6 +65,33 @@ class PaginatedServiceResponse(BaseModel):
             "page": page,
             "size": size,
             "pages": pages,
-            "has_next": has_next,
-            "has_prev": has_prev,
+            "has_next": page < pages,
+            "has_prev": page > 1,
         }
+
+
+async def paginate_raw_sql(
+    conn,
+    base_query: str,
+    count_query: str,
+    page: int = 1,
+    size: int = 20,
+    params: Optional[list] = None,
+    row_mapper: Optional[Callable] = None,
+) -> tuple[list, int]:
+    if page < 1:
+        page = 1
+    if size < 1:
+        size = 1
+    if size > 1000:
+        size = 1000
+    offset = (page - 1) * size
+    paginated_query = f"{base_query} LIMIT {size} OFFSET {offset}"
+    total_row = await conn.fetchrow(count_query, *(params or []))
+    total = total_row["total"] if total_row else 0
+    rows = await conn.fetch(paginated_query, *(params or []))
+    if row_mapper:
+        items = [row_mapper(row) for row in rows]
+    else:
+        items = [dict(row) for row in rows]
+    return items, total

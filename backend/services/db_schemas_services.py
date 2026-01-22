@@ -31,8 +31,7 @@ class DBSchemaService:
         oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
         all_usernames = sorted(oid_to_rolname.values())
         async with external_db_connection(connection) as conn:
-            all_schemas_rows = await conn.fetch(
-                """
+            all_schemas_rows = await conn.fetch("""
                 SELECT
                     nspname AS schema_name,
                     pg_get_userbyid(nspowner) AS owner,
@@ -41,8 +40,7 @@ class DBSchemaService:
                 WHERE nspname NOT LIKE 'pg_%'
                   AND nspname != 'information_schema'
                 ORDER BY nspname;
-            """
-            )
+            """)
             all_schemas = {
                 row["schema_name"]: {
                     "owner": row["owner"],
@@ -51,8 +49,7 @@ class DBSchemaService:
                 }
                 for row in all_schemas_rows
             }
-            privilege_rows = await conn.fetch(
-                """
+            privilege_rows = await conn.fetch("""
                 SELECT
                     nspname AS schema_name,
                     (aclexplode(nspacl)).grantee AS grantee_oid,
@@ -61,8 +58,7 @@ class DBSchemaService:
                 WHERE nspname NOT LIKE 'pg_%'
                   AND nspname != 'information_schema'
                   AND nspacl IS NOT NULL;
-            """
-            )
+            """)
         for row in privilege_rows:
             schema = row["schema_name"]
             grantee_oid = row["grantee_oid"]
@@ -175,8 +171,7 @@ class DBSchemaService:
         oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
         all_groupnames = sorted(oid_to_rolname.values())
         async with external_db_connection(connection) as conn:
-            all_schemas_rows = await conn.fetch(
-                """
+            all_schemas_rows = await conn.fetch("""
                 SELECT
                     nspname AS schema_name,
                     pg_get_userbyid(nspowner) AS owner,
@@ -185,8 +180,7 @@ class DBSchemaService:
                 WHERE nspname NOT LIKE 'pg_%'
                   AND nspname != 'information_schema'
                 ORDER BY nspname;
-            """
-            )
+            """)
             all_schemas = {
                 row["schema_name"]: {
                     "owner": row["owner"],
@@ -195,8 +189,7 @@ class DBSchemaService:
                 }
                 for row in all_schemas_rows
             }
-            privilege_rows = await conn.fetch(
-                """
+            privilege_rows = await conn.fetch("""
                 SELECT
                     nspname AS schema_name,
                     (aclexplode(nspacl)).grantee AS grantee_oid,
@@ -205,8 +198,7 @@ class DBSchemaService:
                 WHERE nspname NOT LIKE 'pg_%'
                   AND nspname != 'information_schema'
                   AND nspacl IS NOT NULL;
-            """
-            )
+            """)
         for row in privilege_rows:
             schema = row["schema_name"]
             grantee_oid = row["grantee_oid"]

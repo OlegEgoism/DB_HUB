@@ -3,7 +3,17 @@ from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
-from backend.utils.pagination import PaginatedServiceResponse
+from backend.utils.pagination import paginate_raw_sql, PaginatedServiceResponse
+
+
+def _map_function_row(row) -> dict:
+    definition = (row["definition"] or "").replace("\\n", "\n")
+    return {
+        "schema_name": row["schema_name"],
+        "function_name": row["function_name"],
+        "description": row["description"],
+        "definition": definition,
+    }
 
 
 class DBFunctionService:
@@ -23,13 +33,8 @@ class DBFunctionService:
         size: int = 20,
         search: Optional[str] = None,
     ) -> Dict[str, Any]:
-        if page < 1:
-            page = 1
-        if size < 1:
-            size = 1
-        if size > 1000:
-            size = 1000
         connection = await self._get_connection(connection_id)
+
         base_query = """
         SELECT
             n.nspname AS schema_name,
@@ -40,10 +45,12 @@ class DBFunctionService:
         JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
         """
-        search_term = search.strip().lower() if search and search.strip() else None
+
         filtered_query = base_query
         count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
         params = []
+        search_term = search.strip().lower() if search and search.strip() else None
+
         if search_term:
             filtered_query += """
             AND (
@@ -63,29 +70,21 @@ class DBFunctionService:
             ) AS sub
             """
             params.append(f"%{search_term}%")
+
         async with external_db_connection(connection) as conn:
-            total_all_res = await conn.fetchrow(f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
-            total_all = total_all_res["total"] if total_all_res else 0
-            total_filtered_res = await conn.fetchrow(count_query, *params)
-            total_filtered = total_filtered_res["total"] if total_filtered_res else 0
-            offset = (page - 1) * size
-            paginated_query = f"""
-            {filtered_query}
-            ORDER BY n.nspname, p.proname
-            LIMIT {size} OFFSET {offset}
-            """
-            rows = await conn.fetch(paginated_query, *params)
-        functions = []
-        for row in rows:
-            definition = (row["definition"] or "").replace("\\n", "\n")
-            functions.append(
-                {
-                    "schema_name": row["schema_name"],
-                    "function_name": row["function_name"],
-                    "description": row["description"],
-                    "definition": definition,
-                }
+            total_all_row = await conn.fetchrow(f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
+            total_all = total_all_row["total"] if total_all_row else 0
+
+            functions, total_filtered = await paginate_raw_sql(
+                conn,
+                filtered_query,
+                count_query,
+                page=page,
+                size=size,
+                params=params,
+                row_mapper=_map_function_row,
             )
+
         response = PaginatedServiceResponse.prepare_response(
             connection_id=connection.id,
             connection_name=connection.name,

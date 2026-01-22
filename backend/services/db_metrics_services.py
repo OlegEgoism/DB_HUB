@@ -179,8 +179,7 @@ class DBMetricsService:
                 # === Детали сегментов ===
                 segment_details = []
                 try:
-                    segment_rows = await conn.fetch(
-                        """
+                    segment_rows = await conn.fetch("""
                     SELECT
                         content,
                         role,
@@ -189,8 +188,7 @@ class DBMetricsService:
                         address
                     FROM pg_catalog.gp_segment_configuration
                     ORDER BY dbid ASC;
-                    """
-                    )
+                    """)
                     segment_details = [
                         {
                             "content": r["content"],

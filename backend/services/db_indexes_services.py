@@ -3,7 +3,18 @@ from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
-from backend.utils.pagination import PaginatedServiceResponse
+from backend.utils.pagination import paginate_raw_sql, PaginatedServiceResponse
+
+
+def _map_index_row(row) -> dict:
+    definition = (row["definition"] or "").replace("\\n", "\n")
+    return {
+        "schema_name": row["schema_name"],
+        "index_name": row["index_name"],
+        "table_name": row["table_name"],
+        "description": row["description"],
+        "definition": definition,
+    }
 
 
 class DBIndexesService:
@@ -23,14 +34,8 @@ class DBIndexesService:
         size: int = 20,
         search: Optional[str] = None,
     ) -> Dict[str, Any]:
-        if page < 1:
-            page = 1
-        if size < 1:
-            size = 1
-        if size > 1000:
-            size = 1000
-
         connection = await self._get_connection(connection_id)
+
         base_query = """
         SELECT
             n.nspname AS schema_name,
@@ -43,13 +48,15 @@ class DBIndexesService:
         JOIN pg_catalog.pg_class t ON t.oid = idx.indrelid
         JOIN pg_catalog.pg_namespace n ON n.oid = t.relnamespace
         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
-          AND t.relkind = 'r'  -- только обычные таблицы
-          AND i.relkind = 'i'  -- только индексы
+        AND t.relkind = 'r'
+        AND i.relkind = 'i'
         """
-        search_term = search.strip().lower() if search and search.strip() else None
+
         filtered_query = base_query
         count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
         params = []
+        search_term = search.strip().lower() if search and search.strip() else None
+
         if search_term:
             filtered_query += """
             AND (
@@ -71,30 +78,21 @@ class DBIndexesService:
             ) AS sub
             """
             params.append(f"%{search_term}%")
+
         async with external_db_connection(connection) as conn:
-            total_all_res = await conn.fetchrow(f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
-            total_all = total_all_res["total"] if total_all_res else 0
-            total_filtered_res = await conn.fetchrow(count_query, *params)
-            total_filtered = total_filtered_res["total"] if total_filtered_res else 0
-            offset = (page - 1) * size
-            paginated_query = f"""
-            {filtered_query}
-            ORDER BY n.nspname, t.relname, i.relname
-            LIMIT {size} OFFSET {offset}
-            """
-            rows = await conn.fetch(paginated_query, *params)
-        indexes = []
-        for row in rows:
-            definition = (row["definition"] or "").replace("\\n", "\n")
-            indexes.append(
-                {
-                    "schema_name": row["schema_name"],
-                    "index_name": row["index_name"],
-                    "table_name": row["table_name"],
-                    "description": row["description"],
-                    "definition": definition,
-                }
+            total_all_row = await conn.fetchrow(f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub")
+            total_all = total_all_row["total"] if total_all_row else 0
+
+            indexes, total_filtered = await paginate_raw_sql(
+                conn,
+                filtered_query,
+                count_query,
+                page=page,
+                size=size,
+                params=params,
+                row_mapper=_map_index_row,
             )
+
         response = PaginatedServiceResponse.prepare_response(
             connection_id=connection.id,
             connection_name=connection.name,

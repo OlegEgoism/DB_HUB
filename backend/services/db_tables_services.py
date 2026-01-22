@@ -205,15 +205,12 @@ class DBTablesService:
         search_term = search.strip().lower() if search and search.strip() else None
         params = []
         if search_term:
-            filtered_query = (
-                base_query
-                + """
+            filtered_query = base_query + """
             AND (
                 LOWER(c.relname) LIKE $1
                 OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $1
             )
             """
-            )
             count_query = f"""
             SELECT COUNT(*) AS total FROM (
                 {base_query}
@@ -287,8 +284,7 @@ class DBTablesService:
         oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
         all_usernames = sorted(oid_to_rolname.values())
         async with external_db_connection(connection) as conn:
-            table_rows = await conn.fetch(
-                """
+            table_rows = await conn.fetch("""
                 SELECT
                     n.nspname AS schema_name,
                     c.relname AS table_name,
@@ -300,8 +296,7 @@ class DBTablesService:
                   AND n.nspname NOT LIKE 'pg_%'
                   AND n.nspname != 'information_schema'
                 ORDER BY n.nspname, c.relname;
-            """
-            )
+            """)
             table_info = {
                 row["table_oid"]: {
                     "schema_name": row["schema_name"],
@@ -320,8 +315,7 @@ class DBTablesService:
                 }
                 for row in table_rows
             }
-            acl_rows = await conn.fetch(
-                """
+            acl_rows = await conn.fetch("""
                 SELECT
                     c.oid AS table_oid,
                     (aclexplode(c.relacl)).grantee AS grantee_oid,
@@ -332,8 +326,7 @@ class DBTablesService:
                   AND n.nspname NOT LIKE 'pg_%'
                   AND n.nspname != 'information_schema'
                   AND c.relacl IS NOT NULL;
-            """
-            )
+            """)
         target_privileges = {"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"}
         for row in acl_rows:
             table_oid = row["table_oid"]
@@ -475,8 +468,7 @@ class DBTablesService:
         oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
         all_groupnames = sorted(oid_to_rolname.values())
         async with external_db_connection(connection) as conn:
-            table_rows = await conn.fetch(
-                """
+            table_rows = await conn.fetch("""
                 SELECT
                     n.nspname AS schema_name,
                     c.relname AS table_name,
@@ -488,8 +480,7 @@ class DBTablesService:
                   AND n.nspname NOT LIKE 'pg_%'
                   AND n.nspname != 'information_schema'
                 ORDER BY n.nspname, c.relname;
-            """
-            )
+            """)
             table_info = {
                 row["table_oid"]: {
                     "schema_name": row["schema_name"],
@@ -508,8 +499,7 @@ class DBTablesService:
                 }
                 for row in table_rows
             }
-            acl_rows = await conn.fetch(
-                """
+            acl_rows = await conn.fetch("""
                 SELECT
                     c.oid AS table_oid,
                     (aclexplode(c.relacl)).grantee AS grantee_oid,
@@ -520,8 +510,7 @@ class DBTablesService:
                   AND n.nspname NOT LIKE 'pg_%'
                   AND n.nspname != 'information_schema'
                   AND c.relacl IS NOT NULL;
-            """
-            )
+            """)
         target_privileges = {"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"}
         for row in acl_rows:
             table_oid = row["table_oid"]

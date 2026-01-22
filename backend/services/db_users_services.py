@@ -24,8 +24,7 @@ class DBUserService:
             raise ValueError("Подключение не найдено")
         external_users = {}
         async with external_db_connection(connection) as conn:
-            rows = await conn.fetch(
-                """
+            rows = await conn.fetch("""
                 SELECT
                     r.oid,
                     r.rolname AS name,
@@ -34,8 +33,7 @@ class DBUserService:
                 WHERE r.rolcanlogin = true
                   AND r.rolname !~ '^pg_'
                 ORDER BY r.rolname
-            """
-            )
+            """)
             for row in rows:
                 external_users[row["oid"]] = {
                     "oid": row["oid"],

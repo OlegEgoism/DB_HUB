@@ -53,13 +53,11 @@ class DBConnectionService:
         where_clause = " AND ".join(where_conditions)
 
         async with external_db_connection(connection) as conn:
-            total_all_row = await conn.fetchrow(
-                """
+            total_all_row = await conn.fetchrow("""
                 SELECT COUNT(*) AS total
                 FROM pg_stat_activity
                 WHERE state IS NOT NULL AND pid <> pg_backend_pid()
-            """
-            )
+            """)
             total_all = total_all_row["total"] if total_all_row else 0
 
             total_filtered_row = await conn.fetchrow(
