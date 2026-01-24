@@ -97,4 +97,6 @@ class DBFunctionService:
             size=size,
         )
         response["functions"] = functions
+        response["total_functions"] = total_all
+        response["total_filtered_functions"] = total_filtered
         return response

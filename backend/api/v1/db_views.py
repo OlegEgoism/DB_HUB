@@ -1,4 +1,5 @@
 # backend/api/v1/db_views.py
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +13,12 @@ from backend.services.db_views_services import DBViewsService
 router = APIRouter(prefix="/db_connections/{connection_id}/views", tags=["DB VIEWS"])
 
 
-@router.get("", response_model=PaginatedViewsResponse)
+@router.get(
+    "",
+    response_model=PaginatedViewsResponse,
+    summary="Получить список представлений",
+    description="Возвращает пагинированный список представлений в базе данных",
+)
 async def get_views(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
@@ -34,7 +40,12 @@ async def get_views(
         ) from e
 
 
-@router.get("/materialized", response_model=PaginatedMaterializedViewsResponse)
+@router.get(
+    "/materialized",
+    response_model=PaginatedMaterializedViewsResponse,
+    summary="Получить список материализованных представлений",
+    description="Возвращает пагинированный список материализованных представлений в базе данных",
+)
 async def get_materialized_views(
     connection_id: int,
     db: AsyncSession = Depends(get_db),

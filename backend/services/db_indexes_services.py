@@ -105,4 +105,6 @@ class DBIndexesService:
             size=size,
         )
         response["indexes"] = indexes
+        response["total_indexes"] = total_all
+        response["total_filtered_indexes"] = total_filtered
         return response

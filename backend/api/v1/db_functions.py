@@ -10,7 +10,12 @@ from backend.services.db_functions_services import DBFunctionService
 router = APIRouter(prefix="/db_connections/{connection_id}", tags=["DB FUNCTIONS"])
 
 
-@router.get("/functions", response_model=PaginatedFunctionsResponse)
+@router.get(
+    "/functions",
+    response_model=PaginatedFunctionsResponse,
+    summary="Получить список функций",
+    description="Возвращает пагинированный список функций в базе данных",
+)
 async def get_functions(
     connection_id: int,
     db: AsyncSession = Depends(get_db),

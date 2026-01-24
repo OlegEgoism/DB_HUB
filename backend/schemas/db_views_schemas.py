@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict
 
+from backend.utils.pagination import PaginatedServiceResponse
+
 
 class ViewInfo(BaseModel):
     schema_name: str
@@ -10,16 +12,7 @@ class ViewInfo(BaseModel):
     definition: str
 
 
-class PaginatedViewsResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    total_views: int
-    total_filtered_views: int
-    page: int
-    size: int
-    pages: int
-    has_next: bool
-    has_prev: bool
+class PaginatedViewsResponse(PaginatedServiceResponse):
     views: list[ViewInfo]
     model_config = ConfigDict(from_attributes=True)
 
@@ -31,15 +24,6 @@ class MaterializedViewInfo(BaseModel):
     definition: str
 
 
-class PaginatedMaterializedViewsResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    total_materialized_views: int
-    total_filtered_materialized_views: int
-    page: int
-    size: int
-    pages: int
-    has_next: bool
-    has_prev: bool
+class PaginatedMaterializedViewsResponse(PaginatedServiceResponse):
     materialized_views: list[MaterializedViewInfo]
     model_config = ConfigDict(from_attributes=True)

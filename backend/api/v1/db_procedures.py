@@ -10,7 +10,12 @@ from backend.services.db_procedures_services import DBProcedureService
 router = APIRouter(prefix="/db_connections/{connection_id}", tags=["DB PROCEDURES"])
 
 
-@router.get("/procedures", response_model=PaginatedProceduresResponse)
+@router.get(
+    "/procedures",
+    response_model=PaginatedProceduresResponse,
+    summary="Получить список процедур",
+    description="Возвращает пагинированный список хранимых процедур в базе данных",
+)
 async def get_procedures(
     connection_id: int,
     db: AsyncSession = Depends(get_db),

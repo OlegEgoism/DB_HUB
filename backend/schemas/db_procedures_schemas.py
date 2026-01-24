@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict
 
+from backend.utils.pagination import PaginatedServiceResponse
+
 
 class ProcedureInfo(BaseModel):
     schema_name: str
@@ -10,16 +12,6 @@ class ProcedureInfo(BaseModel):
     definition: str
 
 
-class PaginatedProceduresResponse(BaseModel):
-    connection_id: int
-    connection_name: str
-    total_procedures: int
-    total_filtered_procedures: int
-    page: int
-    size: int
-    pages: int
-    has_next: bool
-    has_prev: bool
+class PaginatedProceduresResponse(PaginatedServiceResponse):
     procedures: list[ProcedureInfo]
-
     model_config = ConfigDict(from_attributes=True)

@@ -1,6 +1,5 @@
 # backend/services/db_tables_services.py
 
-import math
 from typing import Any
 
 from asyncpg.utils import _quote_ident
@@ -8,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
+from backend.utils.pagination import calculate_pagination_info
 
 
 class DBTablesService:
@@ -39,74 +39,73 @@ class DBTablesService:
         search: str | None = None,
     ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
+
         schemas_query = """
         SELECT
             n.nspname AS schema_name,
-            pg_catalog.obj_description(n.oid, 'pg_namespace') AS description
+            pg_catalog.obj_description(n.oid, 'pg_namespace') AS description,
+            COUNT(c.oid) AS table_count
         FROM pg_catalog.pg_namespace n
+        LEFT JOIN pg_catalog.pg_class c ON n.oid = c.relnamespace AND c.relkind = 'r'
         WHERE n.nspname NOT LIKE 'pg_%'
           AND n.nspname != 'information_schema'
-        ORDER BY n.nspname;
+        GROUP BY n.nspname, n.oid
         """
-        async with external_db_connection(connection) as conn:
-            all_schemas_rows = await conn.fetch(schemas_query)
-        all_schemas = [{"schema_name": row["schema_name"], "description": row["description"]} for row in all_schemas_rows]
+
+        params = []
         search_term = search.strip().lower() if search and search.strip() else None
-        if not search_term:
-            filtered_schemas = all_schemas
-            total_schemas = len(all_schemas)
-            total_filtered = total_schemas
-        else:
-            schemas_with_matching_tables = []
-            async with external_db_connection(connection) as conn:
-                for s in all_schemas:
-                    schema_name = s["schema_name"]
-                    schema_desc = (s["description"] or "").lower()
-                    schema_matches = search_term in schema_name.lower() or search_term in schema_desc
-                    tables_query = """
-                    SELECT
-                        c.relname AS table_name,
-                        pg_catalog.obj_description(c.oid, 'pg_class') AS table_description
-                    FROM pg_catalog.pg_class c
-                    JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-                    WHERE n.nspname = $1
-                      AND c.relkind = 'r'
-                    """
-                    table_rows = await conn.fetch(tables_query, schema_name)
-                    matching_tables = []
-                    for t in table_rows:
-                        tbl_name = t["table_name"].lower()
-                        tbl_desc = (t["table_description"] or "").lower()
-                        if search_term in tbl_name or search_term in tbl_desc:
-                            matching_tables.append(
-                                {
-                                    "table_name": t["table_name"],
-                                    "table_description": t["table_description"],
-                                }
-                            )
-                    if schema_matches or matching_tables:
-                        schemas_with_matching_tables.append(
-                            {
-                                "schema": s,
-                                "matching_tables": (matching_tables if not schema_matches else []),
-                            }
-                        )
-            filtered_schemas = []
-            for item in schemas_with_matching_tables:
-                s = item["schema"]
-                if search_term in s["schema_name"].lower() or search_term in (s["description"] or "").lower():
-                    filtered_schemas.append(s)
-                else:
-                    filtered_schemas.append(s)
-            total_schemas = len(all_schemas)
-            total_filtered = len(filtered_schemas)
-        start = (page - 1) * size
-        end = start + size
-        paginated_schemas = filtered_schemas[start:end]
-        schemas_with_tables = []
+
+        if search_term:
+            schemas_query += """
+            HAVING (
+                LOWER(n.nspname) LIKE $1
+                OR LOWER(pg_catalog.obj_description(n.oid, 'pg_namespace')) LIKE $1
+            )
+            """
+            params.append(f"%{search_term}%")
+
+        schemas_query += " ORDER BY n.nspname"
+
         async with external_db_connection(connection) as conn:
-            for s in paginated_schemas:
-                schema_name = s["schema_name"]
+            count_query = """
+            SELECT COUNT(*) AS total FROM (
+                SELECT n.nspname
+                FROM pg_catalog.pg_namespace n
+                WHERE n.nspname NOT LIKE 'pg_%'
+                  AND n.nspname != 'information_schema'
+            ) AS sub
+            """
+
+            total_all_row = await conn.fetchrow(count_query)
+            total_all = total_all_row["total"] if total_all_row else 0
+
+            offset = (page - 1) * size
+            paginated_query = f"{schemas_query} LIMIT {size} OFFSET {offset}"
+
+            schema_rows = await conn.fetch(paginated_query, *params)
+
+            if search_term:
+                filtered_count_query = """
+                SELECT COUNT(*) AS total FROM (
+                    SELECT n.nspname
+                    FROM pg_catalog.pg_namespace n
+                    WHERE n.nspname NOT LIKE 'pg_%'
+                      AND n.nspname != 'information_schema'
+                    HAVING (
+                        LOWER(n.nspname) LIKE $1
+                        OR LOWER(pg_catalog.obj_description(n.oid, 'pg_namespace')) LIKE $1
+                    )
+                ) AS sub
+                """
+                filtered_row = await conn.fetchrow(filtered_count_query, search_term)
+                total_filtered = filtered_row["total"] if filtered_row else 0
+            else:
+                total_filtered = total_all
+
+            schemas_with_tables = []
+            for row in schema_rows:
+                schema_name = row["schema_name"]
+
                 tables_query = """
                 SELECT
                     c.relname AS table_name,
@@ -115,69 +114,60 @@ class DBTablesService:
                     c.reltuples::bigint AS row_count,
                     pg_total_relation_size(c.oid) AS size_bytes
                 FROM pg_catalog.pg_class c
-                JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-                WHERE n.nspname = $1
+                WHERE c.relnamespace = (
+                    SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = $1
+                )
                   AND c.relkind = 'r'
-                ORDER BY c.relname;
                 """
-                if search_term and not (search_term in schema_name.lower() or search_term in (s["description"] or "").lower()):
-                    table_rows = await conn.fetch(tables_query, schema_name)
-                    filtered_tables = []
-                    for tr in table_rows:
-                        tbl_name = tr["table_name"].lower()
-                        tbl_desc = (tr["description"] or "").lower()
-                        if search_term in tbl_name or search_term in tbl_desc:
-                            row_count = max(0, int(tr["row_count"])) if tr["row_count"] is not None else 0
-                            size_bytes = tr["size_bytes"] or 0
-                            size_pretty = self._human_readable_size(size_bytes)
-                            filtered_tables.append(
-                                {
-                                    "table_name": tr["table_name"],
-                                    "owner": tr["owner"],
-                                    "description": tr["description"],
-                                    "row_count": row_count,
-                                    "size_bytes": size_bytes,
-                                    "size_pretty": size_pretty,
-                                }
-                            )
-                    tables = filtered_tables
-                else:
-                    table_rows = await conn.fetch(tables_query, schema_name)
-                    tables = []
-                    for tr in table_rows:
-                        row_count = max(0, int(tr["row_count"])) if tr["row_count"] is not None else 0
-                        size_bytes = tr["size_bytes"] or 0
-                        size_pretty = self._human_readable_size(size_bytes)
-                        tables.append(
-                            {
-                                "table_name": tr["table_name"],
-                                "owner": tr["owner"],
-                                "description": tr["description"],
-                                "row_count": row_count,
-                                "size_bytes": size_bytes,
-                                "size_pretty": size_pretty,
-                            }
-                        )
+
+                table_params = [schema_name]
+
+                if search_term and not (search_term in schema_name.lower() or (row["description"] and search_term in row["description"].lower())):
+                    tables_query += """
+                    AND (
+                        LOWER(c.relname) LIKE $2
+                        OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $2
+                    )
+                    """
+                    table_params.append(f"%{search_term}%")
+
+                tables_query += " ORDER BY c.relname"
+
+                table_rows = await conn.fetch(tables_query, *table_params)
+
+                tables = []
+                for tr in table_rows:
+                    row_count = max(0, int(tr["row_count"])) if tr["row_count"] is not None else 0
+                    size_bytes = tr["size_bytes"] or 0
+                    size_pretty = self._human_readable_size(size_bytes)
+
+                    tables.append(
+                        {
+                            "table_name": tr["table_name"],
+                            "owner": tr["owner"],
+                            "description": tr["description"],
+                            "row_count": row_count,
+                            "size_bytes": size_bytes,
+                            "size_pretty": size_pretty,
+                        }
+                    )
+
                 schemas_with_tables.append(
                     {
                         "schema_name": schema_name,
-                        "description": s["description"],
+                        "description": row["description"],
                         "tables": tables,
                     }
                 )
-        pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
-        has_next = page < pages
-        has_prev = page > 1
+
+        pagination_info = calculate_pagination_info(total_filtered, page, size)
+
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
-            "total_schemas": total_schemas,
+            "total_schemas": total_all,
             "total_filtered_schemas": total_filtered,
-            "page": page,
-            "size": size,
-            "pages": pages,
-            "has_next": has_next,
-            "has_prev": has_prev,
+            **pagination_info,
             "schemas": schemas_with_tables,
         }
 
@@ -189,6 +179,7 @@ class DBTablesService:
         search: str | None = None,
     ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
+
         base_query = """
         SELECT
             c.relname AS table_name,
@@ -200,49 +191,55 @@ class DBTablesService:
         WHERE c.relpersistence = 't'
           AND c.relkind = 'r'
         """
-        search_term = search.strip().lower() if search and search.strip() else None
+
+        count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
+
         params = []
+        search_term = search.strip().lower() if search and search.strip() else None
+
         if search_term:
-            filtered_query = (
-                base_query
-                + """
+            base_query += """
             AND (
                 LOWER(c.relname) LIKE $1
                 OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $1
             )
             """
-            )
-            count_query = f"""
+            count_query = """
             SELECT COUNT(*) AS total FROM (
-                {base_query}
-                AND (
+                SELECT *
+                FROM pg_catalog.pg_class c
+                WHERE c.relpersistence = 't'
+                  AND c.relkind = 'r'
+                  AND (
                     LOWER(c.relname) LIKE $1
                     OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $1
-                )
+                  )
             ) AS sub
             """
-            params = [f"%{search_term}%"]
-        else:
-            filtered_query = base_query
-            count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
+            params.append(f"%{search_term}%")
+
         async with external_db_connection(connection) as conn:
-            total_all_res = await conn.fetchrow("SELECT COUNT(*) AS total FROM pg_class WHERE relpersistence = 't' AND relkind = 'r'")
+            total_all_res = await conn.fetchrow("""
+                SELECT COUNT(*) AS total
+                FROM pg_class
+                WHERE relpersistence = 't' AND relkind = 'r'
+            """)
             total_all = total_all_res["total"] if total_all_res else 0
+
             total_filtered_res = await conn.fetchrow(count_query, *params)
             total_filtered = total_filtered_res["total"] if total_filtered_res else 0
+
             offset = (page - 1) * size
-            paginated_query = f"""
-            {filtered_query}
-            ORDER BY c.relname
-            LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
-            """
-            paginated_params = params + [size, offset]
-            table_rows = await conn.fetch(paginated_query, *paginated_params)
+            paginated_query = f"{base_query} ORDER BY c.relname LIMIT {size} OFFSET {offset}"
+
+            table_rows = await conn.fetch(paginated_query, *params)
+
         tables = []
         for tr in table_rows:
             row_count = max(0, int(tr["row_count"])) if tr["row_count"] is not None else 0
             size_bytes = tr["size_bytes"] or 0
             size_pretty = self._human_readable_size(size_bytes)
+
             tables.append(
                 {
                     "table_name": tr["table_name"],
@@ -253,19 +250,15 @@ class DBTablesService:
                     "size_pretty": size_pretty,
                 }
             )
-        pages = math.ceil(total_filtered / size) if size > 0 and total_filtered > 0 else 1
-        has_next = page < pages
-        has_prev = page > 1
+
+        pagination_info = calculate_pagination_info(total_filtered, page, size)
+
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
             "total_temp_tables": total_all,
             "total_filtered_temp_tables": total_filtered,
-            "page": page,
-            "size": size,
-            "pages": pages,
-            "has_next": has_next,
-            "has_prev": has_prev,
+            **pagination_info,
             "temporary_tables": tables,
         }
 
@@ -277,12 +270,13 @@ class DBTablesService:
         search: str | None = None,
     ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
+
         async with external_db_connection(connection) as conn:
             user_rows = await conn.fetch("SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true ORDER BY rolname;")
-        user_oids = {row["oid"] for row in user_rows}
-        oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
-        all_usernames = sorted(oid_to_rolname.values())
-        async with external_db_connection(connection) as conn:
+            user_oids = {row["oid"] for row in user_rows}
+            oid_to_rolname = {row["oid"]: row["rolname"] for row in user_rows}
+            all_usernames = sorted(oid_to_rolname.values())
+
             table_rows = await conn.fetch("""
                 SELECT
                     n.nspname AS schema_name,
@@ -296,6 +290,7 @@ class DBTablesService:
                   AND n.nspname != 'information_schema'
                 ORDER BY n.nspname, c.relname;
             """)
+
             table_info = {
                 row["table_oid"]: {
                     "schema_name": row["schema_name"],
@@ -314,6 +309,7 @@ class DBTablesService:
                 }
                 for row in table_rows
             }
+
             acl_rows = await conn.fetch("""
                 SELECT
                     c.oid AS table_oid,
@@ -326,6 +322,7 @@ class DBTablesService:
                   AND n.nspname != 'information_schema'
                   AND c.relacl IS NOT NULL;
             """)
+
         target_privileges = {"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"}
         for row in acl_rows:
             table_oid = row["table_oid"]
@@ -336,6 +333,7 @@ class DBTablesService:
             username = oid_to_rolname[grantee_oid]
             if table_oid in table_info and username in table_info[table_oid]["privileges"]:
                 table_info[table_oid]["privileges"][username][privilege] = True
+
         all_entries = []
         for info in table_info.values():
             entry = {
@@ -355,8 +353,10 @@ class DBTablesService:
                 ],
             }
             all_entries.append(entry)
+
         search_term = search.strip().lower() if search and search.strip() else None
         filtered_entries = []
+
         if not search_term:
             filtered_entries = all_entries
         else:
@@ -372,24 +372,20 @@ class DBTablesService:
                     entry_copy = entry.copy()
                     entry_copy["user_privileges"] = matching_users
                     filtered_entries.append(entry_copy)
+
         total_tables = len(all_entries)
         total_filtered = len(filtered_entries)
+        pagination_info = calculate_pagination_info(total_filtered, page, size)
         start = (page - 1) * size
         end = start + size
         paginated = filtered_entries[start:end]
-        pages = (total_filtered + size - 1) // size if size > 0 else 1
-        has_next = page < pages
-        has_prev = page > 1
+
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
             "total_tables": total_tables,
             "total_filtered_tables": total_filtered,
-            "page": page,
-            "size": size,
-            "pages": pages,
-            "has_next": has_next,
-            "has_prev": has_prev,
+            **pagination_info,
             "table_privileges": paginated,
         }
 
@@ -401,6 +397,7 @@ class DBTablesService:
         user_privileges: list[dict[str, Any]],
     ) -> list[str]:
         connection = await self._get_connection(connection_id)
+
         async with external_db_connection(connection) as conn:
             exists = await conn.fetchval(
                 "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'r';",
@@ -410,6 +407,7 @@ class DBTablesService:
             if not exists:
                 raise ValueError(f"Таблица '{table_name}' в схеме '{schema_name}' не существует.")
             valid_users = {row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = true;")}
+
         updated_users = []
         for item in user_privileges:
             username = item["username"]
@@ -420,6 +418,7 @@ class DBTablesService:
             quoted_table = _quote_ident(table_name)
             quoted_user = _quote_ident(username)
             target_privileges = ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"]
+
             async with external_db_connection(connection) as conn:
                 acl_rows = await conn.fetch(
                     """
@@ -454,12 +453,13 @@ class DBTablesService:
         search: str | None = None,
     ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
+
         async with external_db_connection(connection) as conn:
             group_rows = await conn.fetch("SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;")
-        group_oids = {row["oid"] for row in group_rows}
-        oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
-        all_groupnames = sorted(oid_to_rolname.values())
-        async with external_db_connection(connection) as conn:
+            group_oids = {row["oid"] for row in group_rows}
+            oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
+            all_groupnames = sorted(oid_to_rolname.values())
+
             table_rows = await conn.fetch("""
                 SELECT
                     n.nspname AS schema_name,
@@ -473,6 +473,7 @@ class DBTablesService:
                   AND n.nspname != 'information_schema'
                 ORDER BY n.nspname, c.relname;
             """)
+
             table_info = {
                 row["table_oid"]: {
                     "schema_name": row["schema_name"],
@@ -491,6 +492,7 @@ class DBTablesService:
                 }
                 for row in table_rows
             }
+
             acl_rows = await conn.fetch("""
                 SELECT
                     c.oid AS table_oid,
@@ -503,18 +505,18 @@ class DBTablesService:
                   AND n.nspname != 'information_schema'
                   AND c.relacl IS NOT NULL;
             """)
+
         target_privileges = {"SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"}
         for row in acl_rows:
             table_oid = row["table_oid"]
             grantee_oid = row["grantee_oid"]
             privilege = row["privilege_type"]
-            if grantee_oid == 0 or grantee_oid not in oid_to_rolname:
-                continue
             if grantee_oid not in group_oids or privilege not in target_privileges:
                 continue
             groupname = oid_to_rolname[grantee_oid]
             if table_oid in table_info and groupname in table_info[table_oid]["privileges"]:
                 table_info[table_oid]["privileges"][groupname][privilege] = True
+
         all_entries = []
         for info in table_info.values():
             entry = {
@@ -534,8 +536,10 @@ class DBTablesService:
                 ],
             }
             all_entries.append(entry)
+
         search_term = search.strip().lower() if search and search.strip() else None
         filtered_entries = []
+
         if not search_term:
             filtered_entries = all_entries
         else:
@@ -551,25 +555,21 @@ class DBTablesService:
                     entry_copy = entry.copy()
                     entry_copy["group_privileges"] = matching_groups
                     filtered_entries.append(entry_copy)
+
         total_tables = len(all_entries)
         total_filtered = len(filtered_entries)
+        pagination_info = calculate_pagination_info(total_filtered, page, size)
         start = (page - 1) * size
         end = start + size
         paginated = filtered_entries[start:end]
-        pages = (total_filtered + size - 1) // size if size > 0 else 1
-        has_next = page < pages
-        has_prev = page > 1
+
         return {
             "connection_id": connection.id,
             "connection_name": connection.name,
             "requested_groups": all_groupnames,
             "total_tables": total_tables,
             "total_filtered_tables": total_filtered,
-            "page": page,
-            "size": size,
-            "pages": pages,
-            "has_next": has_next,
-            "has_prev": has_prev,
+            **pagination_info,
             "table_privileges": paginated,
         }
 
@@ -581,6 +581,7 @@ class DBTablesService:
         group_privileges: list[dict[str, Any]],
     ) -> list[str]:
         connection = await self._get_connection(connection_id)
+
         async with external_db_connection(connection) as conn:
             exists = await conn.fetchval(
                 "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'r';",
@@ -590,6 +591,7 @@ class DBTablesService:
             if not exists:
                 raise ValueError(f"Таблица '{table_name}' в схеме '{schema_name}' не существует.")
             valid_groups = {row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = false;")}
+
         updated_groups = []
         target_privileges = ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"]
         for item in group_privileges:
@@ -600,6 +602,7 @@ class DBTablesService:
             quoted_schema = _quote_ident(schema_name)
             quoted_table = _quote_ident(table_name)
             quoted_group = _quote_ident(groupname)
+
             async with external_db_connection(connection) as conn:
                 acl_rows = await conn.fetch(
                     """

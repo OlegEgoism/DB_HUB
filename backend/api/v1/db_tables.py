@@ -19,7 +19,9 @@ from backend.services.db_tables_services import DBTablesService
 router = APIRouter(prefix="/db_connections/{connection_id}/tables", tags=["DB TABLES"])
 
 
-@router.get("", response_model=PaginatedSchemasWithTablesResponse)
+@router.get(
+    "", response_model=PaginatedSchemasWithTablesResponse, summary="Получить список таблиц", description="Возвращает пагинированный список схем с таблицами"
+)
 async def get_tables(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
@@ -41,7 +43,12 @@ async def get_tables(
         ) from e
 
 
-@router.get("/temporary", response_model=PaginatedTemporaryTablesResponse)
+@router.get(
+    "/temporary",
+    response_model=PaginatedTemporaryTablesResponse,
+    summary="Получить список временных таблиц",
+    description="Возвращает пагинированный список временных таблиц",
+)
 async def get_tables_temporary(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
@@ -66,7 +73,12 @@ async def get_tables_temporary(
         ) from e
 
 
-@router.get("/privileges_users", response_model=PaginatedTablePrivilegesUsersResponse)
+@router.get(
+    "/privileges_users",
+    response_model=PaginatedTablePrivilegesUsersResponse,
+    summary="Получить права пользователя к таблицам",
+    description="Возвращает пагинированный список прав пользователей к таблицам",
+)
 async def get_tables_privileges_for_users(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
@@ -88,7 +100,12 @@ async def get_tables_privileges_for_users(
         raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий таблиц: {str(e)}") from e
 
 
-@router.post("/privileges_users", response_model=TablePrivilegesUpdateResponse)
+@router.post(
+    "/privileges_users",
+    response_model=TablePrivilegesUpdateResponse,
+    summary="Обновить права пользователя на таблицу",
+    description="Обновляет права пользователя на указанную таблицу",
+)
 async def update_tables_privileges_for_users(
     connection_id: int,
     request: TablePrivilegesUpdateRequest,
@@ -120,7 +137,12 @@ async def update_tables_privileges_for_users(
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав: {str(e)}") from e
 
 
-@router.get("/privileges_groups", response_model=PaginatedTablePrivilegesGroupsResponse)
+@router.get(
+    "/privileges_groups",
+    response_model=PaginatedTablePrivilegesGroupsResponse,
+    summary="Получить права групп к таблицам",
+    description="Возвращает пагинированный список прав групп к таблицам",
+)
 async def get_tables_privileges_for_groups(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
@@ -142,7 +164,12 @@ async def get_tables_privileges_for_groups(
         raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий групп: {str(e)}") from e
 
 
-@router.post("/privileges_groups", response_model=TablePrivilegesGroupsUpdateResponse)
+@router.post(
+    "/privileges_groups",
+    response_model=TablePrivilegesGroupsUpdateResponse,
+    summary="Обновить права группы на таблицу",
+    description="Обновляет права группы на указанную таблицу",
+)
 async def update_tables_privileges_for_groups(
     connection_id: int,
     request: TablePrivilegesGroupsUpdateRequest,
