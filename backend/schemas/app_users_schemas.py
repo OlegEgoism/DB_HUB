@@ -1,4 +1,5 @@
 # backend/schemas/app_users_schemas.py
+
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field, field_validator

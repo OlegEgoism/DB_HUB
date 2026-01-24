@@ -1,4 +1,5 @@
 # scripts/seed_agreements.py
+
 import asyncio
 import sys
 from pathlib import Path

@@ -1,4 +1,5 @@
 # backend/utils/pagination.py
+
 import math
 from collections.abc import Callable
 from typing import Any, TypeVar

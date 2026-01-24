@@ -1,4 +1,5 @@
 # backend/schemas/app_agreements_schemas.py
+
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict

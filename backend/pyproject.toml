@@ -2,6 +2,17 @@
 target-version = "py313"
 line-length = 160
 
+# Где не проверять (exclude остаётся на верхнем уровне!)
+extend-exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    "frontend",
+    "load_data.py",
+    "collect_app_code.py",
+]
+
+[tool.ruff.lint]
 # Что включаем
 select = [
     "E",   # pycodestyle errors
@@ -16,18 +27,3 @@ select = [
 ignore = [
     "B008",
 ]
-
-# Где не проверять
-exclude = [
-    ".venv",
-    "venv",
-    "__pycache__",
-    "frontend",
-    "load_data.py",
-    "collect_app_code.py",
-]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "lf"

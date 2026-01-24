@@ -1,4 +1,5 @@
 # backend/models/base_mixin.py
+
 from sqlalchemy import Column, DateTime, func
 from sqlalchemy.ext.declarative import declared_attr
 

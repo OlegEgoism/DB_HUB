@@ -1,4 +1,5 @@
 # backend/core/config.py
+
 import base64
 
 from pydantic import Field, validator

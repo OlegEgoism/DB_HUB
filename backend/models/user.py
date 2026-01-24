@@ -1,4 +1,5 @@
 # backend/models/user.py
+
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -26,7 +27,6 @@ role_check = "role IN ({})".format(", ".join(repr(r) for r in ROLE_CHOICES))
 
 class User(Base, DateTimeMixin):
     __tablename__ = "users"
-    # Основные поля
     id = Column(Integer, primary_key=True, index=True, comment="PK пользователя")
     username = Column(String, unique=True, index=True, comment="Логин пользователя")
     email = Column(String, unique=True, index=True, nullable=False, comment="Почта пользователя")
@@ -46,7 +46,6 @@ class User(Base, DateTimeMixin):
         comment="Дата и время последнего входа пользователя в систему",
     )
     refresh_token = Column(String, nullable=True, comment="Refresh токен")
-    # Ограничения
     __table_args__ = (
         CheckConstraint(role_check, name="valid_role"),
         Index("idx_users_username_search", "username"),
@@ -56,7 +55,6 @@ class User(Base, DateTimeMixin):
         Index("idx_users_is_superuser_search", "is_superuser"),
         Index("idx_users_role_search", "role"),
     )
-    # Связи
     db_connection = relationship(
         "DB_Connection",
         back_populates="owner",

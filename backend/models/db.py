@@ -1,4 +1,5 @@
 # backend/models/db.py
+
 from sqlalchemy import (
     Boolean,
     Column,
@@ -31,14 +32,12 @@ DATABASE_TYPES = [
 class DB_Connection(Base, DateTimeMixin):
     __tablename__ = "db_connection"
     id = Column(Integer, primary_key=True, index=True, comment="PK подключения")
-    # Поля для подключения
     database_name = Column(String(255), nullable=False, comment="Название базы данных")
     host = Column(String(255), nullable=False, comment="Хост")
     port = Column(Integer, nullable=False, comment="Порт")
     username = Column(String(255), nullable=False, comment="Имя пользователя")
     password = Column(String(255), nullable=False, comment="Пароль пользователя")
     description = Column(String(255), nullable=True, comment="Описание базы данных")
-    # Дополнительная информация
     name = Column(String(255), nullable=False, index=True, comment="Название подключения")
     database_type = Column(
         Enum(*[t[0] for t in DATABASE_TYPES], name="database_type_enum"),
@@ -51,7 +50,6 @@ class DB_Connection(Base, DateTimeMixin):
         comment="Окружение",
     )
     is_favorite = Column(Boolean, default=False, nullable=False, comment="Избранное")
-    # Связь
     owner_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -65,7 +63,6 @@ class DB_Connection(Base, DateTimeMixin):
         lazy="selectin",
     )
     owner = relationship("User", back_populates="db_connection")
-    # Ограничения и индексы
     __table_args__ = (
         UniqueConstraint(
             "database_name",
@@ -92,12 +89,10 @@ class DB_Connection(Base, DateTimeMixin):
 class DB_User(Base, DateTimeMixin):
     __tablename__ = "db_user"
     id = Column(Integer, primary_key=True, index=True, comment="PK группы/пользователя")
-    # Основные поля
     oid = Column(Integer, nullable=False, index=True, comment="OID группы/пользователя")
     name = Column(String(255), nullable=False, index=True, comment="Название группы/пользователя")
     description = Column(Text, nullable=True, comment="Описание группы/пользователя")
     email = Column(String(200), nullable=True, index=True, comment="Почта пользователя")
-    # Связь
     connection_id = Column(
         Integer,
         ForeignKey("db_connection.id", ondelete="CASCADE"),
@@ -105,7 +100,6 @@ class DB_User(Base, DateTimeMixin):
         comment="ID подключения к БД",
     )
     connection = relationship("DB_Connection", back_populates="db_user")
-    # Ограничения и индексы
     __table_args__ = (
         UniqueConstraint("connection_id", "oid", "name", name="uq_db_user_connection_name"),
         Index("idx_db_name", "name"),
