@@ -8,22 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from backend.api.v1 import (
-    app_agreements,
-    app_auth,
-    app_users,
-    db_connections,
-    db_functions,
-    db_groups,
-    db_indexes,
-    db_metrics,
-    db_procedures,
-    db_query,
-    db_schemas,
-    db_tables,
-    db_users,
-    db_views,
-)
+from backend.api.v1 import api_v1_router
 from backend.core.limiter import limiter
 from backend.database.session import Base, engine
 
@@ -63,17 +48,4 @@ app.add_middleware(
 )
 
 """Подключаем роутеры"""
-app.include_router(app_agreements.router, prefix="/api/v1")
-app.include_router(app_auth.router, prefix="/api/v1")
-app.include_router(app_users.router, prefix="/api/v1")
-app.include_router(db_connections.router, prefix="/api/v1")
-app.include_router(db_metrics.router, prefix="/api/v1")
-app.include_router(db_groups.router, prefix="/api/v1")
-app.include_router(db_users.router, prefix="/api/v1")
-app.include_router(db_schemas.router, prefix="/api/v1")
-app.include_router(db_tables.router, prefix="/api/v1")
-app.include_router(db_views.router, prefix="/api/v1")
-app.include_router(db_indexes.router, prefix="/api/v1")
-app.include_router(db_functions.router, prefix="/api/v1")
-app.include_router(db_procedures.router, prefix="/api/v1")
-app.include_router(db_query.router, prefix="/api/v1")
+app.include_router(api_v1_router)

@@ -121,14 +121,19 @@ ruff check . --fix
 ruff format .
 ```
 
+- Узнать, какие файлы изменились
+
+```bash
+git diff --name-only
+```
+
 <h3 style="color: #2486b5; text-align: center">
 Запуск backend приложения DB_HUB
 </h3>
 
 - При первом запуске приложения все таблицы будут созданы автоматически
-- API документация:
-  http://127.0.0.1:8000/docs
-  http://127.0.0.1:8000/redoc
+- http://127.0.0.1:8000/docs
+- http://127.0.0.1:8000/redoc
 
 ```bash
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload

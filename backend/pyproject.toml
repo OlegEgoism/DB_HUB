@@ -15,12 +15,12 @@ extend-exclude = [
 [tool.ruff.lint]
 # Что включаем
 select = [
-    "E",   # pycodestyle errors
-    "F",   # pyflakes
-    "W",   # pycodestyle warnings
-    "I",   # isort (импорты)
-    "B",   # flake8-bugbear
-    "UP",  # pyupgrade
+    "E", # pycodestyle errors
+    "F", # pyflakes
+    "W", # pycodestyle warnings
+    "I", # isort (импорты)
+    "B", # flake8-bugbear
+    "UP", # pyupgrade
 ]
 
 # Что часто мешает в FastAPI
