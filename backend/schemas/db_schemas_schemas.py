@@ -1,6 +1,6 @@
 # backend/schemas/db_schemas_schemas.py
+
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
 
 
 class SchemaRolePrivilege(BaseModel):
@@ -12,8 +12,8 @@ class SchemaRolePrivilege(BaseModel):
 class SchemaPrivilegeInfo(BaseModel):
     schema_name: str
     owner: str
-    description: Optional[str] = None
-    role_privileges: List[SchemaRolePrivilege]
+    description: str | None = None
+    role_privileges: list[SchemaRolePrivilege]
 
 
 class SchemaPrivilegeUpdateItem(BaseModel):
@@ -24,12 +24,12 @@ class SchemaPrivilegeUpdateItem(BaseModel):
 
 class SchemaPrivilegesUpdateRequest(BaseModel):
     schema_name: str
-    users: List[SchemaPrivilegeUpdateItem]
+    users: list[SchemaPrivilegeUpdateItem]
 
 
 class SchemaPrivilegesUpdateResponse(BaseModel):
     message: str
-    updated_users: List[str]
+    updated_users: list[str]
 
 
 class SchemaGroupPrivilegeUpdateItem(BaseModel):
@@ -40,12 +40,12 @@ class SchemaGroupPrivilegeUpdateItem(BaseModel):
 
 class SchemaPrivilegesGroupsUpdateRequest(BaseModel):
     schema_name: str
-    groups: List[SchemaGroupPrivilegeUpdateItem]
+    groups: list[SchemaGroupPrivilegeUpdateItem]
 
 
 class SchemaPrivilegesGroupsUpdateResponse(BaseModel):
     message: str
-    updated_groups: List[str]
+    updated_groups: list[str]
 
 
 class PaginatedSchemaPrivilegesUsersResponse(BaseModel):
@@ -58,7 +58,7 @@ class PaginatedSchemaPrivilegesUsersResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    schema_privileges: List[SchemaPrivilegeInfo]
+    schema_privileges: list[SchemaPrivilegeInfo]
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -72,5 +72,5 @@ class PaginatedSchemaPrivilegesGroupsResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    schema_privileges: List[SchemaPrivilegeInfo]
+    schema_privileges: list[SchemaPrivilegeInfo]
     model_config = ConfigDict(from_attributes=True)

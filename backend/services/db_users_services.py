@@ -1,13 +1,11 @@
 # backend/services/db_users_services.py
-import math
-from typing import Optional
-from sqlalchemy import select, delete, func
+from asyncpg.utils import _quote_ident
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.utils.external_db import external_db_connection, get_db_connection_by_id
+
 from backend.models.db import DB_Connection, DB_User
 from backend.schemas.db_users_schemas import DBUserOut
-from asyncpg.utils import _quote_ident
-
+from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 from backend.utils.pagination import PaginatedResponse
 
 
@@ -74,7 +72,7 @@ class DBUserService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
+        search: str | None = None,
     ) -> dict:
         await self.sync_users_from_external_db(connection_id)
         query = select(DB_User).where(DB_User.connection_id == connection_id)
@@ -101,9 +99,7 @@ class DBUserService:
 
     async def get_user(self, connection_id: int, user_oid: int) -> DBUserOut:
         await self.sync_users_from_external_db(connection_id)
-        result = await self.db.execute(
-            select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid)
-        )
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         user = result.scalar_one_or_none()
         if not user:
             raise ValueError(f"Пользователь с oid {user_oid} не найден")
@@ -114,8 +110,8 @@ class DBUserService:
         connection_id: int,
         username: str,
         password: str,
-        description: Optional[str] = None,
-        email: Optional[str] = None,
+        description: str | None = None,
+        email: str | None = None,
     ) -> DBUserOut:
         connection = await self.get_connection(connection_id)
         if not connection:
@@ -133,9 +129,7 @@ class DBUserService:
                 comment_sql = f"COMMENT ON ROLE {quoted_username} IS {quoted_desc}"
                 await conn.execute(comment_sql)
         await self.sync_users_from_external_db(connection_id)
-        result = await self.db.execute(
-            select(DB_User).where(DB_User.connection_id == connection_id, DB_User.name == username)
-        )
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.name == username))
         user = result.scalar_one_or_none()
         if not user:
             raise RuntimeError("Не удалось найти только что созданного пользователя после синхронизации")
@@ -150,16 +144,14 @@ class DBUserService:
         self,
         connection_id: int,
         user_oid: int,
-        password: Optional[str] = None,
-        description: Optional[str] = None,
-        email: Optional[str] = None,
+        password: str | None = None,
+        description: str | None = None,
+        email: str | None = None,
     ) -> DBUserOut:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
-        result = await self.db.execute(
-            select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid)
-        )
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         local_user = result.scalar_one_or_none()
         if not local_user:
             raise ValueError(f"Пользователь с oid {user_oid} не найден")
@@ -178,9 +170,7 @@ class DBUserService:
             elif description is None and current_desc is not None:
                 await conn.execute(f"COMMENT ON ROLE {quoted_username} IS NULL")
         await self.sync_users_from_external_db(connection_id)
-        result = await self.db.execute(
-            select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid)
-        )
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         updated_user = result.scalar_one_or_none()
         if not updated_user:
             raise RuntimeError("Пользователь исчез после синхронизации")
@@ -200,9 +190,7 @@ class DBUserService:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
-        result = await self.db.execute(
-            select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid)
-        )
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         local_user = result.scalar_one_or_none()
         if not local_user:
             raise ValueError(f"Пользователь с oid {user_oid} не найден в локальной базе")
@@ -219,9 +207,7 @@ class DBUserService:
                 except Exception as e:
                     error_msg = str(e).lower()
                     if "required by other objects" in error_msg or "dependent objects" in error_msg:
-                        raise ValueError(
-                            f"Невозможно удалить роль '{username}': существуют зависимые объекты, удалите зависимости вручную."
-                        )
+                        raise ValueError(f"Невозможно удалить роль '{username}': существуют зависимые объекты.") from e
                     else:
                         raise
         await self.db.execute(delete(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
@@ -231,13 +217,10 @@ class DBUserService:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
-        result = await self.db.execute(
-            select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid)
-        )
+        result = await self.db.execute(select(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))
         local_user = result.scalar_one_or_none()
         if not local_user:
             raise ValueError(f"Пользователь с oid {user_oid} не найден")
-        username = local_user.name
         memberships = []
         async with external_db_connection(connection) as conn:
             rows = await conn.fetch(

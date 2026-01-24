@@ -1,8 +1,9 @@
 # backend/services/db_connections_services.py
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.models.db import DB_Connection
 import math
-from typing import Optional
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.models.db import DB_Connection
 from backend.schemas.db_connections_schemas import PaginatedActiveConnectionsResponse
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 
@@ -19,9 +20,9 @@ class DBConnectionService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        username: Optional[str] = None,
-        min_duration_ms: Optional[int] = None,
-        max_duration_ms: Optional[int] = None,
+        username: str | None = None,
+        min_duration_ms: int | None = None,
+        max_duration_ms: int | None = None,
     ) -> PaginatedActiveConnectionsResponse:
         connection = await self.get_connection(connection_id)
         if not connection:

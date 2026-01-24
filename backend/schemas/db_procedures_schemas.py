@@ -1,12 +1,12 @@
 # backend/schemas/db_procedures_schemas.py
+
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
 
 
 class ProcedureInfo(BaseModel):
     schema_name: str
     procedure_name: str
-    description: Optional[str] = None
+    description: str | None = None
     definition: str
 
 
@@ -20,6 +20,6 @@ class PaginatedProceduresResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    procedures: List[ProcedureInfo]
+    procedures: list[ProcedureInfo]
 
     model_config = ConfigDict(from_attributes=True)

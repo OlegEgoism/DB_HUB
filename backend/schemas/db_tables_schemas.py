@@ -1,12 +1,12 @@
 # backend/schemas/db_tables_schemas.py
+
 from pydantic import BaseModel, ConfigDict, Field
-from typing import List, Optional
 
 
 class TableInfo(BaseModel):
     table_name: str
     owner: str
-    description: Optional[str] = None
+    description: str | None = None
     row_count: int = Field(..., description="Оценка количества строк (pg_class.reltuples)")
     size_bytes: int = Field(..., description="Размер таблицы в байтах (pg_total_relation_size)")
     size_pretty: str = Field(..., description="Человекочитаемый размер MB")
@@ -14,8 +14,8 @@ class TableInfo(BaseModel):
 
 class SchemaInfo(BaseModel):
     schema_name: str
-    description: Optional[str] = None
-    tables: List[TableInfo]
+    description: str | None = None
+    tables: list[TableInfo]
 
 
 class PaginatedSchemasWithTablesResponse(BaseModel):
@@ -28,7 +28,7 @@ class PaginatedSchemasWithTablesResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    schemas: List[SchemaInfo]
+    schemas: list[SchemaInfo]
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -42,7 +42,7 @@ class PaginatedTemporaryTablesResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    temporary_tables: List[TableInfo]
+    temporary_tables: list[TableInfo]
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -59,7 +59,7 @@ class TablePrivilegeInfo(BaseModel):
     schema_name: str
     table_name: str
     owner: str
-    user_privileges: List[TableUserPrivilege]
+    user_privileges: list[TableUserPrivilege]
 
 
 class PaginatedTablePrivilegesUsersResponse(BaseModel):
@@ -72,7 +72,7 @@ class PaginatedTablePrivilegesUsersResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    table_privileges: List[TablePrivilegeInfo]
+    table_privileges: list[TablePrivilegeInfo]
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -88,12 +88,12 @@ class TablePrivilegeUpdateItem(BaseModel):
 class TablePrivilegesUpdateRequest(BaseModel):
     schema_name: str
     table_name: str
-    users: List[TablePrivilegeUpdateItem]
+    users: list[TablePrivilegeUpdateItem]
 
 
 class TablePrivilegesUpdateResponse(BaseModel):
     message: str
-    updated_users: List[str]
+    updated_users: list[str]
 
 
 class TableGroupPrivilegeUpdateItem(BaseModel):
@@ -108,12 +108,12 @@ class TableGroupPrivilegeUpdateItem(BaseModel):
 class TablePrivilegesGroupsUpdateRequest(BaseModel):
     schema_name: str
     table_name: str
-    groups: List[TableGroupPrivilegeUpdateItem]
+    groups: list[TableGroupPrivilegeUpdateItem]
 
 
 class TablePrivilegesGroupsUpdateResponse(BaseModel):
     message: str
-    updated_groups: List[str]
+    updated_groups: list[str]
 
 
 class TableGroupPrivilege(BaseModel):
@@ -129,13 +129,13 @@ class TablePrivilegeGroupInfo(BaseModel):
     schema_name: str
     table_name: str
     owner: str
-    group_privileges: List[TableGroupPrivilege]
+    group_privileges: list[TableGroupPrivilege]
 
 
 class PaginatedTablePrivilegesGroupsResponse(BaseModel):
     connection_id: int
     connection_name: str
-    requested_groups: List[str]
+    requested_groups: list[str]
     total_tables: int
     total_filtered_tables: int
     page: int
@@ -143,5 +143,5 @@ class PaginatedTablePrivilegesGroupsResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    table_privileges: List[TablePrivilegeGroupInfo]
+    table_privileges: list[TablePrivilegeGroupInfo]
     model_config = ConfigDict(from_attributes=True)

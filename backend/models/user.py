@@ -1,14 +1,15 @@
 # backend/models/user.py
-from sqlalchemy.orm import relationship
 from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
     Column,
+    DateTime,
+    Index,
     Integer,
     String,
-    Boolean,
-    DateTime,
-    CheckConstraint,
-    Index,
 )
+from sqlalchemy.orm import relationship
+
 from backend.database.session import Base
 from backend.models.base_mixin import DateTimeMixin
 

@@ -1,6 +1,7 @@
 # backend/api/v1/db_functions.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.database.session import get_db
 from backend.schemas.db_functions_schemas import PaginatedFunctionsResponse
 from backend.services.db_functions_services import DBFunctionService
@@ -21,6 +22,6 @@ async def get_functions(
         service = DBFunctionService(db)
         return await service.get_functions(connection_id, page, size, search)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

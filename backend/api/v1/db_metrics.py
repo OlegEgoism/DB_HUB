@@ -1,7 +1,8 @@
 # backend/api/v1/db_metrics.py
-from fastapi import Depends, HTTPException, APIRouter, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.database.session import get_db
 from backend.models.db import DB_Connection
 from backend.schemas.db_metrics_schemas import (
@@ -45,7 +46,7 @@ async def get_database_metrics(connection_id: int, db: AsyncSession = Depends(ge
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при получении метрик: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("/settings", response_model=ShowAllResponse)
@@ -65,4 +66,4 @@ async def get_database_settings(connection_id: int, db: AsyncSession = Depends(g
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при получении SHOW ALL: {str(e)}",
-        )
+        ) from e

@@ -1,16 +1,17 @@
 # backend/api/v1/db_schemas.py
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.database.session import get_db
-from backend.services.db_schemas_services import DBSchemaService
 from backend.schemas.db_schemas_schemas import (
-    SchemaPrivilegesUpdateResponse,
-    SchemaPrivilegesUpdateRequest,
-    SchemaPrivilegesGroupsUpdateResponse,
-    SchemaPrivilegesGroupsUpdateRequest,
     PaginatedSchemaPrivilegesGroupsResponse,
     PaginatedSchemaPrivilegesUsersResponse,
+    SchemaPrivilegesGroupsUpdateRequest,
+    SchemaPrivilegesGroupsUpdateResponse,
+    SchemaPrivilegesUpdateRequest,
+    SchemaPrivilegesUpdateResponse,
 )
+from backend.services.db_schemas_services import DBSchemaService
 
 router = APIRouter(prefix="/db_connections/{connection_id}/schemas", tags=["DB SCHEMAS"])
 
@@ -26,14 +27,12 @@ async def get_schema_privileges_for_users(
     """Получить права пользователей в схеме"""
     try:
         service = DBSchemaService(db)
-        result = await service.get_schema_privileges_for_users(
-            connection_id=connection_id, page=page, size=size, search=search
-        )
+        result = await service.get_schema_privileges_for_users(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий схем: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий схем: {str(e)}") from e
 
 
 @router.post(
@@ -56,9 +55,9 @@ async def update_schema_privileges_for_users(
         )
         return SchemaPrivilegesUpdateResponse(message="Права успешно обновлены", updated_users=updated)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав: {str(e)}") from e
 
 
 @router.get("/privileges_groups", response_model=PaginatedSchemaPrivilegesGroupsResponse)
@@ -72,14 +71,12 @@ async def get_schema_privileges_for_groups(
     """Получить права группы в схеме"""
     try:
         service = DBSchemaService(db)
-        result = await service.get_schema_privileges_for_groups(
-            connection_id=connection_id, page=page, size=size, search=search
-        )
+        result = await service.get_schema_privileges_for_groups(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий групп: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении привилегий групп: {str(e)}") from e
 
 
 @router.post(
@@ -102,6 +99,6 @@ async def update_schema_privileges_for_groups(
         )
         return SchemaPrivilegesGroupsUpdateResponse(message="Права для групп успешно обновлены", updated_groups=updated)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав для групп: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав для групп: {str(e)}") from e

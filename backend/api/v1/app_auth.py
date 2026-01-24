@@ -1,16 +1,23 @@
 # backend/api/v1/app_auth.py
-from fastapi import APIRouter, Depends, HTTPException, status, Request  # <-- добавлен Request
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request,
+    status,
+)
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.core.limiter import limiter
 from backend.database.session import get_db
-from backend.services.app_users_services import UserService
 from backend.schemas.app_users_schemas import (
     LoginRequest,
     Token,
     UserLoginResponse,
     UserProfile,
 )
-from backend.core.limiter import limiter
+from backend.services.app_users_services import UserService
 
 router = APIRouter(prefix="/app_auth", tags=["APP AUTHENTICATION"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/app_auth/login")
@@ -33,9 +40,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
 @router.post("/login", response_model=UserLoginResponse)
 @limiter.limit("5/minute")
 async def login(
-        request: Request,
-        form_data: OAuth2PasswordRequestForm = Depends(),
-        db: AsyncSession = Depends(get_db),
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db),
 ):
     user_service = UserService(db)
     user = await user_service.get_user_by_username(form_data.username)
@@ -67,9 +74,9 @@ async def login(
 @router.post("/login-form", response_model=UserLoginResponse)
 @limiter.limit("5/minute")
 async def login_form(
-        request: Request,
-        login_data: LoginRequest,
-        db: AsyncSession = Depends(get_db),
+    request: Request,
+    login_data: LoginRequest,
+    db: AsyncSession = Depends(get_db),
 ):
     user_service = UserService(db)
     result = await user_service.login_user(login_data.username, login_data.password)

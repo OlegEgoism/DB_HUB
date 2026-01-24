@@ -1,7 +1,8 @@
 # backend/schemas/app_users_schemas.py
-from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import Optional, List
 from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
 from backend.models.user import ROLE_CHOICES
 from backend.utils.pagination import PaginatedResponse as BasePaginatedResponse
 
@@ -9,10 +10,10 @@ from backend.utils.pagination import PaginatedResponse as BasePaginatedResponse
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
-    fio: Optional[str] = Field(None, max_length=100)
+    fio: str | None = Field(None, max_length=100)
     role: str = Field(default="Пользователь")
-    is_active: Optional[bool] = False
-    is_superuser: Optional[bool] = False
+    is_active: bool | None = False
+    is_superuser: bool | None = False
 
     @field_validator("role")
     @classmethod
@@ -25,7 +26,7 @@ class UserBase(BaseModel):
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
-    fio: Optional[str] = Field(None, max_length=100)
+    fio: str | None = Field(None, max_length=100)
     role: str = Field(default="Пользователь")
     password: str
 
@@ -38,11 +39,11 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    fio: Optional[str] = Field(None, max_length=100)
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
-    is_superuser: Optional[bool] = None
+    email: EmailStr | None = None
+    fio: str | None = Field(None, max_length=100)
+    role: str | None = None
+    is_active: bool | None = None
+    is_superuser: bool | None = None
 
     @field_validator("role")
     @classmethod
@@ -58,8 +59,8 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
-    user_id: Optional[int] = None
+    username: str | None = None
+    user_id: int | None = None
 
 
 class LoginRequest(BaseModel):
@@ -78,7 +79,7 @@ class UserInDB(UserBase):
     is_superuser: bool
     created_at: datetime
     updated_at: datetime
-    last_login: Optional[datetime] = None
+    last_login: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -92,12 +93,12 @@ class UserProfile(BaseModel):
     id: int
     username: str
     email: str
-    fio: Optional[str]
+    fio: str | None
     role: str
     is_active: bool
     is_superuser: bool
     created_at: datetime
-    last_login: Optional[datetime] = None
+    last_login: datetime | None = None
 
     class Config:
         from_attributes = True

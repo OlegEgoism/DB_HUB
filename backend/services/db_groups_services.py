@@ -1,11 +1,11 @@
 # backend/services/db_groups_services.py
-from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from backend.models.db import DB_Connection
-from backend.schemas.db_groups_schemas import DBGroupOut
-from backend.utils.external_db import external_db_connection, get_db_connection_by_id
-from asyncpg.utils import _quote_ident
 
+from asyncpg.utils import _quote_ident
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.models.db import DB_Connection
+from backend.schemas.db_groups_schemas import DBGroupCreate, DBGroupOut, DBGroupUpdate
+from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 from backend.utils.pagination import PaginatedResponse
 
 
@@ -21,7 +21,7 @@ class DBGroupService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
+        search: str | None = None,
     ) -> dict:
         connection = await self.get_connection(connection_id)
         if not connection:
@@ -37,9 +37,9 @@ class DBGroupService:
                            COUNT(m.member) AS user_count
                        FROM pg_roles r
                        LEFT JOIN pg_auth_members m ON r.oid = m.roleid
-                       WHERE r.rolcanlogin = false 
+                       WHERE r.rolcanlogin = false
                          AND r.rolname !~ '^pg_'
-                         AND (r.rolname ILIKE $1 
+                         AND (r.rolname ILIKE $1
                               OR pg_catalog.shobj_description(r.oid, 'pg_authid') ILIKE $1)
                        GROUP BY r.oid, r.rolname
                        ORDER BY r.rolname
@@ -54,7 +54,7 @@ class DBGroupService:
                            COUNT(m.member) AS user_count
                        FROM pg_roles r
                        LEFT JOIN pg_auth_members m ON r.oid = m.roleid
-                       WHERE r.rolcanlogin = false 
+                       WHERE r.rolcanlogin = false
                          AND r.rolname !~ '^pg_'
                        GROUP BY r.oid, r.rolname
                        ORDER BY r.rolname
@@ -106,7 +106,7 @@ class DBGroupService:
                 user_count=row["user_count"],
             )
 
-    async def create_group(self, connection_id: int, create_data: "DBGroupCreate") -> dict:
+    async def create_group(self, connection_id: int, create_data: DBGroupCreate) -> dict:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
@@ -129,7 +129,7 @@ class DBGroupService:
                 "description": create_data.description,
             }
 
-    async def update_group(self, connection_id: int, group_oid: int, update_data: "DBGroupUpdate") -> dict:
+    async def update_group(self, connection_id: int, group_oid: int, update_data: DBGroupUpdate) -> dict:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
@@ -202,7 +202,7 @@ class DBGroupService:
                 if "does not exist" in error_msg or "could not find role" in error_msg:
                     pass
                 else:
-                    raise ValueError(f"Не удалось удалить группу из внешней БД: {e}")
+                    raise ValueError(f"Не удалось удалить группу из внешней БД: {e}") from e
         return {
             "success": True,
             "oid": group_oid,

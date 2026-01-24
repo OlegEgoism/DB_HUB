@@ -1,25 +1,21 @@
-# DB HUB 
+# DB HUB
 
-# Функционал приложения
+<h3 style="color: #b52424; text-align: center">
+Функционал приложения DB HUB
+</h3>
+
 ```
 - Управление подключениями к PostgreSQL/Greenplum.
 - CRUD для пользователей и групп.
-- Просмотр и управление схемами, таблицами, представлениями, индексами, функциями, процедурами.
-- Гранулярное управление привилегиями (на уровне схем и таблиц — для пользователей и групп).
+- Просмотр и управление функционалом.
+- Управление привилегиями.
 - Информация о метриках и настройках.
-- Активные сессии + возможность завершать процессы.
+- Активные сессии, с возможностью завершать процессы.
 - JWT-аутентификация, роли, соглашения.
 - Поиск, пагинация, фильтрация по полям.
 ```
 
-# Что стоит добавить
-```
-Ограничение IP-адресов
-Аудит действий
-Срок действия паролей
-```
-
-<h3 style="color: #2486b5; text-align: center">
+<h3 style="color: #b52424; text-align: center">
 Структура приложения DB HUB
 </h3>
 
@@ -40,7 +36,7 @@ DB_HUB/
     └── src/
 ```
 
-<h3 style="color: #2486b5; text-align: center">
+<h3 style="color: #b52424; text-align: center">
 Установка зависимостей
 </h3>
 - В папке проекта DB_HUB создайте файл .env
@@ -67,8 +63,6 @@ HOST=127.0.0.1
 PORT=8000
 ```
 
-
-
 - Создайте свой ключ (ENCRYPTION_KEY) и поместите его в .env
 
 ```bash
@@ -93,21 +87,6 @@ pip freeze > requirements.txt
 pip list --outdated
 ```
 
-- Форматировщик кода (форматирование всей директории)
-```bash
-black .
-```
-
-- Проверка, нуждается ли код в форматировании (без изменения файлов)
-```bash
-black --check .
-```
-
-- Просмотр изменений без применения (dry run)
-```bash
-black --diff .
-```
-
 - Получение всего backend кода в один файл - all_code.txt
 
 ```bash
@@ -120,19 +99,40 @@ python3 backend/collect_app_code.py
 python -c "import sys; sys.path_importer_cache.clear()"
 ```
 
+<h3 style="color: #b52424; text-align: center">
+Команды Ruff
+</h3>
+
+- Проверить код на ошибки и предупреждения
+
+```bash
+ruff check .
+```
+
+- Автоматически исправить всё, что можно
+
+```bash
+ruff check . --fix
+```
+
+- Форматирование кода
+
+```bash
+ruff format .
+```
+
 <h3 style="color: #2486b5; text-align: center">
 Запуск backend приложения DB_HUB
 </h3>
 
 - При первом запуске приложения все таблицы будут созданы автоматически
-- API документация: 
-        http://127.0.0.1:8000/docs
-        http://127.0.0.1:8000/redoc
+- API документация:
+  http://127.0.0.1:8000/docs
+  http://127.0.0.1:8000/redoc
 
 ```bash
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-
 
 <h3 style="color: #24b59a; text-align: center">
 Запуск frontend приложения DB_HUB
@@ -141,6 +141,7 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```bash
 cd frontend
 ```
+
 ```bash
 npm start
 ```

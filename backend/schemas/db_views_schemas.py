@@ -1,12 +1,12 @@
 # backend/schemas/db_views_schemas.py
+
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
 
 
 class ViewInfo(BaseModel):
     schema_name: str
     view_name: str
-    description: Optional[str] = None
+    description: str | None = None
     definition: str
 
 
@@ -20,14 +20,14 @@ class PaginatedViewsResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    views: List[ViewInfo]
+    views: list[ViewInfo]
     model_config = ConfigDict(from_attributes=True)
 
 
 class MaterializedViewInfo(BaseModel):
     schema_name: str
     view_name: str
-    description: Optional[str] = None
+    description: str | None = None
     definition: str
 
 
@@ -41,5 +41,5 @@ class PaginatedMaterializedViewsResponse(BaseModel):
     pages: int
     has_next: bool
     has_prev: bool
-    materialized_views: List[MaterializedViewInfo]
+    materialized_views: list[MaterializedViewInfo]
     model_config = ConfigDict(from_attributes=True)

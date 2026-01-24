@@ -1,11 +1,11 @@
 # backend/core/security.py
 from datetime import datetime, timedelta
-from typing import Optional
+
+import bcrypt
+from backend.core.config import settings
+from cryptography.fernet import Fernet
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from cryptography.fernet import Fernet
-from backend.core.config import settings
-import bcrypt
 
 fernet = Fernet(settings.ENCRYPTION_KEY.encode())
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -31,7 +31,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Создает JWT токен"""
     to_encode = data.copy()
     if expires_delta:

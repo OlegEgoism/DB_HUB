@@ -1,10 +1,11 @@
 # backend/services/db_schemas_services.py
-import asyncpg
-from typing import List, Dict, Any, Optional
+from typing import Any
+
+from asyncpg.utils import _quote_ident
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
-from asyncpg.utils import _quote_ident
 
 
 class DBSchemaService:
@@ -22,8 +23,8 @@ class DBSchemaService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+    ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
             user_rows = await conn.fetch("SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true ORDER BY rolname;")
@@ -74,10 +75,7 @@ class DBSchemaService:
                 "schema_name": name,
                 "owner": info["owner"],
                 "description": info["description"],
-                "role_privileges": [
-                    {"role": user, "create": priv["CREATE"], "usage": priv["USAGE"]}
-                    for user, priv in info["privileges"].items()
-                ],
+                "role_privileges": [{"role": user, "create": priv["CREATE"], "usage": priv["USAGE"]} for user, priv in info["privileges"].items()],
             }
             all_entries.append(schema_entry)
         search_term = search.strip().lower() if search and search.strip() else None
@@ -124,16 +122,14 @@ class DBSchemaService:
         self,
         connection_id: int,
         schema_name: str,
-        user_privileges: List[Dict[str, Any]],
-    ) -> List[str]:
+        user_privileges: list[dict[str, Any]],
+    ) -> list[str]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
             exists = await conn.fetchval("SELECT 1 FROM pg_namespace WHERE nspname = $1;", schema_name)
             if not exists:
                 raise ValueError(f"Схема '{schema_name}' не существует.")
-            valid_users = {
-                row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = true;")
-            }
+            valid_users = {row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = true;")}
         updated_users = []
         for item in user_privileges:
             username = item["username"]
@@ -160,13 +156,11 @@ class DBSchemaService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+    ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
-            group_rows = await conn.fetch(
-                "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;"
-            )
+            group_rows = await conn.fetch("SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;")
         group_oids = {row["oid"] for row in group_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
         all_groupnames = sorted(oid_to_rolname.values())
@@ -214,10 +208,7 @@ class DBSchemaService:
                 "schema_name": name,
                 "owner": info["owner"],
                 "description": info["description"],
-                "role_privileges": [
-                    {"role": group, "create": priv["CREATE"], "usage": priv["USAGE"]}
-                    for group, priv in info["privileges"].items()
-                ],
+                "role_privileges": [{"role": group, "create": priv["CREATE"], "usage": priv["USAGE"]} for group, priv in info["privileges"].items()],
             }
             all_entries.append(schema_entry)
         search_term = search.strip().lower() if search and search.strip() else None
@@ -264,25 +255,21 @@ class DBSchemaService:
         self,
         connection_id: int,
         schema_name: str,
-        group_privileges: List[Dict[str, Any]],
-    ) -> List[str]:
+        group_privileges: list[dict[str, Any]],
+    ) -> list[str]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
             exists = await conn.fetchval("SELECT 1 FROM pg_namespace WHERE nspname = $1", schema_name)
             if not exists:
                 raise ValueError(f"Схема '{schema_name}' не существует.")
-            valid_groups = {
-                row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = false;")
-            }
+            valid_groups = {row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = false;")}
         updated_groups = []
         for item in group_privileges:
             groupname = item["groupname"]
             create = item["create"]
             usage = item["usage"]
             if groupname not in valid_groups:
-                raise ValueError(
-                    f"Группа '{groupname}' не существует или не является группой (ожидается rolcanlogin = false)."
-                )
+                raise ValueError(f"Группа '{groupname}' не существует или не является группой (ожидается rolcanlogin = false).")
             updated_groups.append(groupname)
             quoted_schema = _quote_ident(schema_name)
             quoted_group = _quote_ident(groupname)

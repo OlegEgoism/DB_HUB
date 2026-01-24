@@ -1,6 +1,7 @@
 # backend/api/v1/db_procedures.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.database.session import get_db
 from backend.schemas.db_procedures_schemas import PaginatedProceduresResponse
 from backend.services.db_procedures_services import DBProcedureService
@@ -21,6 +22,6 @@ async def get_procedures(
         service = DBProcedureService(db)
         return await service.get_procedures(connection_id=connection_id, page=page, size=size, search=search)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при получении процедур: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении процедур: {str(e)}") from e

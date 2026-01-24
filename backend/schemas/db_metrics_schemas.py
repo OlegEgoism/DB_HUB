@@ -1,6 +1,6 @@
 # backend/schemas/db_metrics_schemas.py
+
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
 
 
 class DatabaseMetric(BaseModel):
@@ -26,18 +26,18 @@ class AllDatabaseMetricsResponse(BaseModel):
 
     connection_id: int
     connection_name: str
-    connection_description: Optional[str] = None
+    connection_description: str | None = None
     database_name: str
     host: str
     port: int
     username: str
-    environment: Optional[str] = None
-    database_type: Optional[str] = None
+    environment: str | None = None
+    database_type: str | None = None
     status: str
-    basic_metrics: List[DatabaseMetric]
-    extensions: List[ExtensionInfo]
-    cluster_replication: List[DatabaseMetric]
-    segment_details: List[SegmentDetail]
+    basic_metrics: list[DatabaseMetric]
+    extensions: list[ExtensionInfo]
+    cluster_replication: list[DatabaseMetric]
+    segment_details: list[SegmentDetail]
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -47,4 +47,4 @@ class ShowAllItem(BaseModel):
 
 
 class ShowAllResponse(BaseModel):
-    settings: List[ShowAllItem]
+    settings: list[ShowAllItem]

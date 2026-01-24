@@ -1,11 +1,12 @@
 # backend/services/db_tables_services.py
-import asyncpg
 import math
-from typing import List, Dict, Any, Optional
+from typing import Any
+
+from asyncpg.utils import _quote_ident
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
-from asyncpg.utils import _quote_ident
 
 
 class DBTablesService:
@@ -34,8 +35,8 @@ class DBTablesService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+    ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
         schemas_query = """
         SELECT
@@ -48,9 +49,7 @@ class DBTablesService:
         """
         async with external_db_connection(connection) as conn:
             all_schemas_rows = await conn.fetch(schemas_query)
-        all_schemas = [
-            {"schema_name": row["schema_name"], "description": row["description"]} for row in all_schemas_rows
-        ]
+        all_schemas = [{"schema_name": row["schema_name"], "description": row["description"]} for row in all_schemas_rows]
         search_term = search.strip().lower() if search and search.strip() else None
         if not search_term:
             filtered_schemas = all_schemas
@@ -120,9 +119,7 @@ class DBTablesService:
                   AND c.relkind = 'r'
                 ORDER BY c.relname;
                 """
-                if search_term and not (
-                    search_term in schema_name.lower() or search_term in (s["description"] or "").lower()
-                ):
+                if search_term and not (search_term in schema_name.lower() or search_term in (s["description"] or "").lower()):
                     table_rows = await conn.fetch(tables_query, schema_name)
                     filtered_tables = []
                     for tr in table_rows:
@@ -188,8 +185,8 @@ class DBTablesService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+    ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
         base_query = """
         SELECT
@@ -205,12 +202,15 @@ class DBTablesService:
         search_term = search.strip().lower() if search and search.strip() else None
         params = []
         if search_term:
-            filtered_query = base_query + """
+            filtered_query = (
+                base_query
+                + """
             AND (
                 LOWER(c.relname) LIKE $1
                 OR LOWER(pg_catalog.obj_description(c.oid, 'pg_class')) LIKE $1
             )
             """
+            )
             count_query = f"""
             SELECT COUNT(*) AS total FROM (
                 {base_query}
@@ -225,9 +225,7 @@ class DBTablesService:
             filtered_query = base_query
             count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS sub"
         async with external_db_connection(connection) as conn:
-            total_all_res = await conn.fetchrow(
-                "SELECT COUNT(*) AS total FROM pg_class WHERE relpersistence = 't' AND relkind = 'r'"
-            )
+            total_all_res = await conn.fetchrow("SELECT COUNT(*) AS total FROM pg_class WHERE relpersistence = 't' AND relkind = 'r'")
             total_all = total_all_res["total"] if total_all_res else 0
             total_filtered_res = await conn.fetchrow(count_query, *params)
             total_filtered = total_filtered_res["total"] if total_filtered_res else 0
@@ -275,8 +273,8 @@ class DBTablesService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+    ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
             user_rows = await conn.fetch("SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = true ORDER BY rolname;")
@@ -363,9 +361,7 @@ class DBTablesService:
         else:
             for entry in all_entries:
                 matches_table = (
-                    search_term in entry["schema_name"].lower()
-                    or search_term in entry["table_name"].lower()
-                    or search_term in entry["owner"].lower()
+                    search_term in entry["schema_name"].lower() or search_term in entry["table_name"].lower() or search_term in entry["owner"].lower()
                 )
                 if matches_table:
                     filtered_entries.append(entry)
@@ -401,21 +397,18 @@ class DBTablesService:
         connection_id: int,
         schema_name: str,
         table_name: str,
-        user_privileges: List[Dict[str, Any]],
-    ) -> List[str]:
+        user_privileges: list[dict[str, Any]],
+    ) -> list[str]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
             exists = await conn.fetchval(
-                "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
-                "WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'r';",
+                "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'r';",
                 schema_name,
                 table_name,
             )
             if not exists:
                 raise ValueError(f"Таблица '{table_name}' в схеме '{schema_name}' не существует.")
-            valid_users = {
-                row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = true;")
-            }
+            valid_users = {row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = true;")}
         updated_users = []
         for item in user_privileges:
             username = item["username"]
@@ -457,13 +450,11 @@ class DBTablesService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+    ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
-            group_rows = await conn.fetch(
-                "SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;"
-            )
+            group_rows = await conn.fetch("SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false ORDER BY rolname;")
         group_oids = {row["oid"] for row in group_rows}
         oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
         all_groupnames = sorted(oid_to_rolname.values())
@@ -549,9 +540,7 @@ class DBTablesService:
         else:
             for entry in all_entries:
                 matches_table = (
-                    search_term in entry["schema_name"].lower()
-                    or search_term in entry["table_name"].lower()
-                    or search_term in entry["owner"].lower()
+                    search_term in entry["schema_name"].lower() or search_term in entry["table_name"].lower() or search_term in entry["owner"].lower()
                 )
                 if matches_table:
                     filtered_entries.append(entry)
@@ -588,21 +577,18 @@ class DBTablesService:
         connection_id: int,
         schema_name: str,
         table_name: str,
-        group_privileges: List[Dict[str, Any]],
-    ) -> List[str]:
+        group_privileges: list[dict[str, Any]],
+    ) -> list[str]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
             exists = await conn.fetchval(
-                "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
-                "WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'r';",
+                "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'r';",
                 schema_name,
                 table_name,
             )
             if not exists:
                 raise ValueError(f"Таблица '{table_name}' в схеме '{schema_name}' не существует.")
-            valid_groups = {
-                row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = false;")
-            }
+            valid_groups = {row["rolname"] for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = false;")}
         updated_groups = []
         target_privileges = ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE"]
         for item in group_privileges:
@@ -636,7 +622,5 @@ class DBTablesService:
                     if desired and not current:
                         await conn.execute(f"GRANT {priv} ON TABLE {quoted_schema}.{quoted_table} TO {quoted_group};")
                     elif not desired and current:
-                        await conn.execute(
-                            f"REVOKE {priv} ON TABLE {quoted_schema}.{quoted_table} FROM {quoted_group};"
-                        )
+                        await conn.execute(f"REVOKE {priv} ON TABLE {quoted_schema}.{quoted_table} FROM {quoted_group};")
         return updated_groups

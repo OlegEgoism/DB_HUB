@@ -1,6 +1,7 @@
 # backend/api/v1/db_query.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.database.session import get_db
 from backend.schemas.db_query_schemas import SQLQueryRequest, SQLQueryResponse
 from backend.services.db_query_service import DBQueryService
@@ -16,9 +17,9 @@ async def execute_sql_query(connection_id: int, request: SQLQueryRequest, db: As
         result = await service.execute_query(connection_id=connection_id, query=request.query, limit=request.limit)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при выполнении запроса: {str(e)}",
-        )
+        ) from e

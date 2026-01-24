@@ -1,21 +1,22 @@
 # backend/api/v1/db_connections.py
-from typing import Optional, Tuple
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, and_, func
+
 import asyncpg
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.core.security import encrypt_password
 from backend.database.session import get_db
 from backend.models.db import DB_Connection
 from backend.models.user import User
-from backend.core.security import encrypt_password
 from backend.schemas.db_connections_schemas import (
     ConnectionCreate,
-    ConnectionUpdate,
-    ConnectionOut,
-    PaginatedConnectionResponse,
-    PaginatedActiveConnectionsResponse,
-    TerminateConnectionRequest,
     ConnectionFavoriteUpdate,
+    ConnectionOut,
+    ConnectionUpdate,
+    PaginatedActiveConnectionsResponse,
+    PaginatedConnectionResponse,
+    TerminateConnectionRequest,
 )
 from backend.services.db_connections_services import DBConnectionService
 from backend.utils.external_db import external_db_connection
@@ -25,32 +26,26 @@ router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
 async def get_db_info(
     db_connection: DB_Connection,
-) -> Tuple[str, float | None, str | None, bool]:
+) -> tuple[str, float | None, str | None, bool]:
     """Получить статус подключения, размер, описание и флаг успешности базы данных (status, size_mb, db_description, is_connected)"""
     try:
         async with external_db_connection(db_connection, timeout=5) as conn:
             size_bytes = await conn.fetchval("SELECT pg_database_size(current_database())")
             db_description_query = """
-            SELECT 
+            SELECT
                 COALESCE(d.description, '') as description
             FROM pg_database db
             LEFT JOIN pg_shdescription d ON db.oid = d.objoid
             WHERE db.datname = current_database();
             """
             db_description_result = await conn.fetchrow(db_description_query)
-            db_description = (
-                db_description_result["description"]
-                if db_description_result and db_description_result["description"]
-                else None
-            )
+            db_description = db_description_result["description"] if db_description_result and db_description_result["description"] else None
             return "connected", round(size_bytes / 1024 / 1024, 2), db_description, True
     except Exception:
         return "error", None, None, False
 
 
-async def sync_description_if_needed(
-    db: AsyncSession, connection: DB_Connection, external_description: Optional[str]
-) -> str:
+async def sync_description_if_needed(db: AsyncSession, connection: DB_Connection, external_description: str | None) -> str:
     """Сравнивает локальное и внешнее описание в базе данных, если отличаются — обновляет локальное поле description в базе данных"""
     local_desc = connection.description or ""
     external_desc = external_description or ""
@@ -66,8 +61,8 @@ def build_connection_out(
     connection: DB_Connection,
     owner_username: str,
     status: str,
-    db_size_mb: Optional[float],
-    description: Optional[str],
+    db_size_mb: float | None,
+    description: str | None,
 ) -> ConnectionOut:
     """Вспомогательная функция для безопасного создания соединения без дублирования полей"""
     return ConnectionOut(
@@ -95,16 +90,14 @@ async def list_connections(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
     size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-    search: Optional[str] = Query(None, description="Поиск по названию/описанию базы данных"),
-    database_type: Optional[str] = Query(None),
-    environment: Optional[str] = Query(None),
-    is_favorite: Optional[bool] = Query(None),
+    search: str | None = Query(None, description="Поиск по названию/описанию базы данных"),
+    database_type: str | None = Query(None),
+    environment: str | None = Query(None),
+    is_favorite: bool | None = Query(None),
 ):
     """Получить список баз данных"""
     try:
-        query = select(DB_Connection, User.username.label("owner_username")).join(
-            User, DB_Connection.owner_id == User.id
-        )
+        query = select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id)
         filters = []
         if search and search.strip():
             term = f"%{search.strip()}%"
@@ -153,16 +146,14 @@ async def list_connections(
             has_prev=page > 1,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при получении списка подключений: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении списка подключений: {str(e)}") from e
 
 
 @router.get("/{connection_id}", response_model=ConnectionOut)
 async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
     """Получить информацию о базе данных"""
     result = await db.execute(
-        select(DB_Connection, User.username.label("owner_username"))
-        .join(User, DB_Connection.owner_id == User.id)
-        .where(DB_Connection.id == connection_id)
+        select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id).where(DB_Connection.id == connection_id)
     )
     row = result.first()
     if not row:
@@ -232,9 +223,7 @@ async def update_connection(connection_id: int, connection: ConnectionUpdate, db
 @router.delete("/{connection_id}", status_code=204)
 async def delete_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
     """Удалить подключение"""
-    db_connection = (
-        await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
-    ).scalar_one_or_none()
+    db_connection = (await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))).scalar_one_or_none()
     if not db_connection:
         raise HTTPException(status_code=404, detail="Подключение не найдено")
     await db.delete(db_connection)
@@ -250,9 +239,9 @@ async def list_active_connections(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
     size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-    username: Optional[str] = Query(None, description="Поиск по имени пользователя"),
-    min_duration_ms: Optional[int] = Query(None, ge=0, description="Минимальная длительность запроса в миллисекундах"),
-    max_duration_ms: Optional[int] = Query(None, ge=0, description="Максимальная длительность запроса в миллисекундах"),
+    username: str | None = Query(None, description="Поиск по имени пользователя"),
+    min_duration_ms: int | None = Query(None, ge=0, description="Минимальная длительность запроса в миллисекундах"),
+    max_duration_ms: int | None = Query(None, ge=0, description="Максимальная длительность запроса в миллисекундах"),
 ):
     """Получить список процессов в базе данных"""
     try:
@@ -266,12 +255,12 @@ async def list_active_connections(
             max_duration_ms=max_duration_ms,
         )
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Ошибка при получении активных подключений: {str(e)}",
-        )
+        ) from e
 
 
 @router.delete("/{connection_id}/active_connections", response_model=dict)
@@ -285,9 +274,9 @@ async def delete_active_connection(
         service = DBConnectionService(db)
         return await service.terminate_backend_process(connection_id, request.pid)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при завершении процесса: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при завершении процесса: {str(e)}") from e
 
 
 @router.patch("/{connection_id}/favorite", response_model=ConnectionOut)
@@ -297,9 +286,7 @@ async def update_connection_favorite(
     db: AsyncSession = Depends(get_db),
 ):
     """Обновить статус избранного подключения"""
-    db_connection = (
-        await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
-    ).scalar_one_or_none()
+    db_connection = (await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))).scalar_one_or_none()
     if not db_connection:
         raise HTTPException(status_code=404, detail="Подключение не найдено")
     db_connection.is_favorite = favorite_update.is_favorite

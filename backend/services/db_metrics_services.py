@@ -1,13 +1,13 @@
 # backend/services/db_metrics_services.py
-from typing import Dict, Any, List
+from typing import Any
+
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection
 
 
 class DBMetricsService:
-
     @staticmethod
-    async def get_database_metrics(connection: DB_Connection) -> Dict[str, Any]:
+    async def get_database_metrics(connection: DB_Connection) -> dict[str, Any]:
         """Получить все метрики базы данных"""
         try:
             async with external_db_connection(connection) as conn:
@@ -25,7 +25,8 @@ class DBMetricsService:
                 FROM pg_database
                 WHERE datname = current_database()
                 UNION ALL
-                SELECT 'server_start_time' as metric, to_char(pg_postmaster_start_time(), 'YYYY-MM-DD HH24:MI:SS TZ') as value
+                SELECT 'server_start_time' as metric,
+                       to_char(pg_postmaster_start_time(), 'YYYY-MM-DD HH24:MI:SS TZ') as value
                 UNION ALL
                 SELECT 'server_uptime' as metric, age(now(), pg_postmaster_start_time())::text as value
                 UNION ALL
@@ -36,7 +37,16 @@ class DBMetricsService:
                 WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
                   AND table_type = 'BASE TABLE'
                 UNION ALL
-                SELECT 'table_size', pg_size_pretty(COALESCE(SUM(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))), 0))
+                SELECT 'table_size',
+                       pg_size_pretty(
+                           COALESCE(
+                               SUM(
+                                   pg_total_relation_size(
+                                       quote_ident(schemaname) || '.' || quote_ident(tablename)
+                                   )
+                               ), 0
+                           )
+                       )
                 FROM pg_tables
                 WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
                 UNION ALL
@@ -53,7 +63,16 @@ class DBMetricsService:
                 WHERE table_schema IN ('pg_catalog', 'information_schema')
                   AND table_type = 'BASE TABLE'
                 UNION ALL
-                SELECT 'system_table_size', pg_size_pretty(COALESCE(SUM(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(tablename))), 0))
+                SELECT 'system_table_size',
+                       pg_size_pretty(
+                           COALESCE(
+                               SUM(
+                                   pg_total_relation_size(
+                                       quote_ident(schemaname) || '.' || quote_ident(tablename)
+                                   )
+                               ), 0
+                           )
+                       )
                 FROM pg_tables
                 WHERE schemaname IN ('pg_catalog', 'information_schema')
                 UNION ALL
@@ -69,7 +88,14 @@ class DBMetricsService:
                 FROM information_schema.views
                 WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
                 UNION ALL
-                SELECT 'views_size' AS metric, pg_size_pretty(COALESCE(SUM(pg_total_relation_size(schemaname || '.' || viewname)), 0)) AS value
+                SELECT 'views_size',
+                       pg_size_pretty(
+                           COALESCE(
+                               SUM(
+                                   pg_total_relation_size(schemaname || '.' || viewname)
+                               ), 0
+                           )
+                       ) AS value
                 FROM pg_views
                 WHERE schemaname NOT IN ('information_schema', 'pg_catalog')
                 UNION ALL
@@ -81,7 +107,8 @@ class DBMetricsService:
                       WHERE nspname IN ('information_schema', 'pg_catalog')
                   )
                 UNION ALL
-                SELECT 'materialized_views_size', pg_size_pretty(COALESCE(SUM(pg_total_relation_size(oid)), 0))
+                SELECT 'materialized_views_size',
+                       pg_size_pretty(COALESCE(SUM(pg_total_relation_size(oid)), 0))
                 FROM pg_class
                 WHERE relkind = 'm'
                   AND relnamespace NOT IN (
@@ -129,10 +156,10 @@ class DBMetricsService:
 
                 # === Информация о расширениях ===
                 extensions_query = """
-                SELECT 
+                SELECT
                     e.extname AS name,
                     e.extversion AS version
-                FROM 
+                FROM
                     pg_extension e
                 ORDER BY e.extname;
                 """
@@ -209,7 +236,7 @@ class DBMetricsService:
                     "segment_details": segment_details,
                 }
 
-        except Exception as e:
+        except Exception:
             error_msg = "Ошибка подключения к базе данных"
             return {
                 "status": "error",
@@ -220,7 +247,7 @@ class DBMetricsService:
             }
 
     @staticmethod
-    async def get_database_settings(connection: DB_Connection) -> List[Dict[str, str]]:
+    async def get_database_settings(connection: DB_Connection) -> list[dict[str, str]]:
         """Получить все настройки базы данных"""
         try:
             async with external_db_connection(connection) as conn:

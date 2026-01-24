@@ -1,15 +1,16 @@
 # backend/utils/external_db.py
-import asyncpg
 from contextlib import asynccontextmanager
+
+import asyncpg
+from backend.core.security import decrypt_password
+from backend.models.db import DB_Connection
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.models.db import DB_Connection
-from backend.core.security import decrypt_password
 
 
 @asynccontextmanager
 async def external_db_connection(db_connection: DB_Connection, timeout: int = 10):
-    """Асинхронный контекстный менеджер для подключения к внешней базе данных (автоматически закрывает соединение после использования)"""
+    """Асинхронный контекстный менеджер для подключения к внешней базе данных"""
     password = decrypt_password(db_connection.password)
     conn = await asyncpg.connect(
         host=db_connection.host,

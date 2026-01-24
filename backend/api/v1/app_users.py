@@ -1,17 +1,18 @@
 # backend/api/v1/app_users.py
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, and_, func
+
 from backend.database.session import get_db
 from backend.models.user import User
-from backend.services.app_users_services import UserService
 from backend.schemas.app_users_schemas import (
-    UserResponse,
-    UserCreate,
-    UserUpdate,
     PaginatedResponse,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
 )
+from backend.services.app_users_services import UserService
 
 router = APIRouter(prefix="/app_users", tags=["APP USERS"])
 
@@ -21,10 +22,10 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
     size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
-    search: Optional[str] = Query(None, description="""Поиск по логину, ФИО, почте пользователя"""),
-    is_active: Optional[bool] = Query(None, description="Фильтр по активности (true/false)"),
-    is_superuser: Optional[bool] = Query(None, description="Фильтр по правам суперпользователя (true/false)"),
-    role: Optional[str] = Query(
+    search: str | None = Query(None, description="""Поиск по логину, ФИО, почте пользователя"""),
+    is_active: bool | None = Query(None, description="Фильтр по активности (true/false)"),
+    is_superuser: bool | None = Query(None, description="Фильтр по правам суперпользователя (true/false)"),
+    role: str | None = Query(
         None,
         description="Фильтр по роли (Администратор БД, Аналитик, Разработчик, Тестировщик, Пользователь)",
     ),
@@ -99,7 +100,7 @@ async def list_users(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при получении пользователей: {str(e)}",
-        )
+        ) from e
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -110,13 +111,13 @@ async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db))
         user = await user_service.create_user(user_data)
         return user
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         print(f"❌ Ошибка при создании пользователя: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при создании пользователя: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -130,7 +131,7 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при получении пользователя: {str(e)}",
-        )
+        ) from e
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
     return user
@@ -143,13 +144,13 @@ async def update_user(user_id: int, user_data: UserUpdate, db: AsyncSession = De
     try:
         user = await user_service.update_user(user_id, user_data)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         print(f"❌ Ошибка при обновлении пользователя: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при обновлении пользователя: {str(e)}",
-        )
+        ) from e
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
     return user
@@ -166,6 +167,6 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при удалении пользователя: {str(e)}",
-        )
+        ) from e
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")

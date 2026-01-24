@@ -1,9 +1,11 @@
 # backend/services/db_functions_services.py
-from typing import Dict, Any, Optional
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
-from backend.utils.pagination import paginate_raw_sql, PaginatedServiceResponse
+from backend.utils.pagination import PaginatedServiceResponse, paginate_raw_sql
 
 
 def _map_function_row(row) -> dict:
@@ -31,8 +33,8 @@ class DBFunctionService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+    ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
 
         base_query = """

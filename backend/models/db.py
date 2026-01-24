@@ -1,16 +1,17 @@
 # backend/models/db.py
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
     Boolean,
-    Text,
+    Column,
     Enum,
     ForeignKey,
-    UniqueConstraint,
     Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+
 from backend.database.session import Base
 from backend.models.base_mixin import DateTimeMixin
 
@@ -85,9 +86,7 @@ class DB_Connection(Base, DateTimeMixin):
     )
 
     def __repr__(self):
-        return (
-            f"<DB_Connection(id={self.id}, name='{self.name}', type='{self.database_type}', owner_id={self.owner_id})>"
-        )
+        return f"<DB_Connection(id={self.id}, name='{self.name}', type='{self.database_type}', owner_id={self.owner_id})>"
 
 
 class DB_User(Base, DateTimeMixin):

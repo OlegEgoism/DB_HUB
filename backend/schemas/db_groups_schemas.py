@@ -1,7 +1,8 @@
 # backend/services/db_groups_schemas.py
-from typing import List, Optional
 import re
+
 from pydantic import BaseModel, field_validator
+
 from backend.utils.pagination import PaginatedResponse as BasePaginatedResponse
 
 # Запрещённые имена
@@ -24,7 +25,7 @@ ROLE_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 class DBGroupOut(BaseModel):
     oid: int
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     user_count: int
 
 
@@ -35,14 +36,14 @@ class PaginatedDBGroupsResponse(BasePaginatedResponse[DBGroupOut]):
 
 
 class DBGroupUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
     model_config = {"extra": "forbid"}
 
 
 class DBGroupCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     model_config = {"extra": "forbid"}
 
     @field_validator("name")
@@ -60,9 +61,7 @@ class DBGroupCreate(BaseModel):
         if v.lower() in FORBIDDEN_NAMES:
             raise ValueError(f"Имя '{v}' зарезервировано и не может использоваться для группы")
         if not ROLE_NAME_PATTERN.match(v):
-            raise ValueError(
-                "Имя группы должно начинаться с буквы или '_', и содержать только латинские буквы, цифры и символ '_'"
-            )
+            raise ValueError("Имя группы должно начинаться с буквы или '_', и содержать только латинские буквы, цифры и символ '_'")
         return v
 
 
@@ -74,9 +73,9 @@ class DBUserInGroup(BaseModel):
 class DBGroupWithUsersOut(BaseModel):
     oid: int
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     user_count: int
-    users: List[DBUserInGroup]
+    users: list[DBUserInGroup]
 
 
 class AddUserToGroupRequest(BaseModel):

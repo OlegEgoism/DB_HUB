@@ -1,13 +1,15 @@
 # backend/utils/pagination.py
 import math
-from typing import TypeVar, Generic, List, Dict, Any, Optional, Callable
+from collections.abc import Callable
+from typing import Any, TypeVar
+
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
-    items: List[T]
+class PaginatedResponse[T: BaseModel](BaseModel):
+    items: list[T]
     total: int
     page: int
     size: int
@@ -18,11 +20,11 @@ class PaginatedResponse(BaseModel, Generic[T]):
     @classmethod
     def create(
         cls,
-        items: List[T],
+        items: list[T],
         total: int,
         page: int,
         size: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         pages = math.ceil(total / size) if size > 0 and total > 0 else 1
         return {
             "items": items,
@@ -55,7 +57,7 @@ class PaginatedServiceResponse(BaseModel):
         total_filtered_items: int,
         page: int,
         size: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         pages = math.ceil(total_filtered_items / size) if size > 0 and total_filtered_items > 0 else 1
         return {
             "connection_id": connection_id,
@@ -76,8 +78,8 @@ async def paginate_raw_sql(
     count_query: str,
     page: int = 1,
     size: int = 20,
-    params: Optional[list] = None,
-    row_mapper: Optional[Callable] = None,
+    params: list | None = None,
+    row_mapper: Callable | None = None,
 ) -> tuple[list, int]:
     if page < 1:
         page = 1

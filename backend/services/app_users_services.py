@@ -1,29 +1,30 @@
 # backend/services/app_users_services.py
 import re
-from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
-from backend.models.user import User
-from backend.schemas.app_users_schemas import UserCreate, UserUpdate
 from datetime import datetime
+
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.core.security import (
-    verify_password,
     create_access_token,
     get_password_hash,
+    verify_password,
 )
+from backend.models.user import User
+from backend.schemas.app_users_schemas import UserCreate, UserUpdate
 
 
 class UserService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_user(self, user_id: int) -> Optional[User]:
+    async def get_user(self, user_id: int) -> User | None:
         """Получить пользователя по id"""
         result = await self.db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         return user
 
-    async def get_user_by_username(self, username: str) -> Optional[User]:
+    async def get_user_by_username(self, username: str) -> User | None:
         """Получить пользователя по username"""
         result = await self.db.execute(select(User).where(User.username == username))
         user = result.scalar_one_or_none()
@@ -49,7 +50,7 @@ class UserService:
         """Проверка пароля"""
         return verify_password(plain_password, hashed_password)
 
-    async def check_email_exists(self, email: str, exclude_user_id: Optional[int] = None) -> bool:
+    async def check_email_exists(self, email: str, exclude_user_id: int | None = None) -> bool:
         """Проверка, используется ли email другим пользователем"""
         query = select(User).where(User.email == email)
         if exclude_user_id:
@@ -81,7 +82,7 @@ class UserService:
         await self.db.refresh(user)
         return user
 
-    async def update_user(self, user_id: int, user_data: UserUpdate) -> Optional[User]:
+    async def update_user(self, user_id: int, user_data: UserUpdate) -> User | None:
         """Обновление пользователя"""
         user = await self.get_user(user_id)
         if not user:
@@ -106,7 +107,7 @@ class UserService:
         await self.db.commit()
         return True
 
-    async def authenticate_user(self, username: str, password: str) -> Optional[User]:
+    async def authenticate_user(self, username: str, password: str) -> User | None:
         """Аутентификация пользователя"""
         user = await self.get_user_by_username(username)
         if not user:
@@ -122,7 +123,7 @@ class UserService:
         await self.db.execute(update(User).where(User.id == user_id).values(last_login=datetime.utcnow()))
         await self.db.commit()
 
-    async def login_user(self, username: str, password: str) -> Optional[dict]:
+    async def login_user(self, username: str, password: str) -> dict | None:
         """Вход пользователя и генерация токена"""
         user = await self.authenticate_user(username, password)
         if not user:
@@ -144,7 +145,7 @@ class UserService:
             "token_type": "bearer",
         }
 
-    async def get_current_user_from_token(self, token: str) -> Optional[User]:
+    async def get_current_user_from_token(self, token: str) -> User | None:
         """Получение текущего пользователя из токена"""
         from backend.core.security import decode_access_token
 

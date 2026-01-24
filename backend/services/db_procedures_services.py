@@ -1,7 +1,9 @@
 # backend/services/db_procedures_services.py
 import math
-from typing import Dict, Any, Optional
+from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 
@@ -21,8 +23,8 @@ class DBProcedureService:
         connection_id: int,
         page: int = 1,
         size: int = 20,
-        search: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+    ) -> dict[str, Any]:
         if page < 1:
             page = 1
         if size < 1:

@@ -1,6 +1,7 @@
 # backend/schemas/db_query_schemas.py
+from typing import Any
+
 from pydantic import BaseModel, Field
-from typing import List, Any, Dict
 
 
 class SQLQueryRequest(BaseModel):
@@ -16,7 +17,7 @@ class SQLQueryRequest(BaseModel):
 class SQLQueryResponse(BaseModel):
     connection_id: int
     query: str
-    columns: List[str]
-    rows: List[Dict[str, Any]]
+    columns: list[str]
+    rows: list[dict[str, Any]]
     total_rows: int
     truncated: bool = False

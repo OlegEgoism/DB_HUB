@@ -1,5 +1,6 @@
 # backend/models/app_agreements.py
-from sqlalchemy import Column, Integer, Boolean, String, Text
+from sqlalchemy import Boolean, Column, Integer, String, Text
+
 from backend.database.session import Base
 
 

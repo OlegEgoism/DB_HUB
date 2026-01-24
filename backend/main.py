@@ -1,28 +1,30 @@
 # backend/main.py
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from backend.database.session import engine, Base
 import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
 from backend.api.v1 import (
     app_agreements,
     app_auth,
     app_users,
     db_connections,
-    db_metrics,
-    db_groups,
-    db_users,
-    db_schemas,
-    db_tables,
-    db_views,
-    db_indexes,
     db_functions,
+    db_groups,
+    db_indexes,
+    db_metrics,
     db_procedures,
     db_query,
+    db_schemas,
+    db_tables,
+    db_users,
+    db_views,
 )
 from backend.core.limiter import limiter
-from slowapi.errors import RateLimitExceeded
-from slowapi import _rate_limit_exceeded_handler
+from backend.database.session import Base, engine
 
 """Настройка логирования"""
 logging.basicConfig(level=logging.INFO)

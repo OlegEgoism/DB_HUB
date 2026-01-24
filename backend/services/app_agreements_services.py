@@ -1,15 +1,16 @@
 # backend/services/app_agreements_services.py
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.models.agreement import Agreement
-from typing import List, Optional
 
 
 class AgreementService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_all_agreements(self, is_active: Optional[bool] = None) -> List[Agreement]:
+    async def get_all_agreements(self, is_active: bool | None = None) -> list[Agreement]:
         """Получить все соглашения с опциональной фильтрацией по активности"""
         query = select(Agreement)
         if is_active is not None:

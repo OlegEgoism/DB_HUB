@@ -1,7 +1,7 @@
 # backend/schemas/app_agreements_schemas.py
-from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
 
 
 class AgreementBase(BaseModel):
@@ -17,5 +17,5 @@ class AgreementResponse(AgreementBase):
     """Схема для отображения пользовательского соглашения"""
 
     id: int
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)

@@ -1,6 +1,7 @@
-# backend/api/v1/db_schemas.py
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+# backend/api/v1/db_indexes.py
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.database.session import get_db
 from backend.schemas.db_indexes_schemas import PaginatedIndexesResponse
 from backend.services.db_indexes_services import DBIndexesService
@@ -22,9 +23,9 @@ async def get_indexes(
         result = await service.get_indexes(connection_id=connection_id, page=page, size=size, search=search)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при получении индексов: {str(e)}",
-        )
+        ) from e

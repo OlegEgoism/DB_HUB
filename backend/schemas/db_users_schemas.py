@@ -1,7 +1,8 @@
 # backend/schemas/db_users_schemas.py
 import re
-from typing import List, Optional
-from pydantic import BaseModel, field_validator, EmailStr
+
+from pydantic import BaseModel, EmailStr, field_validator
+
 from backend.utils.pagination import PaginatedResponse as BasePaginatedResponse
 
 # Запрещённые имена
@@ -23,8 +24,8 @@ ROLE_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 class DBUserCreate(BaseModel):
     username: str
     password: str
-    email: Optional[EmailStr] = None
-    description: Optional[str] = None
+    email: EmailStr | None = None
+    description: str | None = None
 
     @field_validator("username")
     @classmethod
@@ -41,9 +42,7 @@ class DBUserCreate(BaseModel):
         if v.lower() in FORBIDDEN_NAMES:
             raise ValueError(f"Имя '{v}' зарезервировано и не может использоваться для пользователя")
         if not ROLE_NAME_PATTERN.match(v):
-            raise ValueError(
-                "Имя пользователя должно начинаться с латинской буквы или '_', и содержать только латинские буквы, цифры и символ '_'"
-            )
+            raise ValueError("Имя пользователя должно начинаться с латинской буквы или '_', и содержать только латинские буквы, цифры и символ '_'")
         return v
 
     @field_validator("password")
@@ -61,8 +60,8 @@ class DBUserCreate(BaseModel):
 class DBUserOut(BaseModel):
     oid: int
     name: str
-    description: Optional[str] = None
-    email: Optional[str] = None
+    description: str | None = None
+    email: str | None = None
 
 
 class PaginatedDBUsersResponse(BasePaginatedResponse[DBUserOut]):
@@ -72,13 +71,13 @@ class PaginatedDBUsersResponse(BasePaginatedResponse[DBUserOut]):
 
 
 class DBUserUpdate(BaseModel):
-    password: Optional[str] = None
-    description: Optional[str] = None
-    email: Optional[EmailStr] = None
+    password: str | None = None
+    description: str | None = None
+    email: EmailStr | None = None
 
     @field_validator("password")
     @classmethod
-    def validate_password(cls, v: Optional[str]) -> Optional[str]:
+    def validate_password(cls, v: str | None) -> str | None:
         if v is None:
             return v
         if len(v) < 4:
