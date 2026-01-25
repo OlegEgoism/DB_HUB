@@ -152,9 +152,7 @@ async def list_connections(
 @router.get("/{connection_id}", response_model=ConnectionOut)
 async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db)):
     """Получить информацию о базе данных"""
-    result = await db.execute(
-        select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id).where(DB_Connection.id == connection_id)
-    )
+    result = await db.execute(select(DB_Connection, User.username.label("owner_username")).join(User, DB_Connection.owner_id == User.id).where(DB_Connection.id == connection_id))
     row = result.first()
     if not row:
         raise HTTPException(status_code=404, detail="Подключение не найдено")

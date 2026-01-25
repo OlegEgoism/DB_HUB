@@ -94,11 +94,7 @@ class DBSchemaService:
             filtered_entries = all_entries
         else:
             for entry in all_entries:
-                matches_schema = (
-                    search_term in entry["schema_name"].lower()
-                    or (entry["description"] and search_term in entry["description"].lower())
-                    or search_term in entry["owner"].lower()
-                )
+                matches_schema = search_term in entry["schema_name"].lower() or (entry["description"] and search_term in entry["description"].lower()) or search_term in entry["owner"].lower()
 
                 if matches_schema:
                     filtered_entries.append(entry)
@@ -253,11 +249,7 @@ class DBSchemaService:
             filtered_entries = all_entries
         else:
             for entry in all_entries:
-                matches_schema = (
-                    search_term in entry["schema_name"].lower()
-                    or (entry["description"] and search_term in entry["description"].lower())
-                    or search_term in entry["owner"].lower()
-                )
+                matches_schema = search_term in entry["schema_name"].lower() or (entry["description"] and search_term in entry["description"].lower()) or search_term in entry["owner"].lower()
 
                 if matches_schema:
                     filtered_entries.append(entry)

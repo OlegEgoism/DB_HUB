@@ -10,9 +10,7 @@ from backend.services.db_indexes_services import DBIndexesService
 router = APIRouter(prefix="/db_connections/{connection_id}/indexes", tags=["DB INDEXES"])
 
 
-@router.get(
-    "", response_model=PaginatedIndexesResponse, summary="Получить список индексов", description="Возвращает пагинированный список индексов в базе данных"
-)
+@router.get("", response_model=PaginatedIndexesResponse, summary="Получить список индексов", description="Возвращает пагинированный список индексов в базе данных")
 async def get_indexes(
     connection_id: int,
     db: AsyncSession = Depends(get_db),

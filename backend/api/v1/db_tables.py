@@ -19,9 +19,7 @@ from backend.services.db_tables_services import DBTablesService
 router = APIRouter(prefix="/db_connections/{connection_id}/tables", tags=["DB TABLES"])
 
 
-@router.get(
-    "", response_model=PaginatedSchemasWithTablesResponse, summary="Получить список таблиц", description="Возвращает пагинированный список схем с таблицами"
-)
+@router.get("", response_model=PaginatedSchemasWithTablesResponse, summary="Получить список таблиц", description="Возвращает пагинированный список схем с таблицами")
 async def get_tables(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
