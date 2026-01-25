@@ -95,21 +95,15 @@ async def paginate_raw_sql(
         size = 1
     if size > 1000:
         size = 1000
-
     offset = (page - 1) * size
-
     total_row = await conn.fetchrow(count_query, *(params or []))
     total = total_row["total"] if total_row else 0
-
     paginated_query = f"{base_query} LIMIT {size} OFFSET {offset}"
-
     rows = await conn.fetch(paginated_query, *(params or []))
-
     if row_mapper:
         items = [row_mapper(row) for row in rows]
     else:
         items = [dict(row) for row in rows]
-
     return items, total
 
 
