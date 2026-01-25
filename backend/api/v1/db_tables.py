@@ -23,8 +23,8 @@ router = APIRouter(prefix="/db_connections/{connection_id}/tables", tags=["DB TA
 async def get_tables(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
-    page: int = Query(1, ge=1, description="Номер страницы"),
-    size: int = Query(20, ge=1, le=200, description="Количество схем на странице"),
+    page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+    size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
     search: str = Query(None, description="Поиск по имени/описанию схемы, имени/описанию таблицы"),
 ):
     """Получить список таблиц"""
@@ -50,8 +50,8 @@ async def get_tables(
 async def get_tables_temporary(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
-    page: int = Query(1, ge=1, description="Номер страницы"),
-    size: int = Query(20, ge=1, le=200, description="Количество таблиц на странице"),
+    page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+    size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
     search: str = Query(
         None,
         description="Поиск по имени/описанию схемы, имени/описанию временной таблицы",
@@ -80,8 +80,8 @@ async def get_tables_temporary(
 async def get_tables_privileges_for_users(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
-    page: int = Query(1, ge=1, description="Номер страницы"),
-    size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
+    page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+    size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
     search: str = Query(
         None,
         description="Поиск по имени/описанию схемы, имени/описанию таблицы и имени пользователя",
@@ -144,8 +144,8 @@ async def update_tables_privileges_for_users(
 async def get_tables_privileges_for_groups(
     connection_id: int,
     db: AsyncSession = Depends(get_db),
-    page: int = Query(1, ge=1, description="Номер страницы"),
-    size: int = Query(20, ge=1, le=200, description="Количество записей на странице"),
+    page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
+    size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
     search: str = Query(
         None,
         description="Поиск по имени/описанию схемы, имени/описанию таблицы и имени группы",

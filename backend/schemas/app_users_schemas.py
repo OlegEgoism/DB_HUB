@@ -42,7 +42,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     email: EmailStr | None = None
     fio: str | None = Field(None, max_length=100)
-    role: str | None = None
+    role: str = Field(default="Пользователь")
     is_active: bool | None = None
     is_superuser: bool | None = None
 
