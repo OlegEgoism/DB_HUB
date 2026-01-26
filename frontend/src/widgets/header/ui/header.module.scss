@@ -1,0 +1,52 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+
+
+    &__body {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 30px;
+        background: white;
+        border-radius: 20px;
+        border: 1px solid var(--gray-200);
+        margin-bottom: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+        }
+
+    }
+
+    &__holder {
+        display: flex;
+        flex-direction: column;
+        row-gap: 8px;
+    }
+
+    &__subtitle {
+        margin: 0;
+        color: var(--color-secondary);
+        font-size: 16px;
+    }
+}
+
+.nav {
+    &__list {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+    }
+}

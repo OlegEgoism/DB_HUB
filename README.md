@@ -143,10 +143,19 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 Запуск frontend приложения DB_HUB
 </h3>
 
+- Установите все необходимые зависимости
+
 ```bash
 cd frontend
 ```
 
 ```bash
-npm start
+npm install
 ```
+
+- Запуск frontend приложения DB_HUB
+```bash
+npm run dev
+```
+
+
