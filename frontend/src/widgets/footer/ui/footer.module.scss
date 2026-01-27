@@ -1,0 +1,65 @@
+// frontend/src/widgets/footer/ui/footer.module.scss
+
+.footer {
+    margin-top: 40px;
+
+    &__body {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 30px;
+        background: white;
+        border-radius: 20px;
+        border: 1px solid var(--gray-200);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+        }
+    }
+
+    &__holder {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    &__subtitle {
+        margin: 0;
+        font-size: 16px;
+        color: var(--text-secondary);
+    }
+
+    &__nav {
+        &List {
+            display: flex;
+            gap: 12px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        &Link {
+            text-decoration: none;
+            color: var(--gray-600);
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s ease;
+
+            &:hover {
+                color: var(--primary);
+            }
+        }
+    }
+}

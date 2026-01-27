@@ -1,9 +1,8 @@
+// frontend/src/widgets/footer/ui/header.tsx
+
 import { NavLink } from 'react-router';
-
 import { ROUTES } from '@shared/config';
-
 import { Logo } from '@shared/ui';
-
 import styles from './header.module.scss';
 import clsx from 'clsx';
 
