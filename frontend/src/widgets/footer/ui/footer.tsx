@@ -1,33 +1,60 @@
 // frontend/src/widgets/footer/ui/footer.tsx
 
-import { NavLink } from 'react-router';
-import { ROUTES } from '@shared/config';
-import { Logo } from '@shared/ui';
+import {NavLink} from 'react-router';
+import {ROUTES} from '@shared/config';
 import styles from './footer.module.scss';
 import clsx from 'clsx';
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {
+    faBook,
+    faContactCard,
+    faTasks,
+
+} from "@fortawesome/free-solid-svg-icons";
 
 export function Footer() {
     return (
         <footer className={clsx(styles.footer)}>
-            <div className={styles.footer__body}>
-                <div className={styles.footer__holder}>
-                    <Logo />
+            <div className="container">
+                <div className={clsx(styles.footer__body)}>
+                    <nav className={styles.footer__nav}>
+                        <ul className={styles.footer__navList}>
+                            <li className={styles.footer__navItem}>
+                                <NavLink
+                                    to={ROUTES.DOCUMENTATIONS}
+                                    className={({isActive}) =>
+                                        clsx(styles.footer__navLink, isActive && styles.footer__navLink_active)
+                                    }
+                                >
+                                    <FontAwesomeIcon icon={faBook}/>
+                                    Документация
+                                </NavLink>
+                            </li>
+                            <li className={styles.footer__navItem}>
+                                <NavLink
+                                    to={ROUTES.AGREEMENTS}
+                                    className={({isActive}) =>
+                                        clsx(styles.footer__navLink, isActive && styles.footer__navLink_active)
+                                    }
+                                >
+                                    <FontAwesomeIcon icon={faTasks}/>
+                                    Соглашения
+                                </NavLink>
+                            </li>
+                            <li className={styles.footer__navItem}>
+                                <NavLink
+                                    to={ROUTES.CONTACTS}
+                                    className={({isActive}) =>
+                                        clsx(styles.footer__navLink, isActive && styles.footer__navLink_active)
+                                    }
+                                >
+                                    <FontAwesomeIcon icon={faContactCard}/>
+                                    Контакты
+                                </NavLink>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
-
-                <nav className={styles.footer__nav}>
-                    <ul className={styles.footer__navList}>
-                        <li>
-                            <NavLink to={ROUTES.DOCUMENTATIONS} className={styles.footer__navLink}>
-                                Документация
-                            </NavLink>
-                        </li>
-                        <li>
-                            <NavLink to={ROUTES.CONTACTS} className={styles.footer__navLink}>
-                                Контакты
-                            </NavLink>
-                        </li>
-                    </ul>
-                </nav>
             </div>
         </footer>
     );

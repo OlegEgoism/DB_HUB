@@ -1,3 +1,5 @@
+// frontend/src/app/routes.ts
+
 import { type RouteConfig, relative, index, route, layout } from "@react-router/dev/routes";
 import { ROUTES } from '../shared/config/routes.ts'
 

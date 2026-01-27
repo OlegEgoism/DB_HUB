@@ -16,8 +16,6 @@ export default function BaseLayout() {
                 <Outlet/>
             </main>
             <Footer/>
-            <main className={'main'}>
-            </main>
         </>
 
     );

@@ -1,5 +1,6 @@
+// frontend/src/app/root.tsx
+
 import {
-    isRouteErrorResponse,
     Links,
     Meta,
     Outlet,

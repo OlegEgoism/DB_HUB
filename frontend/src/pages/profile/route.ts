@@ -1,3 +1,5 @@
+// frontend/src/pages/profile/route.ts
+
 import { route } from "@react-router/dev/routes";
 
 // import { ROUTES } from '@shared/routes/routes';

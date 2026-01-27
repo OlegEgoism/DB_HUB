@@ -1,3 +1,5 @@
+// frontend/src/shared/ui/logo/logo.tsx
+
 import { NavLink} from 'react-router';
 import clsx from 'clsx';
 
@@ -11,7 +13,7 @@ import { faDatabase } from '@fortawesome/free-solid-svg-icons'
 export function Logo() {
     return (
         <NavLink className={clsx(styles.logo, 'link')} to={ROUTES.HOME}>
-            <FontAwesomeIcon className={styles.logo__icon} icon={faDatabase}/> 
+            <FontAwesomeIcon className={styles.logo__icon} icon={faDatabase}/>
             <span className={styles.logo__title}>HUB DB</span>
         </NavLink>
     )

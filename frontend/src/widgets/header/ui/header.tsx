@@ -1,4 +1,4 @@
-// frontend/src/widgets/footer/ui/header.tsx
+// frontend/src/widgets/header/ui/header.tsx
 
 import { NavLink } from 'react-router';
 import { ROUTES } from '@shared/config';
@@ -13,7 +13,7 @@ export function Header() {
             <div className="container">
                 <div className={clsx(styles.header__body)}>
                     <div className={clsx(styles.header__holder)}>
-                        <Logo />
+                        <Logo/>
                         <p className={clsx(styles.header__subtitle)}>Платформа для управления базами данных</p>
                     </div>
                     {/* Навигация пока такого вида */}

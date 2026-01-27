@@ -1,3 +1,6 @@
+// frontend/src/pages/connections/ui/page.tsx
+
+
 import clsx from 'clsx';
 import styles from './styles.module.scss';
 

@@ -1,0 +1,1 @@
+// frontend/src/shared/config/font-awesome.ts
