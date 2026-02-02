@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 # Файлы для исключения
-EXCLUDED = ["collect_app_code.py", "generate_app_key.py"]
+EXCLUDED = ["collect_backend.py", "generate_app_key.py"]
 
 
 def collect_code():
@@ -10,7 +10,7 @@ def collect_code():
     if not backend.exists():
         print("❌ Нет папки backend")
         return
-    with open("all_code.txt", "w", encoding="utf-8") as out:
+    with open("collect_backend.txt", "w", encoding="utf-8") as out:
         for root, _, files in os.walk(backend):
             for file in files:
                 if file.endswith(".py") and file not in EXCLUDED:

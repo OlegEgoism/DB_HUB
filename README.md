@@ -90,7 +90,7 @@ pip list --outdated
 - Получение всего backend кода в один файл - all_code.txt
 
 ```bash
-python3 backend/collect_app_code.py 
+python3 backend/collect_backend.py 
 ```
 
 - Очистка кэш Python
