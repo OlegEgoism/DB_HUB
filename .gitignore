@@ -3,4 +3,5 @@ __pycache__/
 .venv/
 .idea/
 .env
-backend/all_code.txt
+backend/collect_backend.txt
+frontend/collect_frontend.txt
