@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from backend.api.v1 import (
     app_agreements,
     app_auth,
+    app_documentations,
     app_users,
     db_connections,
     db_functions,
@@ -22,6 +23,7 @@ from backend.api.v1 import (
 api_v1_router = APIRouter(prefix="/api/v1")
 
 # Подключаем все роутеры
+api_v1_router.include_router(app_documentations.router)
 api_v1_router.include_router(app_agreements.router)
 api_v1_router.include_router(app_auth.router)
 api_v1_router.include_router(app_users.router)

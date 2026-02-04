@@ -9,7 +9,8 @@ extend-exclude = [
     "__pycache__",
     "frontend",
     "load_data.py",
-    "collect_app_code.py",
+    "collect_backend.py",
+    "collect_frontend.py",
 ]
 
 [tool.ruff.lint]

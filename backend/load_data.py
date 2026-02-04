@@ -4,6 +4,8 @@ import asyncio
 import sys
 from pathlib import Path
 
+from backend.models.documentations import Documentation
+
 backend_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(backend_dir))
 
@@ -47,3 +49,41 @@ async def seed_agreements():
 
 if __name__ == "__main__":
     asyncio.run(seed_agreements())
+
+
+async def seed_documentations():
+    documentations_data = [
+        {
+            "number": "1",
+            "title": "Руководство пользователя",
+            "content": "Данное руководство описывает основные функции и возможности системы. Ознакомьтесь с ним перед началом работы.",
+            "is_active": True,
+        },
+        {
+            "number": "2",
+            "title": "API Документация",
+            "content": "Полное описание всех доступных API-методов, параметров запросов и форматов ответов.",
+            "is_active": True,
+        },
+        {
+            "number": "3",
+            "title": "Безопасность данных",
+            "content": "Рекомендации по обеспечению безопасности данных и лучшие практики работы с системой.",
+            "is_active": True,
+        },
+    ]
+
+    async with AsyncSessionLocal() as session:
+        try:
+            for data in documentations_data:
+                documentation = Documentation(**data)
+                session.add(documentation)
+            await session.commit()
+            print("Документации успешно добавлены в базу данных.")
+        except Exception as e:
+            print(f"❌ Ошибка при добавлении документаций: {e}")
+            await session.rollback()
+
+
+if __name__ == "__main__":
+    asyncio.run(seed_documentations())
