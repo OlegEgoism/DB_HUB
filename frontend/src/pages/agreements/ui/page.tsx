@@ -7,8 +7,11 @@ import styles from './styles.module.scss';
 export default function AgreementsPage() {
     const { agreements, loading, error } = useAgreements();
 
-    // Фильтруем только активные соглашения
-    const activeAgreements = agreements.filter(agreement => agreement.is_active);
+    // Отладка: выводим все данные в консоль
+    if (!loading && agreements.length > 0) {
+        console.log('Все соглашения:', agreements);
+        console.log('Активные соглашения:', agreements.filter(a => a.is_active));
+    }
 
     return (
         <section className={clsx(styles.agreements)}>
@@ -28,32 +31,31 @@ export default function AgreementsPage() {
                         </div>
                     )}
 
-                    {!loading && !error && activeAgreements.length === 0 && (
-                        <div className={clsx(styles.agreements__empty)}>
-                            Активные соглашения не найдены
+                    {!loading && !error && (
+                        <div className={clsx(styles.agreements__list)}>
+                            {agreements
+                                .filter(agreement => agreement.is_active === true)
+                                .map((agreement) => (
+                                    <div
+                                        key={agreement.id}
+                                        className={clsx(styles.agreements__item)}
+                                    >
+                                        <div className={clsx(styles.agreements__header)}>
+                                            <h2 className={clsx(styles.agreements__itemTitle)}>
+                                                {agreement.title}
+                                            </h2>
+                                        </div>
+                                        <div className={clsx(styles.agreements__content)}>
+                                            {agreement.content}
+                                        </div>
+                                    </div>
+                                ))}
                         </div>
                     )}
 
-                    {!loading && activeAgreements.length > 0 && (
-                        <div className={clsx(styles.agreements__list)}>
-                            {activeAgreements.map((agreement) => (
-                                <div
-                                    key={agreement.id}
-                                    className={clsx(styles.agreements__item)}
-                                >
-                                    <div className={clsx(styles.agreements__header)}>
-                                        <span className={clsx(styles.agreements__number)}>
-                                            №{agreement.number}
-                                        </span>
-                                        <h2 className={clsx(styles.agreements__itemTitle)}>
-                                            {agreement.title}
-                                        </h2>
-                                    </div>
-                                    <div className={clsx(styles.agreements__content)}>
-                                        {agreement.content}
-                                    </div>
-                                </div>
-                            ))}
+                    {!loading && !error && agreements.filter(a => a.is_active === true).length === 0 && (
+                        <div className={clsx(styles.agreements__empty)}>
+                            Активные соглашения не найдены
                         </div>
                     )}
                 </div>
