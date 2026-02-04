@@ -1,6 +1,6 @@
 // frontend/src/app/routes.ts
 
-import {type RouteConfig, relative, index, route, layout} from "@react-router/dev/routes";
+import {type RouteConfig, index, route} from "@react-router/dev/routes";
 import {ROUTES} from '../shared/config/routes.ts'
 
 
@@ -12,6 +12,5 @@ export default [
         route(ROUTES.PROFILE, "../pages/profile/ui/page.tsx"),
         route(ROUTES.DOCUMENTATIONS, "../pages/documentations/ui/page.tsx"),
         route(ROUTES.AGREEMENTS, "../pages/agreements/ui/page.tsx"),
-        route(ROUTES.CONTACTS, "../pages/contacts/ui/page.tsx"),
     ]),
 ] satisfies RouteConfig;

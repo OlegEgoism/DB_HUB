@@ -7,7 +7,6 @@ import clsx from 'clsx';
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {
     faBook,
-    faContactCard,
     faTasks,
 
 } from "@fortawesome/free-solid-svg-icons";
@@ -39,17 +38,6 @@ export function Footer() {
                                 >
                                     <FontAwesomeIcon icon={faTasks}/>
                                     Соглашения
-                                </NavLink>
-                            </li>
-                            <li className={styles.footer__navItem}>
-                                <NavLink
-                                    to={ROUTES.CONTACTS}
-                                    className={({isActive}) =>
-                                        clsx(styles.footer__navLink, isActive && styles.footer__navLink_active)
-                                    }
-                                >
-                                    <FontAwesomeIcon icon={faContactCard}/>
-                                    Контакты
                                 </NavLink>
                             </li>
                         </ul>
