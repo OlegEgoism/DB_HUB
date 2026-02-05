@@ -1,86 +1,159 @@
 // frontend/src/widgets/header/ui/header.module.scss
-
 @use "@shared/styles/_palette" as *;
 
 .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &__body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 24px 30px;
+    background: white;
+    border-radius: 20px;
+    border: 1px solid var(--gray-200);
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
 
-    &__body {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 24px 30px;
-        background: white;
-        border-radius: 20px;
-        border: 1px solid var(--gray-200);
-        margin-bottom: 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        position: relative;
-        overflow: hidden;
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    }
+  }
 
-        &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
-        }
+  &__holder {
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+  }
+
+  &__subtitle {
+    margin: 0;
+    color: var(--color-secondary);
+    font-size: 16px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  &__loginButton,
+  &__registerButton,
+  &__logoutButton {
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba($clr-indigo-500, 0.3);
     }
 
-    &__holder {
-        display: flex;
-        flex-direction: column;
-        row-gap: 8px;
+    &:active {
+      transform: translateY(0);
     }
 
-    &__subtitle {
-        margin: 0;
-        color: var(--color-secondary);
-        font-size: 16px;
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
+  }
 
-    &__registerButton {
-        background: var(--color-primary);
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        white-space: nowrap;
+  &__loginButton {
+    background: var(--color-secondary);
+    color: white;
 
-        &:hover {
-            background: var(--color-primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba($clr-indigo-500, 0.3);
-        }
-
-        &:active {
-            transform: translateY(0);
-        }
-
-        &:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
+  }
+
+  &__registerButton {
+    background: var(--color-primary);
+    color: white;
+
+    &:hover {
+      background: var(--color-primary-dark);
+    }
+  }
+
+  &__logoutButton {
+    background: var(--color-status-danger);
+    color: white;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+    }
+  }
+
+  // Стили для меню пользователя после авторизации
+  &__userMenu {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--color-surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    padding: 8px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  &__userInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__userIcon {
+    color: var(--color-primary);
+    font-size: 20px;
+  }
+
+  &__username {
+    font-weight: 600;
+    color: var(--color-text-main);
+    font-size: 16px;
+  }
+
+  &__userRole {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    background: rgba($clr-indigo-500, 0.1);
+    padding: 4px 12px;
+    border-radius: 12px;
+  }
 }
 
 .nav {
-    &__list {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        margin-right: 24px; // Отступ перед кнопкой регистрации
-    }
+  &__list {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-right: 24px;
+  }
 }
