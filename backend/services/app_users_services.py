@@ -1,11 +1,8 @@
 # backend/services/app_users_services.py
-
 import re
 from datetime import datetime
-
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from backend.core.security import (
     create_access_token,
     get_password_hash,
@@ -99,6 +96,21 @@ class UserService:
         await self.db.refresh(user)
         return user
 
+    async def change_user_password(self, user_id: int, new_password: str) -> bool:
+        """Смена пароля пользователя без указания текущего пароля"""
+        user = await self.get_user(user_id)
+        if not user:
+            return False
+        self.validate_password(new_password, user.username)
+        current_hashed_password = user.hashed_password
+        hashed_new_password = self.hash_password(new_password)
+        if self.verify_password(new_password, current_hashed_password):
+            raise ValueError("Новый пароль не должен совпадать с текущим паролем")
+        user.hashed_password = hashed_new_password
+        await self.db.commit()
+        await self.db.refresh(user)
+        return True
+
     async def delete_user(self, user_id: int) -> bool:
         """Удаление пользователя"""
         user = await self.get_user(user_id)
@@ -149,7 +161,6 @@ class UserService:
     async def get_current_user_from_token(self, token: str) -> User | None:
         """Получение текущего пользователя из токена"""
         from backend.core.security import decode_access_token
-
         payload = decode_access_token(token)
         if not payload:
             return None
