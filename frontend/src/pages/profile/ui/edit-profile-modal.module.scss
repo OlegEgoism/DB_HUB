@@ -140,11 +140,11 @@
   }
 
   &__card {
-    //background: var(--color-surface-glass);
-    //border: 1px solid var(--border-glass);
-    //border-radius: 16px;
-    //box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-    //overflow: hidden;
+    background: var(--color-surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
   }
 
   &__cardHeader {
@@ -214,8 +214,7 @@
 
   &__select {
     appearance: none;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%236b7280' d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 01.753 1.659l-4.796 5.48a1 1 0 01-1.506 0z'/%3E%3C/svg%3E")
-      no-repeat right 12px center/16px 16px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%236b7280' d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 01.753 1.659l-4.796 5.48a1 1 0 01-1.506 0z'/%3E%3C/svg%3E") no-repeat right 12px center/16px 16px;
   }
 
   &__hint {
@@ -228,7 +227,7 @@
     display: flex;
     gap: 12px;
     padding: 24px 32px 32px;
-    border-top: 1px solid var(--border-glass);
+    //border-top: 1px solid var(--border-glass);
     background: rgba(255, 255, 255, 0.9);
   }
 

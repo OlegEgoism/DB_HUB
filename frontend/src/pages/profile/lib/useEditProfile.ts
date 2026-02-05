@@ -15,7 +15,7 @@ export function useEditProfile(userId: number) {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
-    const updateProfile = async (data: EditProfileData) => {
+    const updateProfile = async (data: { fio: string; email: any }) => {
         try {
             setLoading(true);
             setError(null);

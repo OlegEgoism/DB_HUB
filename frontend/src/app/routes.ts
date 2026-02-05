@@ -7,7 +7,6 @@ export default [
     index("../pages/home/ui/page.tsx"),
     route(ROUTES.CONNECTIONS, "../pages/connections/ui/page.tsx"),
     route(ROUTES.PROFILE, "../pages/profile/ui/page.tsx"),
-    route(`${ROUTES.PROFILE}/edit`, "../pages/profile/ui/edit-page.tsx"), // Новый маршрут
     route(ROUTES.DOCUMENTATIONS, "../pages/documentations/ui/page.tsx"),
     route(ROUTES.AGREEMENTS, "../pages/agreements/ui/page.tsx"),
   ]),
