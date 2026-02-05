@@ -2,7 +2,7 @@
 import clsx from 'clsx';
 import { useProfile } from '../lib/useProfile';
 import styles from './styles.module.scss';
-import {faEdit, faSignOutAlt} from "@fortawesome/free-solid-svg-icons";
+import {faEdit} from "@fortawesome/free-solid-svg-icons";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 
 export default function ProfilePage() {
