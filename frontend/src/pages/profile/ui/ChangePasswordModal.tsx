@@ -104,101 +104,103 @@ export function ChangePasswordModal({
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className={clsx(styles.modal__form)}>
-            {error && (
-              <div className={clsx(styles.modal__error)}>
-                <FontAwesomeIcon icon={faTimes} />
-                <span>{error}</span>
-              </div>
-            )}
+            <form onSubmit={handleSubmit} className={clsx(styles.modal__form)}>
+              {error && (
+                  <div className={clsx(styles.modal__error)}>
+                    <FontAwesomeIcon icon={faTimes}/>
+                    <span>{error}</span>
+                  </div>
+              )}
 
-            <div className={clsx(styles.modal__formGroup)}>
-              <label htmlFor="newPassword" className={clsx(styles.modal__label)}>
-                Новый пароль *
-              </label>
-              <div className={clsx(styles.modal__passwordWrapper)}>
-                <FontAwesomeIcon
-                  icon={faLock}
-                  className={clsx(styles.modal__passwordIcon)}
-                />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="newPassword"
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  required
-                  className={clsx(styles.modal__input)}
-                  placeholder="Минимум 4 символа"
-                  disabled={loading}
-                />
+              <div className={clsx(styles.modal__formGroup)}>
+                <h1 className={clsx(styles.editProfile__title)}>Смена пароля</h1>
+
+                <label htmlFor="newPassword" className={clsx(styles.modal__label)}>
+                  Новый пароль *
+                </label>
+                <div className={clsx(styles.modal__passwordWrapper)}>
+                  <FontAwesomeIcon
+                      icon={faLock}
+                      className={clsx(styles.modal__passwordIcon)}
+                  />
+                  <input
+                      type={showPassword ? 'text' : 'password'}
+                      id="newPassword"
+                      name="newPassword"
+                      value={formData.newPassword}
+                      onChange={handleChange}
+                      required
+                      className={clsx(styles.modal__input)}
+                      placeholder="Минимум 4 символа"
+                      disabled={loading}
+                  />
+                  <button
+                      type="button"
+                      className={clsx(styles.modal__togglePassword)}
+                      onClick={togglePasswordVisibility}
+                      disabled={loading}
+                  >
+                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye}/>
+                  </button>
+                </div>
+              </div>
+
+              <div className={clsx(styles.modal__formGroup)}>
+                <label htmlFor="confirmPassword" className={clsx(styles.modal__label)}>
+                  Подтвердите пароль *
+                </label>
+                <div className={clsx(styles.modal__passwordWrapper)}>
+                  <FontAwesomeIcon
+                      icon={faKey}
+                      className={clsx(styles.modal__passwordIcon)}
+                  />
+                  <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
+                      className={clsx(styles.modal__input)}
+                      placeholder="Повторите пароль"
+                      disabled={loading}
+                  />
+                  <button
+                      type="button"
+                      className={clsx(styles.modal__togglePassword)}
+                      onClick={toggleConfirmPasswordVisibility}
+                      disabled={loading}
+                  >
+                    <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye}/>
+                  </button>
+                </div>
+              </div>
+
+              <div className={clsx(styles.modal__formFooter)}>
                 <button
-                  type="button"
-                  className={clsx(styles.modal__togglePassword)}
-                  onClick={togglePasswordVisibility}
-                  disabled={loading}
+                    type="button"
+                    className={clsx(styles.modal__cancelButton)}
+                    onClick={handleClose}
+                    disabled={loading}
                 >
-                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                  Отмена
+                </button>
+                <button
+                    type="submit"
+                    className={clsx(styles.modal__submitButton)}
+                    disabled={loading}
+                >
+                  {loading ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin/>
+                        Изменение...
+                      </>
+                  ) : (
+                      'Изменить пароль'
+                  )}
                 </button>
               </div>
-            </div>
-
-            <div className={clsx(styles.modal__formGroup)}>
-              <label htmlFor="confirmPassword" className={clsx(styles.modal__label)}>
-                Подтвердите пароль *
-              </label>
-              <div className={clsx(styles.modal__passwordWrapper)}>
-                <FontAwesomeIcon
-                  icon={faKey}
-                  className={clsx(styles.modal__passwordIcon)}
-                />
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  className={clsx(styles.modal__input)}
-                  placeholder="Повторите пароль"
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  className={clsx(styles.modal__togglePassword)}
-                  onClick={toggleConfirmPasswordVisibility}
-                  disabled={loading}
-                >
-                  <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
-                </button>
-              </div>
-            </div>
-
-            <div className={clsx(styles.modal__formFooter)}>
-              <button
-                type="button"
-                className={clsx(styles.modal__cancelButton)}
-                onClick={handleClose}
-                disabled={loading}
-              >
-                Отмена
-              </button>
-              <button
-                type="submit"
-                className={clsx(styles.modal__submitButton)}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <FontAwesomeIcon icon={faSpinner} spin />
-                    Изменение...
-                  </>
-                ) : (
-                  'Изменить пароль'
-                )}
-              </button>
-            </div>
-          </form>
+            </form>
         )}
       </div>
     </div>

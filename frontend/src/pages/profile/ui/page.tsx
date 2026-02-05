@@ -1,18 +1,17 @@
 // frontend/src/pages/profile/ui/page.tsx
 import clsx from 'clsx';
 import { useProfile } from '../lib/useProfile';
-import { useNavigate } from 'react-router';
 import { useState } from 'react';
-import { ROUTES } from '@shared/config/routes';
 import styles from './styles.module.scss';
 import { faEdit, faKey, faLock } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { EditProfileModal } from './EditProfileModal';
 
 export default function ProfilePage() {
   const { user, loading, error } = useProfile();
-  const navigate = useNavigate();
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   // Форматирование даты
   const formatDate = (dateString: string | null) => {
@@ -62,7 +61,7 @@ export default function ProfilePage() {
 
   // Обработчик клика по кнопке "Редактировать"
   const handleEditClick = () => {
-    navigate(`${ROUTES.PROFILE}/edit`);
+    setIsEditProfileModalOpen(true);
   };
 
   // Обработчик клика по кнопке "Сменить пароль"
@@ -75,6 +74,18 @@ export default function ProfilePage() {
     setIsChangePasswordModalOpen(false);
   };
 
+  // Закрытие модального окна редактирования
+  const handleCloseEditProfileModal = () => {
+    setIsEditProfileModalOpen(false);
+  };
+
+  // Обработчик успешного редактирования
+  const handleEditSuccess = () => {
+    setIsEditProfileModalOpen(false);
+    // Перезагружаем данные профиля
+    window.location.reload();
+  };
+
   return (
     <section className={clsx(styles.profile)}>
       <div className="container">
@@ -82,14 +93,12 @@ export default function ProfilePage() {
           {!loading && !error && user && (
             <h1 className={clsx(styles.profile__title)}>Профиль {user.username}</h1>
           )}
-
           {loading && (
             <div className={clsx(styles.profile__loading)}>
               <div className={clsx(styles.profile__spinner)}></div>
               <p>Загрузка профиля...</p>
             </div>
           )}
-
           {error && (
             <div className={clsx(styles.profile__error)}>
               <p>Ошибка загрузки: {error}</p>
@@ -101,7 +110,6 @@ export default function ProfilePage() {
               </button>
             </div>
           )}
-
           {!loading && !error && user && (
             <div className={clsx(styles.profile__content)}>
               {/* Основная информация */}
@@ -196,6 +204,15 @@ export default function ProfilePage() {
         <ChangePasswordModal
           userId={user.id}
           onClose={handleCloseChangePasswordModal}
+        />
+      )}
+
+      {/* Модальное окно редактирования профиля */}
+      {isEditProfileModalOpen && user && (
+        <EditProfileModal
+          user={user}
+          onClose={handleCloseEditProfileModal}
+          onSuccess={handleEditSuccess}
         />
       )}
     </section>
