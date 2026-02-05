@@ -1,12 +1,18 @@
 // frontend/src/pages/profile/ui/page.tsx
 import clsx from 'clsx';
 import { useProfile } from '../lib/useProfile';
+import { useNavigate } from 'react-router';
+import { useState } from 'react';
+import { ROUTES } from '@shared/config/routes';
 import styles from './styles.module.scss';
-import {faEdit} from "@fortawesome/free-solid-svg-icons";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import { faEdit, faKey, faLock } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 export default function ProfilePage() {
   const { user, loading, error } = useProfile();
+  const navigate = useNavigate();
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   // Форматирование даты
   const formatDate = (dateString: string | null) => {
@@ -54,13 +60,29 @@ export default function ProfilePage() {
     );
   };
 
+  // Обработчик клика по кнопке "Редактировать"
+  const handleEditClick = () => {
+    navigate(`${ROUTES.PROFILE}/edit`);
+  };
+
+  // Обработчик клика по кнопке "Сменить пароль"
+  const handleChangePasswordClick = () => {
+    setIsChangePasswordModalOpen(true);
+  };
+
+  // Закрытие модального окна смены пароля
+  const handleCloseChangePasswordModal = () => {
+    setIsChangePasswordModalOpen(false);
+  };
+
   return (
     <section className={clsx(styles.profile)}>
       <div className="container">
         <div className={clsx(styles.profile__section)}>
           {!loading && !error && user && (
-          <h1 className={clsx(styles.profile__title)}>Профиль {user.username}</h1>
-  )}
+            <h1 className={clsx(styles.profile__title)}>Профиль {user.username}</h1>
+          )}
+
           {loading && (
             <div className={clsx(styles.profile__loading)}>
               <div className={clsx(styles.profile__spinner)}></div>
@@ -122,10 +144,8 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-              </div>
 
               {/* Даты */}
-              <div className={clsx(styles.profile__card)}>
                 <div className={clsx(styles.profile__cardHeader)}>
                   <h2 className={clsx(styles.profile__cardTitle)}>Дополнительная информация</h2>
                 </div>
@@ -151,7 +171,17 @@ export default function ProfilePage() {
 
               {/* Действия */}
               <div className={clsx(styles.profile__actions)}>
-                <button className={clsx(styles.profile__actionButton, styles.profile__actionButton_primary)}>
+                <button
+                  className={clsx(styles.profile__actionButton, styles.profile__actionButton_secondary)}
+                  onClick={handleChangePasswordClick}
+                >
+                  <FontAwesomeIcon icon={faLock}/>
+                  Сменить пароль
+                </button>
+                <button
+                  className={clsx(styles.profile__actionButton, styles.profile__actionButton_primary)}
+                  onClick={handleEditClick}
+                >
                   <FontAwesomeIcon icon={faEdit}/>
                   Редактировать
                 </button>
@@ -160,6 +190,14 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Модальное окно смены пароля */}
+      {isChangePasswordModalOpen && user && (
+        <ChangePasswordModal
+          userId={user.id}
+          onClose={handleCloseChangePasswordModal}
+        />
+      )}
     </section>
   );
 }
