@@ -1,11 +1,17 @@
 // frontend/src/widgets/auth/ui/RegisterModal.tsx
-
 import { useState } from 'react';
 import { useRegister } from '@pages/auth/lib/useRegister';
 import clsx from 'clsx';
 import styles from './RegisterModal.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faSpinner, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import {
+    faTimes,
+    faSpinner,
+    faEye,
+    faEyeSlash,
+    faCancel,
+    faRightToBracket, faCheck
+} from '@fortawesome/free-solid-svg-icons';
 
 export function RegisterModal({ onClose }: { onClose: () => void }) {
     const [formData, setFormData] = useState({
@@ -182,7 +188,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                                     onClick={togglePasswordVisibility}
                                     disabled={loading}
                                 >
-                                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye}/>
                                 </button>
                             </div>
                         </div>
@@ -209,7 +215,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                                     onClick={toggleConfirmPasswordVisibility}
                                     disabled={loading}
                                 >
-                                    <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+                                    <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye}/>
                                 </button>
                             </div>
                         </div>
@@ -221,6 +227,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                                 onClick={onClose}
                                 disabled={loading}
                             >
+                                <FontAwesomeIcon icon={faCancel}/>
                                 Отмена
                             </button>
                             <button
@@ -230,11 +237,14 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                             >
                                 {loading ? (
                                     <>
-                                        <FontAwesomeIcon icon={faSpinner} spin />
+                                        <FontAwesomeIcon icon={faSpinner} spin/>
                                         Регистрация...
                                     </>
                                 ) : (
-                                    'Зарегистрироваться'
+                                    <>
+                                        <FontAwesomeIcon icon={faCheck}/>
+                                        Зарегистрироваться
+                                    </>
                                 )}
                             </button>
                         </div>

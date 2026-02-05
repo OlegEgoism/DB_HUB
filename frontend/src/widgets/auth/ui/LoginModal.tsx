@@ -4,7 +4,15 @@ import {useLogin} from '@pages/auth/lib/useLogin';
 import clsx from 'clsx';
 import styles from './LoginModal.module.scss';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faSpinner, faEye, faEyeSlash, faCheckCircle} from '@fortawesome/free-solid-svg-icons';
+import {
+  faSpinner,
+  faEye,
+  faEyeSlash,
+  faCheckCircle,
+  faUserPlus,
+  faCancel,
+  faRightToBracket
+} from '@fortawesome/free-solid-svg-icons';
 
 export function LoginModal({
                                onClose,
@@ -152,6 +160,7 @@ export function LoginModal({
                                 onClick={handleClose}
                                 disabled={loading}
                             >
+                                <FontAwesomeIcon icon={faCancel}/>
                                 Отмена
                             </button>
                             <button
@@ -165,7 +174,10 @@ export function LoginModal({
                                         Вход...
                                     </>
                                 ) : (
-                                    'Войти'
+                                    <>
+                                        <FontAwesomeIcon icon={faRightToBracket}/>
+                                        Войти
+                                    </>
                                 )}
                             </button>
                         </div>
