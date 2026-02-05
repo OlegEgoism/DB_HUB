@@ -67,7 +67,7 @@ class UserService:
             raise ValueError("Email уже используется другим пользователем")
         existing_user = await self.get_user_by_username(user_data.username)
         if existing_user:
-            raise ValueError("Пользователь с таким username уже существует")
+            raise ValueError("Имя пользователя уже существует")
         hashed_password = self.hash_password(user_data.password)
         user = User(
             username=user_data.username,
