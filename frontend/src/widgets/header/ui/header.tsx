@@ -108,15 +108,12 @@ export function Header() {
                         ) : (
                             <>
                                 <NavLink to={ROUTES.CONNECTIONS} className={clsx(styles.header__profileButton)}>
-                                    <FontAwesomeIcon icon={faDatabase}/>
                                     Подключения
                                 </NavLink>
                                 <NavLink to={ROUTES.PROFILE} className={clsx(styles.header__profileButton)}>
-                                    <FontAwesomeIcon icon={faCogs}/>
                                     Настройки
                                 </NavLink>
                                 <NavLink to={ROUTES.PROFILE} className={clsx(styles.header__profileButton)}>
-                                    <FontAwesomeIcon icon={faUser}/>
                                     Профиль
                                 </NavLink>
                                 <div className={clsx(styles.header__userMenu)}>

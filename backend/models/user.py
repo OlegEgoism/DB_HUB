@@ -1,5 +1,4 @@
 # backend/models/user.py
-
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -8,9 +7,10 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    event,
 )
 from sqlalchemy.orm import relationship
-
+from sqlalchemy import func
 from backend.database.session import Base
 from backend.models.base_mixin import DateTimeMixin
 
@@ -64,3 +64,18 @@ class User(Base, DateTimeMixin):
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}', role='{self.role}')>"
+
+
+@event.listens_for(User, "before_update")
+def receive_before_update(mapper, connection, target):
+    """Обновляем updated_at только если изменились поля, кроме last_login"""
+    state = target._sa_instance_state
+    changes = state.committed_state
+    changed_columns = []
+    for attr in state.mapper.column_attrs:
+        hist = state.get_history(attr.key, True)
+        if hist.has_changes():
+            changed_columns.append(attr.key)
+    if changed_columns == ["last_login"]:
+        return
+    target.updated_at = func.now()

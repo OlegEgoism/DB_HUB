@@ -1,5 +1,4 @@
 # backend/models/base_mixin.py
-
 from sqlalchemy import Column, DateTime, func
 from sqlalchemy.ext.declarative import declared_attr
 
@@ -21,7 +20,6 @@ class DateTimeMixin:
         return Column(
             DateTime(timezone=True),
             server_default=func.now(),
-            onupdate=func.now(),
             nullable=False,
             comment="Дата и время обновления записи",
         )

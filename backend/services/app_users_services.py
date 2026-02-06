@@ -4,7 +4,6 @@ from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from backend.core.security import (
     create_access_token,
     get_password_hash,
@@ -134,8 +133,12 @@ class UserService:
         return user
 
     async def update_last_login(self, user_id: int) -> None:
-        """Обновление времени последнего входа"""
-        await self.db.execute(update(User).where(User.id == user_id).values(last_login=datetime.utcnow()))
+        """Обновление времени последнего входа без изменения updated_at"""
+        await self.db.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(last_login=datetime.utcnow())
+        )
         await self.db.commit()
 
     async def login_user(self, username: str, password: str) -> dict | None:
