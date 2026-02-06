@@ -1,10 +1,11 @@
 // frontend/src/shared/config/routes.ts
 
 export const ROUTES = {
-    HOME: '/',
-    CONNECTIONS: '/connections',
-    PROFILE: '/profile',
-    DOCUMENTATIONS: '/documentations',
-    CONTACTS: '/contacts',
-    AGREEMENTS: '/agreements',
+  HOME: '/',
+  CONNECTIONS: '/connections',
+  PROFILE: '/profile',
+  DOCUMENTATIONS: '/documentations',
+  CONTACTS: '/contacts',
+  AGREEMENTS: '/agreements',
+  LOGIN: '/login',
 } as const;

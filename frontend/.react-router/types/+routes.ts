@@ -26,12 +26,15 @@ type Pages = {
   "/agreements": {
     params: {};
   };
+  "/login": {
+    params: {};
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/connections" | "/profile" | "/documentations" | "/agreements";
+    page: "/" | "/connections" | "/profile" | "/documentations" | "/agreements" | "/login";
   };
   "./layout/base-layout.tsx": {
     id: "layout/base-layout";
@@ -57,6 +60,10 @@ type RouteFiles = {
     id: "../pages/agreements/ui/page";
     page: "/agreements";
   };
+  "../pages/auth/ui/login-page.tsx": {
+    id: "../pages/auth/ui/login-page";
+    page: "/login";
+  };
 };
 
 type RouteModules = {
@@ -67,4 +74,5 @@ type RouteModules = {
   "../pages/profile/ui/page": unknown;
   "../pages/documentations/ui/page": unknown;
   "../pages/agreements/ui/page": unknown;
+  "../pages/auth/ui/login-page": unknown;
 };

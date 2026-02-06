@@ -10,4 +10,6 @@ export default [
     route(ROUTES.DOCUMENTATIONS, "../pages/documentations/ui/page.tsx"),
     route(ROUTES.AGREEMENTS, "../pages/agreements/ui/page.tsx"),
   ]),
+  // Добавляем отдельный маршрут для логина
+  route(ROUTES.LOGIN, "../pages/auth/ui/login-page.tsx"),
 ] satisfies RouteConfig;
