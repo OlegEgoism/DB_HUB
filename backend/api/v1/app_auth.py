@@ -80,6 +80,19 @@ async def login_form(
     db: AsyncSession = Depends(get_db),
 ):
     user_service = UserService(db)
+    user = await user_service.get_user_by_username(login_data.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверный логин или пароль",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Учетная запись не активирована. Обратитесь к администратору.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     result = await user_service.login_user(login_data.username, login_data.password)
     if not result:
         raise HTTPException(

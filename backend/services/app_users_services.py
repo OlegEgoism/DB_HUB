@@ -1,8 +1,10 @@
 # backend/services/app_users_services.py
 import re
 from datetime import datetime
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.core.security import (
     create_access_token,
     get_password_hash,
@@ -161,6 +163,7 @@ class UserService:
     async def get_current_user_from_token(self, token: str) -> User | None:
         """Получение текущего пользователя из токена"""
         from backend.core.security import decode_access_token
+
         payload = decode_access_token(token)
         if not payload:
             return None

@@ -7,10 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
 from backend.models.user import User
 from backend.schemas.app_users_schemas import (
+    ChangePasswordRequest,
     PaginatedResponse,
     UserCreate,
     UserResponse,
-    UserUpdate, ChangePasswordRequest,
+    UserUpdate,
 )
 from backend.services.app_users_services import UserService
 
@@ -174,34 +175,22 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.patch("/{user_id}/change-password", status_code=status.HTTP_200_OK)
 async def change_user_password(
-        user_id: int,
-        password_data: ChangePasswordRequest,
-        db: AsyncSession = Depends(get_db),
+    user_id: int,
+    password_data: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
 ):
     """Сменить пароль пользователя"""
     user_service = UserService(db)
     user = await user_service.get_user(user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пользователь не найден"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
     try:
         success = await user_service.change_user_password(user_id, password_data.new_password)
         if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Пользователь не найден"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
         return {"message": "Пароль успешно изменен"}
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         print(f"❌ Ошибка при смене пароля: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при смене пароля: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при смене пароля: {str(e)}") from e

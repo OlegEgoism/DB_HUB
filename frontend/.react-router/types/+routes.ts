@@ -60,8 +60,8 @@ type RouteFiles = {
 };
 
 type RouteModules = {
-  // "root": typeof import("./src/app/root.tsx");
-  // "layout/base-layout": typeof import("./src/app/./layout/base-layout.tsx");
+  "root": typeof import("./src/app/root.tsx");
+  "layout/base-layout": typeof import("./src/app/./layout/base-layout.tsx");
   "../pages/home/ui/page": unknown;
   "../pages/connections/ui/page": unknown;
   "../pages/profile/ui/page": unknown;

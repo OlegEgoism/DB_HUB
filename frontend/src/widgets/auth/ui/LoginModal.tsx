@@ -1,23 +1,19 @@
-// frontend/src/widgets/auth/ui/LoginModal.tsx
-import {useState} from 'react';
-import {useLogin} from '@pages/auth/lib/useLogin';
+import { useState } from 'react';
+import { useLogin } from '@pages/auth/lib/useLogin';
 import clsx from 'clsx';
 import styles from './LoginModal.module.scss';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faSpinner,
-  faEye,
-  faEyeSlash,
-  faCheckCircle,
-  faUserPlus,
-  faCancel,
-  faRightToBracket
+    faEye,
+    faEyeSlash,
+    faCheckCircle,
+    faTimes,
 } from '@fortawesome/free-solid-svg-icons';
 
 export function LoginModal({
-                               onClose,
-                               onLoginSuccess
-                           }: {
+    onClose,
+    onLoginSuccess
+}: {
     onClose: () => void;
     onLoginSuccess?: () => void;
 }) {
@@ -26,23 +22,17 @@ export function LoginModal({
         password: '',
     });
     const [showPassword, setShowPassword] = useState(false);
-    const {login, loading, error, success} = useLogin();
+    const { login, loading, error, success } = useLogin();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!formData.username.trim() || !formData.password.trim()) {
             alert('Пожалуйста, заполните все поля');
             return;
         }
-
-        try {
-            await login(formData);
-            if (onLoginSuccess) {
-                onLoginSuccess();
-            }
-        } catch (err) {
-            // Ошибка уже обработана в хуке
+        await login(formData);
+        if (onLoginSuccess) {
+            onLoginSuccess();
         }
     };
 
@@ -63,27 +53,75 @@ export function LoginModal({
         }
     };
 
+    // Функция для форматирования сообщения об ошибке
+    const getErrorMessage = () => {
+        if (!error) return null;
+
+        // Обработка ошибки неактивного пользователя
+        if (
+            error.includes('not active') ||
+            error.includes('не актив') ||
+            error.includes('is_active') ||
+            error.includes('аккаунт не актив') ||
+            error.includes('account not active') ||
+            error.includes('Account is not active') ||
+            error.includes('User is not active')
+        ) {
+            return 'Ваш аккаунт не активирован в системе. Обратитесь к администратору.';
+        }
+
+        // Обработка ошибки 429 (Too Many Requests)
+        if (error.includes('429') || error.includes('HTTP error! status: 429')) {
+            return 'Вы сделали слишком много попыток входа. Попробуйте позже.';
+        }
+
+        // Обработка других ошибок
+        if (error.includes('401') || error.includes('Invalid credentials') || error.includes('Неверные учетные данные')) {
+            return 'Неверное имя пользователя или пароль.';
+        }
+
+        if (error.includes('403')) {
+            return 'Доступ запрещен. Проверьте ваши права доступа.';
+        }
+
+        if (error.includes('404')) {
+            return 'Сервер авторизации недоступен.';
+        }
+
+        if (error.includes('500') || error.includes('Internal Server Error')) {
+            return 'Внутренняя ошибка сервера. Попробуйте позже.';
+        }
+
+        if (error.includes('Network Error') || error.includes('Failed to fetch')) {
+            return 'Ошибка сети. Проверьте подключение к интернету.';
+        }
+
+        // По умолчанию возвращаем оригинальное сообщение
+        return error;
+    };
+
     return (
-        <div className={clsx(styles.modal__overlay)} onClick={handleClose}>
-            <div
-                className={clsx(styles.modal__content)}
-                onClick={(e) => e.stopPropagation()}
-            >
+        <div className={clsx(styles.modal__overlay)}>
+            <div className={clsx(styles.modal__content)}>
+                <button
+                    className={clsx(styles.modal__closeButton)}
+                    onClick={handleClose}
+                    disabled={loading}
+                    aria-label="Закрыть окно авторизации"
+                >
+                    <FontAwesomeIcon icon={faTimes} />
+                </button>
+
                 <div className={clsx(styles.modal__header)}>
                     <h2 className={clsx(styles.modal__title)}>
                         {success ? 'Добро пожаловать!' : 'Авторизация'}
                     </h2>
-                    {!success && (
-                        <p className={clsx(styles.modal__subtitle)}>
-                            Войдите в свою учетную запись
-                        </p>
-                    )}
                 </div>
 
                 {success ? (
                     <div className={clsx(styles.modal__success)}>
                         <div className={clsx(styles.modal__successMessage)}>
-                            <FontAwesomeIcon icon={faCheckCircle} style={{marginRight: '8px', color: 'var(--color-status-success)'}}/>
+                            <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '8px', color: 'var(--color-status-success)' }} />
                             Авторизация успешна!
                         </div>
                         <div className={clsx(styles.modal__userInfo)}>
@@ -103,13 +141,13 @@ export function LoginModal({
                     <form onSubmit={handleSubmit} className={clsx(styles.modal__form)}>
                         {error && (
                             <div className={clsx(styles.modal__error)}>
-                                {error}
+                                {getErrorMessage()}
                             </div>
                         )}
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="username" className={clsx(styles.modal__label)}>
-                                Имя пользователя *
+                                Имя пользователя
                             </label>
                             <input
                                 type="text"
@@ -127,7 +165,7 @@ export function LoginModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="password" className={clsx(styles.modal__label)}>
-                                Пароль *
+                                Пароль
                             </label>
                             <div className={clsx(styles.modal__passwordWrapper)}>
                                 <input
@@ -148,7 +186,7 @@ export function LoginModal({
                                     onClick={togglePasswordVisibility}
                                     disabled={loading}
                                 >
-                                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye}/>
+                                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                                 </button>
                             </div>
                         </div>
@@ -160,7 +198,6 @@ export function LoginModal({
                                 onClick={handleClose}
                                 disabled={loading}
                             >
-                                <FontAwesomeIcon icon={faCancel}/>
                                 Отмена
                             </button>
                             <button
@@ -168,17 +205,7 @@ export function LoginModal({
                                 className={clsx(styles.modal__submitButton)}
                                 disabled={loading}
                             >
-                                {loading ? (
-                                    <>
-                                        <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Вход...
-                                    </>
-                                ) : (
-                                    <>
-                                        <FontAwesomeIcon icon={faRightToBracket}/>
-                                        Войти
-                                    </>
-                                )}
+                                {loading ? 'Вход...' : 'Войти'}
                             </button>
                         </div>
                     </form>
