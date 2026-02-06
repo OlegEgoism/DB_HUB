@@ -1,6 +1,6 @@
 
-# 🚀 HUB DB UI
-HUB DB Frontent
+# 🚀 DB HUB
+DB HUB Frontent
 
 ---
 ### 📦 Установка

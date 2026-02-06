@@ -14,7 +14,7 @@ export function Logo() {
     return (
         <NavLink className={clsx(styles.logo, 'link')} to={ROUTES.HOME}>
             <FontAwesomeIcon className={styles.logo__icon} icon={faDatabase}/>
-            <span className={styles.logo__title}>HUB DB</span>
+            <span className={styles.logo__title}>DB HUB</span>
         </NavLink>
     )
 }
