@@ -28,8 +28,8 @@ export function EditProfileModal({
         fio: user.fio || '',
         role: user.role,
     });
-    const [initialData, setInitialData] = useState({...formData});
 
+    const [initialData, setInitialData] = useState({...formData});
     const {updateProfile, loading, error, success} = useEditProfile(user.id);
 
     useEffect(() => {
@@ -82,146 +82,125 @@ export function EditProfileModal({
     };
 
     const handleClose = () => {
-        if (!loading && success) {
-            onClose();
-        } else if (!loading) {
+        if (!loading) {
             onClose();
         }
     };
 
     return (
-        <div className={clsx(styles.modal__overlay)} onClick={handleClose}>
-            <div
-                className={clsx(styles.modal__content)}
-                onClick={(e) => e.stopPropagation()}
-            >
+        <div className={clsx(styles.modal__overlay)}>
+            <div className={clsx(styles.modal__content)}>
+                <button
+                    className={clsx(styles.modal__closeButton)}
+                    onClick={handleClose}
+                    disabled={loading}
+                    aria-label="Закрыть окно редактирования"
+                >
+                    <FontAwesomeIcon icon={faTimes}/>
+                </button>
+
+                <div className={clsx(styles.modal__header)}>
+                    <h2 className={clsx(styles.modal__title)}>
+                        {success ? 'Профиль обновлен!' : 'Редактирование профиля'}
+                    </h2>
+                </div>
+
                 {success ? (
                     <div className={clsx(styles.modal__success)}>
-                        <div className={clsx(styles.modal__successIcon)}>
+                        <div className={clsx(styles.modal__successMessage)}>
                             <FontAwesomeIcon
                                 icon={faCheckCircle}
-                                size="3x"
-                                style={{color: 'var(--color-status-success)'}}
+                                style={{
+                                    marginRight: '8px',
+                                    color: 'var(--color-status-success)'
+                                }}
                             />
-                        </div>
-                        <div className={clsx(styles.modal__successMessage)}>
                             Профиль успешно обновлен!
                         </div>
                         <div className={clsx(styles.modal__successHint)}>
                             Ваши изменения сохранены
                         </div>
-                        <button className={clsx(styles.modal__successButton)} onClick={onClose}>
+                        <button
+                            className={clsx(styles.modal__successButton)}
+                            onClick={onClose}
+                        >
                             OK
                         </button>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className={clsx(styles.modal__form)}>
-                        <div className={clsx(styles.modal__header)}>
-                            <h2 className={clsx(styles.modal__title)}>Редактирование профиля</h2>
-                            <button
-                                type="button"
-                                className={clsx(styles.modal__closeButton)}
-                                onClick={handleClose}
-                                disabled={loading}
-                            >
-                                <FontAwesomeIcon icon={faTimes}/>
-                            </button>
-                        </div>
-
                         {error && (
                             <div className={clsx(styles.modal__error)}>
-                                <FontAwesomeIcon icon={faTimes}/>
-                                <span>{error}</span>
+                                {error}
                             </div>
                         )}
 
-                        <div className={clsx(styles.modal__body)}>
-                                {/*<div className={clsx(styles.modal__cardHeader)}>*/}
-                                {/*    <h3 className={clsx(styles.modal__cardTitle)}>Основная информация</h3>*/}
-                                {/*</div>*/}
-                                <div className={clsx(styles.modal__cardBody)}>
-                                    <div className={clsx(styles.modal__formGrid)}>
-                                        {/* Email */}
-                                        <div className={clsx(styles.modal__formGroup)}>
-                                            <label htmlFor="email" className={clsx(styles.modal__label)}>
-                                                <FontAwesomeIcon icon={faEnvelope}/>
-                                                Email *
-                                            </label>
-                                            <input
-                                                type="email"
-                                                id="email"
-                                                name="email"
-                                                value={formData.email}
-                                                onChange={handleChange}
-                                                required
-                                                className={clsx(styles.modal__input)}
-                                                placeholder="user@example.com"
-                                                disabled={loading}
-                                            />
-                                            <div className={clsx(styles.modal__hint)}>
-                                                Используется для входа в систему
-                                            </div>
-                                        </div>
-
-                                        {/* ФИО */}
-                                        <div className={clsx(styles.modal__formGroup)}>
-                                            <label htmlFor="fio" className={clsx(styles.modal__label)}>
-                                                <FontAwesomeIcon icon={faIdCard}/>
-                                                ФИО
-                                            </label>
-                                            <input
-                                                type="text"
-                                                id="fio"
-                                                name="fio"
-                                                value={formData.fio}
-                                                onChange={handleChange}
-                                                className={clsx(styles.modal__input)}
-                                                placeholder="Иванов Иван Иванович"
-                                                disabled={loading}
-                                            />
-                                        </div>
-
-                                        {/* Роль */}
-                                        <div className={clsx(styles.modal__formGroup)}>
-                                            <label htmlFor="role" className={clsx(styles.modal__label)}>
-                                                <FontAwesomeIcon icon={faShieldAlt}/>
-                                                Роль
-                                            </label>
-                                            <select
-                                                id="role"
-                                                name="role"
-                                                value={formData.role}
-                                                onChange={handleChange}
-                                                className={clsx(styles.modal__select)}
-                                                disabled={loading}
-                                            >
-                                                <option value="Пользователь">Пользователь</option>
-                                                <option value="Аналитик">Аналитик</option>
-                                                <option value="Разработчик">Разработчик</option>
-                                                <option value="Тестировщик">Тестировщик</option>
-                                                <option value="Администратор БД">Администратор БД</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="email" className={clsx(styles.modal__label)}>
+                                Email *
+                            </label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                required
+                                className={clsx(styles.modal__input)}
+                                placeholder="user@example.com"
+                                disabled={loading}
+                                autoComplete="email"
+                            />
                         </div>
 
-                        <div className={clsx(styles.modal__footer)}>
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="fio" className={clsx(styles.modal__label)}>
+                                ФИО
+                            </label>
+                            <input
+                                type="text"
+                                id="fio"
+                                name="fio"
+                                value={formData.fio}
+                                onChange={handleChange}
+                                className={clsx(styles.modal__input)}
+                                placeholder="Иванов Иван Иванович"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="role" className={clsx(styles.modal__label)}>
+                                Роль
+                            </label>
+                            <select
+                                id="role"
+                                name="role"
+                                value={formData.role}
+                                onChange={handleChange}
+                                className={clsx(styles.modal__select)}
+                                disabled={loading}
+                            >
+                                <option value="Пользователь">Пользователь</option>
+                                <option value="Аналитик">Аналитик</option>
+                                <option value="Разработчик">Разработчик</option>
+                                <option value="Тестировщик">Тестировщик</option>
+                                <option value="Администратор БД">Администратор БД</option>
+                            </select>
+                        </div>
+
+                        <div className={clsx(styles.modal__formFooter)}>
                             <button
                                 type="button"
                                 className={clsx(styles.modal__cancelButton)}
                                 onClick={handleClose}
                                 disabled={loading}
                             >
-                                <FontAwesomeIcon icon={faTimes}/>
                                 Отмена
                             </button>
                             <button
                                 type="submit"
-                                className={clsx(
-                                    styles.modal__submitButton,
-                                    !isFormChanged() && styles.modal__submitButton_disabled
-                                )}
+                                className={clsx(styles.modal__submitButton)}
                                 disabled={!isFormChanged() || loading}
                             >
                                 {loading ? (
@@ -232,7 +211,7 @@ export function EditProfileModal({
                                 ) : (
                                     <>
                                         <FontAwesomeIcon icon={faSave}/>
-                                        Сохранить изменения
+                                        Сохранить
                                     </>
                                 )}
                             </button>

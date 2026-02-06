@@ -9,7 +9,6 @@ import {
   faSpinner,
   faEye,
   faEyeSlash,
-  faCheckCircle,
 } from '@fortawesome/free-solid-svg-icons';
 
 // Тип для данных регистрации
@@ -178,7 +177,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
             </div>
             <div className={clsx(styles.modal__formGroup)}>
               <label htmlFor="fio" className={clsx(styles.modal__label)}>
-                ФИО *
+                ФИО
               </label>
               <input
                 type="text"
@@ -186,7 +185,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                 name="fio"
                 value={formData.fio}
                 onChange={handleChange}
-                required
+                // required
                 className={clsx(styles.modal__input)}
                 placeholder="Иванов Иван Иванович"
                 disabled={loading}
