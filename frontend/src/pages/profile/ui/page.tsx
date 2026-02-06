@@ -162,7 +162,7 @@ export default function ProfilePage() {
                       <div className={clsx(styles.profile__infoValue)}>{formatDate(user.created_at)}</div>
                     </div>
                     <div className={clsx(styles.profile__infoItem)}>
-                      <div className={clsx(styles.profile__infoLabel)}>Последнее обновление</div>
+                      <div className={clsx(styles.profile__infoLabel)}>Последнее обновление данных</div>
                       <div className={clsx(styles.profile__infoValue)}>{formatDate(user.updated_at)}</div>
                     </div>
                     <div className={clsx(styles.profile__infoItem)}>
