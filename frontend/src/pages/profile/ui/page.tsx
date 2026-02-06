@@ -3,8 +3,6 @@ import clsx from 'clsx';
 import { useProfile } from '../lib/useProfile';
 import { useState } from 'react';
 import styles from './styles.module.scss';
-import { faEdit, faKey, faLock } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { EditProfileModal } from './EditProfileModal';
 
@@ -180,17 +178,15 @@ export default function ProfilePage() {
               {/* Действия */}
               <div className={clsx(styles.profile__actions)}>
                 <button
-                  className={clsx(styles.profile__actionButton, styles.profile__actionButton_secondary)}
+                  className={clsx(styles.profile__actionButton, styles.profile__actionButton_primary)}
                   onClick={handleChangePasswordClick}
                 >
-                  <FontAwesomeIcon icon={faLock}/>
                   Сменить пароль
                 </button>
                 <button
                   className={clsx(styles.profile__actionButton, styles.profile__actionButton_primary)}
                   onClick={handleEditClick}
                 >
-                  <FontAwesomeIcon icon={faEdit}/>
                   Редактировать
                 </button>
               </div>
