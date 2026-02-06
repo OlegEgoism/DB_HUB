@@ -8,10 +8,6 @@ import {
     faTimes,
     faSpinner,
     faCheckCircle,
-    faSave,
-    faEnvelope,
-    faIdCard,
-    faShieldAlt,
 } from '@fortawesome/free-solid-svg-icons';
 
 export function EditProfileModal({
@@ -210,7 +206,6 @@ export function EditProfileModal({
                                     </>
                                 ) : (
                                     <>
-                                        <FontAwesomeIcon icon={faSave}/>
                                         Сохранить
                                     </>
                                 )}
