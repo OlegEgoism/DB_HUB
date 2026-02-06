@@ -96,14 +96,12 @@ export function Header() {
                                     className={clsx(styles.header__loginButton)}
                                     onClick={handleLoginClick}
                                 >
-                                    <FontAwesomeIcon icon={faRightToBracket}/>
                                     Авторизация
                                 </button>
                                 <button
                                     className={clsx(styles.header__registerButton)}
                                     onClick={handleRegisterClick}
                                 >
-                                    <FontAwesomeIcon icon={faUserPlus}/>
                                     Регистрация
                                 </button>
                             </>
