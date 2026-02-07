@@ -24,6 +24,7 @@ import {
   faChevronCircleLeft,
 } from '@fortawesome/free-solid-svg-icons';
 import { EditConnectionModal } from './EditConnectionModal';
+import { CreateConnectionModal } from './CreateConnectionModal';
 
 interface Connection {
   id: number;
@@ -80,6 +81,9 @@ export default function ConnectionsPage() {
   const [editingConnection, setEditingConnection] = useState<Connection | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  // Состояния для создания
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
   // Загрузка подключений
@@ -97,6 +101,7 @@ export default function ConnectionsPage() {
       const params = new URLSearchParams();
       params.append('page', currentPage.toString());
       params.append('size', pageSize.toString());
+
       if (searchTerm.trim()) {
         params.append('search', searchTerm.trim());
       }
@@ -291,6 +296,22 @@ export default function ConnectionsPage() {
     loadConnections();
   };
 
+  // Открытие модального окна создания
+  const openCreateModal = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  // Закрытие модального окна создания
+  const closeCreateModal = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  // Обработчик успешного создания
+  const handleCreateSuccess = () => {
+    closeCreateModal();
+    loadConnections();
+  };
+
   const getEnvironmentBadge = (env: string) => {
     const envLower = env.toLowerCase();
     let colorClass = '';
@@ -426,7 +447,7 @@ export default function ConnectionsPage() {
               </form>
               <button
                 className={clsx(styles.addButton)}
-                onClick={() => navigate('/connections/create')}
+                onClick={openCreateModal}
                 aria-label="Создать новое подключение к базе данных"
               >
                 Создать подключение
@@ -727,7 +748,7 @@ export default function ConnectionsPage() {
               )}
               <button
                 className={clsx(styles.emptyButton)}
-                onClick={() => navigate('/connections/create')}
+                onClick={openCreateModal}
                 aria-label="Создать подключение"
               >
                 Создать подключение
@@ -801,6 +822,14 @@ export default function ConnectionsPage() {
           connection={editingConnection}
           onClose={closeEditModal}
           onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {/* Модальное окно создания */}
+      {isCreateModalOpen && (
+        <CreateConnectionModal
+          onClose={closeCreateModal}
+          onSuccess={handleCreateSuccess}
         />
       )}
     </section>
