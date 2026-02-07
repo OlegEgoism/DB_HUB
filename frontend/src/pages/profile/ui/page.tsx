@@ -89,7 +89,7 @@ export default function ProfilePage() {
             <div className="container">
                 <div className={clsx(styles.profile__section)}>
                     {!loading && !error && user && (
-                        <h1 className={clsx(styles.profile__title)}>Профиль</h1>
+                        <p className={clsx(styles.profile__title)}>Профиль</p>
                     )}
                     {loading && (
                         <div className={clsx(styles.profile__loading)}>
