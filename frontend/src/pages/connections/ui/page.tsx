@@ -10,16 +10,16 @@ import {
     faSpinner,
     faExclamationCircle,
     faSearch,
+    faTimes,
     faChevronLeft,
     faChevronRight,
-    faPlus,
     faPencilAlt,
     faTrashAlt,
     faEye,
     faCodeBranch,
     faUser,
     faPlug,
-    faHdd,
+    faHdd, faChevronCircleRight, faChevronCircleLeft,
 } from '@fortawesome/free-solid-svg-icons';
 
 interface Connection {
@@ -61,6 +61,7 @@ export default function ConnectionsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(8);
     const [activeTab, setActiveTab] = useState('Все');
@@ -85,8 +86,8 @@ export default function ConnectionsPage() {
             const params = new URLSearchParams();
             params.append('page', currentPage.toString());
             params.append('size', pageSize.toString());
-            if (searchQuery.trim()) {
-                params.append('search', searchQuery.trim());
+            if (searchTerm.trim()) {
+                params.append('search', searchTerm.trim());
             }
 
             // Фильтрация по табам
@@ -132,11 +133,22 @@ export default function ConnectionsPage() {
 
     useEffect(() => {
         loadConnections();
-    }, [currentPage, pageSize, searchQuery, activeTab]);
+    }, [currentPage, pageSize, searchTerm, activeTab]);
 
     // Обработчики
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value);
+    };
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setSearchTerm(searchQuery.trim());
+        setCurrentPage(1);
+    };
+
+    const handleSearchClear = () => {
+        setSearchQuery('');
+        setSearchTerm('');
         setCurrentPage(1);
     };
 
@@ -299,24 +311,43 @@ export default function ConnectionsPage() {
                             </h1>
                         </div>
                         <div className={clsx(styles.connections__headerActions)}>
-                            <div className={clsx(styles.connections__searchContainer)}>
+                            <form
+                                onSubmit={handleSearchSubmit}
+                                className={clsx(styles.connections__searchContainer)}
+                            >
                                 <div className={clsx(styles.connections__searchWrapper)}>
                                     <FontAwesomeIcon icon={faSearch} className={clsx(styles.connections__searchIcon)}/>
                                     <input
                                         type="text"
                                         placeholder="Поиск подключений..."
                                         value={searchQuery}
-                                        onChange={handleSearchChange}
+                                        onChange={handleSearchInputChange}
                                         className={clsx(styles.connections__searchInput)}
                                     />
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={handleSearchClear}
+                                            className={clsx(styles.connections__searchClear)}
+                                            title="Очистить поиск"
+                                        >
+                                            <FontAwesomeIcon icon={faTimes}/>
+                                        </button>
+                                    )}
                                 </div>
-                            </div>
+                                <button
+                                    type="submit"
+                                    className={clsx(styles.searchButton)}
+                                    title="Найти"
+                                >
+                                    Поиск
+                                </button>
+                            </form>
                             <button
                                 className={clsx(styles.addButton)}
                                 onClick={() => navigate('/connections/create')}
                                 aria-label="Создать новое подключение к базе данных"
                             >
-                                <FontAwesomeIcon icon={faPlus}/>
                                 Создать подключение
                             </button>
                         </div>
@@ -566,7 +597,7 @@ export default function ConnectionsPage() {
                                                 disabled={currentPage === 1 || !hasPrev}
                                                 title="Первая страница"
                                             >
-                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                             </button>
                                             <button
                                                 className={clsx(styles.paginationButton)}
@@ -593,7 +624,7 @@ export default function ConnectionsPage() {
                                                 disabled={currentPage === totalPages || !hasNext}
                                                 title="Последняя страница"
                                             >
-                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                <FontAwesomeIcon icon={faChevronCircleRight}/>
                                             </button>
                                         </div>
                                     </div>
@@ -602,20 +633,18 @@ export default function ConnectionsPage() {
                         </div>
                     ) : (
                         <div className={clsx(styles.emptyState)}>
-                            <FontAwesomeIcon icon={faDatabase} size="3x" className={clsx(styles.emptyIcon)}/>
                             <h3>Подключения не найдены</h3>
-                            {searchQuery ? (
-                                <p>По вашему запросу "{searchQuery}" ничего не найдено</p>
+                            {searchTerm ? (
+                                <p>По вашему запросу "{searchTerm}" ничего не найдено</p>
                             ) : (
                                 <p>У вас пока нет подключений к базам данных</p>
                             )}
                             <button
                                 className={clsx(styles.emptyButton)}
                                 onClick={() => navigate('/connections/create')}
-                                aria-label="Создать первое подключение к базе данных"
+                                aria-label="Создать подключение"
                             >
-                                <FontAwesomeIcon icon={faPlus}/>
-                                Создать первое подключение
+                                Создать подключение
                             </button>
                         </div>
                     )}
