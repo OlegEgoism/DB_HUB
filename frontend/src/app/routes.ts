@@ -12,4 +12,6 @@ export default [
   ]),
   // Добавляем отдельный маршрут для логина
   route(ROUTES.LOGIN, "../pages/auth/ui/login-page.tsx"),
+  // Добавляем обработчик для системных запросов
+  route("/*", "./routes/system-route.tsx"),
 ] satisfies RouteConfig;

@@ -29,12 +29,17 @@ type Pages = {
   "/login": {
     params: {};
   };
+  "/*": {
+    params: {
+      "*": string;
+    };
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/connections" | "/profile" | "/documentations" | "/agreements" | "/login";
+    page: "/" | "/connections" | "/profile" | "/documentations" | "/agreements" | "/login" | "/*";
   };
   "./layout/base-layout.tsx": {
     id: "layout/base-layout";
@@ -64,6 +69,10 @@ type RouteFiles = {
     id: "../pages/auth/ui/login-page";
     page: "/login";
   };
+  "./routes/system-route.tsx": {
+    id: "routes/system-route";
+    page: "/*";
+  };
 };
 
 type RouteModules = {
@@ -75,4 +84,5 @@ type RouteModules = {
   "../pages/documentations/ui/page": unknown;
   "../pages/agreements/ui/page": unknown;
   "../pages/auth/ui/login-page": unknown;
+  "routes/system-route": typeof import("./src/app/./routes/system-route.tsx");
 };
