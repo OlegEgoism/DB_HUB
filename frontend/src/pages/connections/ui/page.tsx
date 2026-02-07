@@ -399,7 +399,7 @@ export default function ConnectionsPage() {
                                                     {connection.name || 'Без имени'}
                                                 </div>
                                                 <div className={clsx(styles.cardDescription)}>
-                                                    {connection.description || 'Нет описания'}
+                                                    {connection.description || ''}
                                                 </div>
                                             </div>
                                         </div>

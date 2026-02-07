@@ -465,31 +465,6 @@
       background: rgba($clr-emerald-500, 0.1);
       color: $clr-emerald-500;
     }
-
-    &_postgresql {
-      background: rgba($clr-indigo-500, 0.1);
-      color: $clr-indigo-500;
-    }
-
-    &_greenplum {
-      background: rgba($clr-emerald-500, 0.1);
-      color: $clr-emerald-500;
-    }
-
-    &_mysql {
-      background: rgba($clr-amber-500, 0.1);
-      color: $clr-amber-500;
-    }
-
-    &_mongodb {
-      background: rgba($clr-emerald-500, 0.1);
-      color: $clr-emerald-500;
-    }
-
-    &_default {
-      background: rgba($clr-gray-500, 0.1);
-      color: $clr-gray-500;
-    }
   }
 
   // Пагинация
