@@ -17,8 +17,9 @@ import {
     faTrashAlt,
     faEye,
     faCodeBranch,
-    faServer,
     faUser,
+    faPlug,
+    faHdd,
 } from '@fortawesome/free-solid-svg-icons';
 
 interface Connection {
@@ -217,32 +218,11 @@ export default function ConnectionsPage() {
         );
     };
 
-    const getDatabaseTypeBadge = (dbType: string) => {
-        const typeLower = dbType.toLowerCase();
-        let colorClass = '';
-
-        switch (typeLower) {
-            case 'postgresql':
-                colorClass = styles.badge_postgresql;
-                break;
-            case 'greenplum':
-                colorClass = styles.badge_greenplum;
-                break;
-            case 'mysql':
-                colorClass = styles.badge_mysql;
-                break;
-            case 'mongodb':
-                colorClass = styles.badge_mongodb;
-                break;
-            default:
-                colorClass = styles.badge_default;
-        }
-
-        return (
-            <span className={clsx(styles.badge, colorClass)}>
-        {typeLower.toUpperCase()}
-      </span>
-        );
+    const getStatusIndicatorClass = (status: string) => {
+        const statusLower = status.toLowerCase();
+        if (statusLower === 'connected') return styles.statusIndicator_connected;
+        if (statusLower === 'error') return styles.statusIndicator_error;
+        return styles.statusIndicator_unknown;
     };
 
     const formatSize = (sizeMb: number | null | undefined) => {
@@ -301,8 +281,8 @@ export default function ConnectionsPage() {
                             <h1 className={clsx(styles.connections__title)}>
                                 Подключения
                                 <span className={clsx(styles.profile__usernameBadge)}>
-                  {connections.length}
-                </span>
+                                    {connections.length}
+                                </span>
                             </h1>
                         </div>
                         <div className={clsx(styles.connections__headerActions)}>
@@ -398,28 +378,37 @@ export default function ConnectionsPage() {
                                                     icon={faDatabase}
                                                     className={clsx(styles.cardIcon)}
                                                 />
+                                                <div
+                                                    className={clsx(
+                                                        styles.statusIndicator,
+                                                        getStatusIndicatorClass(connection.status)
+                                                    )}
+                                                    title={connection.status}
+                                                ></div>
                                             </div>
-                                            <div className={clsx(styles.cardTitle)}>
-                                                {connection.name || 'Без имени'}
-                                            </div>
-                                            <div className={clsx(styles.cardSubTitle)}>
-                                                {getDatabaseTypeBadge(connection.database_type)}
-                                            </div>
-                                            {connection.is_favorite && (
-                                                <div className={clsx(styles.favoriteIndicator)}>
-                                                    <FontAwesomeIcon
-                                                        icon={faStar}
-                                                        className={clsx(styles.favoriteIcon)}
-                                                    />
+                                            <div className={clsx(styles.cardHeaderContent)}>
+                                                <div className={clsx(styles.cardTitleRow)}>
+                                                    <div className={clsx(styles.cardTitle)}>
+                                                        {connection.database_type.toUpperCase()}
+                                                    </div>
+                                                    <div className={clsx(styles.cardEnv)}>
+                                                        {getEnvironmentBadge(connection.environment)}
+                                                    </div>
                                                 </div>
-                                            )}
+                                                <div className={clsx(styles.cardName)}>
+                                                    {connection.name || 'Без имени'}
+                                                </div>
+                                                <div className={clsx(styles.cardDescription)}>
+                                                    {connection.description || 'Нет описания'}
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div className={clsx(styles.cardContent)}>
                                             <div className={clsx(styles.cardInfo)}>
                                                 <div className={clsx(styles.infoItem)}>
                                                     <div className={clsx(styles.infoLabel)}>
-                                                        <FontAwesomeIcon icon={faServer} className={clsx(styles.infoIcon)}/>
+                                                        <FontAwesomeIcon icon={faDatabase} className={clsx(styles.infoIcon)}/>
                                                         БАЗА ДАННЫХ
                                                     </div>
                                                     <div className={clsx(styles.infoValue)}>
@@ -446,7 +435,7 @@ export default function ConnectionsPage() {
                                                 </div>
                                                 <div className={clsx(styles.infoItem)}>
                                                     <div className={clsx(styles.infoLabel)}>
-                                                        <FontAwesomeIcon icon={faServer} className={clsx(styles.infoIcon)}/>
+                                                        <FontAwesomeIcon icon={faPlug} className={clsx(styles.infoIcon)}/>
                                                         ПОРТ
                                                     </div>
                                                     <div className={clsx(styles.infoValue)}>
@@ -458,14 +447,16 @@ export default function ConnectionsPage() {
                                             <div className={clsx(styles.cardFooter)}>
                                                 <div className={clsx(styles.cardFooterLeft)}>
                                                     <div className={clsx(styles.databaseSize)}>
-                                                        <span>Размер базы данных</span>
-                                                        <span className={clsx(styles.sizeValue)}>
-                              {formatSize(connection.db_size_mb)}
-                            </span>
+                                                        <div className={clsx(styles.infoLabel)}>
+                                                            <FontAwesomeIcon icon={faHdd} className={clsx(styles.infoIcon)}/>
+                                                            РАЗМЕР
+                                                        </div>
+                                                        <div className={clsx(styles.infoValue)}>
+                                                            {formatSize(connection.db_size_mb)}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div className={clsx(styles.cardFooterRight)}>
-                                                    {getEnvironmentBadge(connection.environment)}
                                                     <div className={clsx(styles.actionButtons)}>
                                                         <button
                                                             className={clsx(styles.actionButton)}
