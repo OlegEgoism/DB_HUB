@@ -10,8 +10,7 @@ export default [
     route(ROUTES.DOCUMENTATIONS, "../pages/documentations/ui/page.tsx"),
     route(ROUTES.AGREEMENTS, "../pages/agreements/ui/page.tsx"),
   ]),
-  // Добавляем отдельный маршрут для логина
   route(ROUTES.LOGIN, "../pages/auth/ui/login-page.tsx"),
-  // Добавляем обработчик для системных запросов
-  route("/*", "./routes/system-route.tsx"),
+  // Wildcard маршрут для всех остальных запросов
+  route("*", "./routes/not-found.tsx"),
 ] satisfies RouteConfig;

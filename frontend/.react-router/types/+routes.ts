@@ -69,8 +69,8 @@ type RouteFiles = {
     id: "../pages/auth/ui/login-page";
     page: "/login";
   };
-  "./routes/system-route.tsx": {
-    id: "routes/system-route";
+  "./routes/not-found.tsx": {
+    id: "routes/not-found";
     page: "/*";
   };
 };
@@ -84,5 +84,5 @@ type RouteModules = {
   "../pages/documentations/ui/page": unknown;
   "../pages/agreements/ui/page": unknown;
   "../pages/auth/ui/login-page": unknown;
-  "routes/system-route": typeof import("./src/app/./routes/system-route.tsx");
+  "routes/not-found": typeof import("./src/app/./routes/not-found.tsx");
 };
