@@ -300,7 +300,7 @@ export default function ConnectionsPage() {
                         <div className={clsx(styles.connections__titleContainer)}>
                             <h1 className={clsx(styles.connections__title)}>
                                 Подключения
-                                <span className={clsx(styles.connections__badge)}>
+                                <span className={clsx(styles.profile__usernameBadge)}>
                   {connections.length}
                 </span>
                             </h1>
@@ -326,62 +326,60 @@ export default function ConnectionsPage() {
                     </div>
 
                     {/* Фильтры */}
-                    <div className={clsx(styles.connections__filters)}>
-                        <div className={clsx(styles.tabContainer)}>
-                            <div
-                                className={clsx(
-                                    styles.tab,
-                                    activeTab === 'Все' && styles.tab_active
-                                )}
-                                onClick={() => handleTabChange('Все')}
-                            >
-                                Все
-                            </div>
-                            <div
-                                className={clsx(
-                                    styles.tab,
-                                    activeTab === 'Продакшн' && styles.tab_active
-                                )}
-                                onClick={() => handleTabChange('Продакшн')}
-                            >
-                                Продакшн
-                            </div>
-                            <div
-                                className={clsx(
-                                    styles.tab,
-                                    activeTab === 'Разработка' && styles.tab_active
-                                )}
-                                onClick={() => handleTabChange('Разработка')}
-                            >
-                                Разработка
-                            </div>
-                            <div
-                                className={clsx(
-                                    styles.tab,
-                                    activeTab === 'Тестирование' && styles.tab_active
-                                )}
-                                onClick={() => handleTabChange('Тестирование')}
-                            >
-                                Тестирование
-                            </div>
-                            <div
-                                className={clsx(
-                                    styles.tab,
-                                    activeTab === 'Аналитика' && styles.tab_active
-                                )}
-                                onClick={() => handleTabChange('Аналитика')}
-                            >
-                                Аналитика
-                            </div>
-                            <div
-                                className={clsx(
-                                    styles.tab,
-                                    activeTab === 'Избранные' && styles.tab_active
-                                )}
-                                onClick={() => handleTabChange('Избранные')}
-                            >
-                                Избранные
-                            </div>
+                    <div className={clsx(styles.tabContainer)}>
+                        <div
+                            className={clsx(
+                                styles.tab,
+                                activeTab === 'Все' && styles.tab_active
+                            )}
+                            onClick={() => handleTabChange('Все')}
+                        >
+                            Все
+                        </div>
+                        <div
+                            className={clsx(
+                                styles.tab,
+                                activeTab === 'Продакшн' && styles.tab_active
+                            )}
+                            onClick={() => handleTabChange('Продакшн')}
+                        >
+                            Продакшн
+                        </div>
+                        <div
+                            className={clsx(
+                                styles.tab,
+                                activeTab === 'Разработка' && styles.tab_active
+                            )}
+                            onClick={() => handleTabChange('Разработка')}
+                        >
+                            Разработка
+                        </div>
+                        <div
+                            className={clsx(
+                                styles.tab,
+                                activeTab === 'Тестирование' && styles.tab_active
+                            )}
+                            onClick={() => handleTabChange('Тестирование')}
+                        >
+                            Тестирование
+                        </div>
+                        <div
+                            className={clsx(
+                                styles.tab,
+                                activeTab === 'Аналитика' && styles.tab_active
+                            )}
+                            onClick={() => handleTabChange('Аналитика')}
+                        >
+                            Аналитика
+                        </div>
+                        <div
+                            className={clsx(
+                                styles.tab,
+                                activeTab === 'Избранные' && styles.tab_active
+                            )}
+                            onClick={() => handleTabChange('Избранные')}
+                        >
+                            Избранные
                         </div>
                     </div>
 

@@ -23,6 +23,27 @@
     }
   }
 
+  .profile__usernameBadge {
+    background: var(--color-primary);
+    color: white;
+    border-radius: 40%;
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 2px;
+    font-size: 32px;
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(79, 70, 229, 0.3);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+    }
+  }
+
   &__titleContainer {
     display: flex;
     align-items: center;
@@ -102,16 +123,10 @@
     }
   }
 
-  &__filters {
-    margin-bottom: 24px;
-    background: var(--color-surface-glass);
-    border-radius: 12px;
-    padding: 8px;
-    border: 1px solid var(--border-glass);
-  }
-
   // Табы фильтрации
   .tabContainer {
+    margin-bottom: 24px;
+    background: var(--color-surface-glass);
     display: flex;
     gap: 8px;
     background: var(--color-surface-glass);
