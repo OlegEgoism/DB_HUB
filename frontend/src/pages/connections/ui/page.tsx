@@ -25,7 +25,7 @@ import {
 interface Connection {
     id: number;
     database_name: string;
-    description: string;
+    description: string | null;
     host: string;
     port: number;
     username: string;
@@ -36,7 +36,7 @@ interface Connection {
     owner_id: number;
     owner_username: string;
     status: string;
-    db_size_mb: number;
+    db_size_mb: number | null;
     created_at: string;
     updated_at: string;
 }
@@ -66,7 +66,9 @@ export default function ConnectionsPage() {
     const [activeTab, setActiveTab] = useState('Все');
     const [totalItems, setTotalItems] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const PAGE_SIZES = [4, 8, 16, 32];
+    const [hasNext, setHasNext] = useState(false);
+    const [hasPrev, setHasPrev] = useState(false);
+    const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
     // Загрузка подключений
     const loadConnections = async () => {
@@ -118,6 +120,8 @@ export default function ConnectionsPage() {
             setConnections(data.items);
             setTotalItems(data.total);
             setTotalPages(data.pages);
+            setHasNext(data.has_next);
+            setHasPrev(data.has_prev);
         } catch (err) {
             console.error('Ошибка загрузки подключений:', err);
             setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
@@ -151,6 +155,14 @@ export default function ConnectionsPage() {
         const newSize = parseInt(e.target.value, 10);
         setPageSize(newSize);
         setCurrentPage(1);
+    };
+
+    const handleFirstPage = () => {
+        setCurrentPage(1);
+    };
+
+    const handleLastPage = () => {
+        setCurrentPage(totalPages);
     };
 
     const handleConnectionClick = (connectionId: number) => {
@@ -527,10 +539,13 @@ export default function ConnectionsPage() {
                             </div>
 
                             {/* Пагинация */}
-                            {totalPages > 1 && (
+                            {totalItems > 0 && (
                                 <div className={clsx(styles.pagination)}>
                                     <div className={clsx(styles.paginationInfo)}>
-                                        Показано {connections.length} из {totalItems} подключений
+                                        <span className={clsx(styles.paginationText)}>
+                                            Показано <span className={clsx(styles.paginationHighlight)}>{((currentPage - 1) * pageSize) + 1}</span>–
+                                            <span className={clsx(styles.paginationHighlight)}>{Math.min(currentPage * pageSize, totalItems)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalItems}</span> подключений
+                                        </span>
                                     </div>
                                     <div className={clsx(styles.paginationControls)}>
                                         <select
@@ -546,9 +561,18 @@ export default function ConnectionsPage() {
                                         </select>
                                         <div className={clsx(styles.paginationButtons)}>
                                             <button
+                                                className={clsx(styles.paginationButton, styles.paginationButton_first)}
+                                                onClick={handleFirstPage}
+                                                disabled={currentPage === 1 || !hasPrev}
+                                                title="Первая страница"
+                                            >
+                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                            </button>
+                                            <button
                                                 className={clsx(styles.paginationButton)}
                                                 onClick={() => handlePageChange(currentPage - 1)}
-                                                disabled={currentPage === 1}
+                                                disabled={currentPage === 1 || !hasPrev}
+                                                title="Предыдущая страница"
                                             >
                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                             </button>
@@ -558,7 +582,16 @@ export default function ConnectionsPage() {
                                             <button
                                                 className={clsx(styles.paginationButton)}
                                                 onClick={() => handlePageChange(currentPage + 1)}
-                                                disabled={currentPage === totalPages}
+                                                disabled={currentPage === totalPages || !hasNext}
+                                                title="Следующая страница"
+                                            >
+                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                            </button>
+                                            <button
+                                                className={clsx(styles.paginationButton, styles.paginationButton_last)}
+                                                onClick={handleLastPage}
+                                                disabled={currentPage === totalPages || !hasNext}
+                                                title="Последняя страница"
                                             >
                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                             </button>

@@ -484,20 +484,34 @@
     background: var(--color-surface-glass);
     border-radius: 12px;
     border: 1px solid var(--border-glass);
-  }
-
-  .paginationInfo {
-    font-size: 14px;
-    color: var(--color-text-muted);
-    margin-bottom: 16px;
-  }
-
-  .paginationControls {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 16px;
+  }
+
+  .paginationInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .paginationText {
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  .paginationHighlight {
+    font-weight: 600;
+    color: var(--color-text-main);
+  }
+
+  .paginationControls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
   }
 
   .paginationSelect {
@@ -508,6 +522,7 @@
     color: var(--color-text-main);
     background: white;
     cursor: pointer;
+    min-width: 140px;
 
     &:focus {
       outline: none;
@@ -518,7 +533,7 @@
   .paginationButtons {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
   }
 
   .paginationButton {
@@ -530,6 +545,11 @@
     color: var(--color-text-main);
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
 
     &:hover:not(:disabled) {
       background: var(--color-primary);
@@ -541,12 +561,20 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+
+    &_first,
+    &_last {
+      width: 40px;
+      height: 36px;
+    }
   }
 
   .pageInfo {
     font-size: 14px;
     color: var(--color-text-main);
     font-weight: 500;
+    min-width: 120px;
+    text-align: center;
   }
 
   // Пустое состояние
