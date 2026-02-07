@@ -1,0 +1,417 @@
+// frontend/src/pages/connections/ui/EditConnectionModal.tsx
+import {useState, useEffect} from 'react';
+import {useEditConnection} from '../lib/useEditConnection';
+import clsx from 'clsx';
+import styles from './edit-connection-modal.module.scss';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {
+    faTimes,
+    faSpinner,
+    faCheckCircle,
+    faEye,
+    faEyeSlash,
+} from '@fortawesome/free-solid-svg-icons';
+
+interface Connection {
+    id: number;
+    name: string;
+    description: string | null;
+    database_type: string;
+    environment: string;
+    is_favorite: boolean;
+    host: string;
+    port: number;
+    database_name: string;
+    username: string;
+    password?: string;
+    owner_id: number;
+}
+
+export function EditConnectionModal({
+                                        connection,
+                                        onClose,
+                                        onSuccess,
+                                    }: {
+    connection: Connection;
+    onClose: () => void;
+    onSuccess: () => void;
+}) {
+    const [formData, setFormData] = useState({
+        name: connection.name,
+        description: connection.description || '',
+        database_type: connection.database_type,
+        environment: connection.environment,
+        is_favorite: connection.is_favorite,
+        host: connection.host,
+        port: connection.port,
+        database_name: connection.database_name,
+        username: connection.username,
+        password: '',
+    });
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [initialData, setInitialData] = useState({...formData});
+    const {updateConnection, loading, error, success} = useEditConnection(connection.id);
+
+    useEffect(() => {
+        setFormData({
+            name: connection.name,
+            description: connection.description || '',
+            database_type: connection.database_type,
+            environment: connection.environment,
+            is_favorite: connection.is_favorite,
+            host: connection.host,
+            port: connection.port,
+            database_name: connection.database_name,
+            username: connection.username,
+            password: '',
+        });
+        setInitialData({
+            name: connection.name,
+            description: connection.description || '',
+            database_type: connection.database_type,
+            environment: connection.environment,
+            is_favorite: connection.is_favorite,
+            host: connection.host,
+            port: connection.port,
+            database_name: connection.database_name,
+            username: connection.username,
+            password: '',
+        });
+    }, [connection]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Проверка на изменения
+        const hasChanges = Object.keys(formData).some(
+            (key) => formData[key as keyof typeof formData] !== initialData[key as keyof typeof initialData]
+        );
+
+        if (!hasChanges && !formData.password) {
+            alert('Нет изменений для сохранения');
+            return;
+        }
+
+        try {
+            // Формируем данные для отправки (исключаем пустой пароль)
+            const updateData: any = {};
+
+            if (formData.name !== initialData.name) updateData.name = formData.name;
+            if (formData.description !== initialData.description) updateData.description = formData.description;
+            if (formData.database_type !== initialData.database_type) updateData.database_type = formData.database_type;
+            if (formData.environment !== initialData.environment) updateData.environment = formData.environment;
+            if (formData.is_favorite !== initialData.is_favorite) updateData.is_favorite = formData.is_favorite;
+            if (formData.host !== initialData.host) updateData.host = formData.host;
+            if (formData.port !== initialData.port) updateData.port = formData.port;
+            if (formData.database_name !== initialData.database_name) updateData.database_name = formData.database_name;
+            if (formData.username !== initialData.username) updateData.username = formData.username;
+            if (formData.password) updateData.password = formData.password;
+
+            await updateConnection(updateData);
+            onSuccess();
+        } catch (err) {
+            // Ошибка уже обработана в хуке
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value,
+        });
+    };
+
+    const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.checked,
+        });
+    };
+
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
+
+    const isFormChanged = () => {
+        return Object.keys(formData).some(
+            (key) => formData[key as keyof typeof formData] !== initialData[key as keyof typeof initialData]
+        );
+    };
+
+    const handleClose = () => {
+        if (!loading) {
+            onClose();
+        }
+    };
+
+    const getErrorMessage = () => {
+        if (!error) return null;
+        if (error.includes('400') || error.includes('Invalid') || error.includes('Неверный')) {
+            return 'Неверные данные. Проверьте введенные значения.';
+        }
+        if (error.includes('403')) {
+            return 'Доступ запрещен. Проверьте ваши права доступа.';
+        }
+        if (error.includes('404')) {
+            return 'Подключение не найдено.';
+        }
+        if (error.includes('500') || error.includes('Internal Server Error')) {
+            return 'Внутренняя ошибка сервера. Попробуйте позже.';
+        }
+        if (error.includes('Network Error') || error.includes('Failed to fetch')) {
+            return 'Ошибка сети. Проверьте подключение к интернету.';
+        }
+        return error;
+    };
+
+    return (
+        <div className={clsx(styles.modal__overlay)}>
+            <div className={clsx(styles.modal__content)}>
+                <button
+                    className={clsx(styles.modal__closeButton)}
+                    onClick={handleClose}
+                    disabled={loading}
+                    aria-label="Закрыть окно редактирования"
+                >
+                    <FontAwesomeIcon icon={faTimes}/>
+                </button>
+                <div className={clsx(styles.modal__header)}>
+                    <h2 className={clsx(styles.modal__title)}>
+                        {success ? 'Подключение обновлено!' : 'Редактирование подключения'}
+                    </h2>
+                </div>
+                {success ? (
+                    <div className={clsx(styles.modal__success)}>
+                        <div className={clsx(styles.modal__successMessage)}>
+                            <FontAwesomeIcon
+                                icon={faCheckCircle}
+                                style={{
+                                    marginRight: '8px',
+                                    color: 'var(--color-status-success)',
+                                }}
+                            />
+                            Подключение успешно обновлено!
+                        </div>
+                        <div className={clsx(styles.modal__successHint)}>
+                            Ваши изменения сохранены
+                        </div>
+                        <button className={clsx(styles.modal__successButton)} onClick={onClose}>
+                            OK
+                        </button>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className={clsx(styles.modal__form)}>
+                        {error && <div className={clsx(styles.modal__error)}>{getErrorMessage()}</div>}
+
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="name" className={clsx(styles.modal__label)}>
+                                Название подключения *
+                            </label>
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                required
+                                className={clsx(styles.modal__input)}
+                                placeholder="Введите название подключения"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="description" className={clsx(styles.modal__label)}>
+                                Описание
+                            </label>
+                            <input
+                                type="text"
+                                id="description"
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                className={clsx(styles.modal__input)}
+                                placeholder="Описание подключения"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        {/* Тип базы данных и Окружение в одной строке */}
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <div className={clsx(styles.modal__dualRow)}>
+                                <div className={clsx(styles.modal__dualColumn)}>
+                                    <label htmlFor="database_type" className={clsx(styles.modal__label)}>
+                                        Тип базы данных *
+                                    </label>
+                                    <select
+                                        id="database_type"
+                                        name="database_type"
+                                        value={formData.database_type}
+                                        onChange={handleChange}
+                                        className={clsx(styles.modal__select)}
+                                        disabled={loading}
+                                    >
+                                        <option value="postgresql">PostgreSQL</option>
+                                        <option value="greenplum">Greenplum</option>
+                                    </select>
+                                </div>
+                                <div className={clsx(styles.modal__dualColumn)}>
+                                    <label htmlFor="environment" className={clsx(styles.modal__label)}>
+                                        Окружение *
+                                    </label>
+                                    <select
+                                        id="environment"
+                                        name="environment"
+                                        value={formData.environment}
+                                        onChange={handleChange}
+                                        className={clsx(styles.modal__select)}
+                                        disabled={loading}
+                                    >
+                                        <option value="development">Разработка</option>
+                                        <option value="testing">Тестирование</option>
+                                        <option value="production">Продакшн</option>
+                                        <option value="analytics">Аналитика</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="host" className={clsx(styles.modal__label)}>
+                                Хост *
+                            </label>
+                            <input
+                                type="text"
+                                id="host"
+                                name="host"
+                                value={formData.host}
+                                onChange={handleChange}
+                                required
+                                className={clsx(styles.modal__input)}
+                                placeholder="localhost"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="port" className={clsx(styles.modal__label)}>
+                                Порт *
+                            </label>
+                            <input
+                                type="number"
+                                id="port"
+                                name="port"
+                                value={formData.port}
+                                onChange={handleChange}
+                                required
+                                className={clsx(styles.modal__input)}
+                                placeholder="5432"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="database_name" className={clsx(styles.modal__label)}>
+                                Имя базы данных *
+                            </label>
+                            <input
+                                type="text"
+                                id="database_name"
+                                name="database_name"
+                                value={formData.database_name}
+                                onChange={handleChange}
+                                required
+                                className={clsx(styles.modal__input)}
+                                placeholder="database_name"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="username" className={clsx(styles.modal__label)}>
+                                Имя пользователя *
+                            </label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                required
+                                className={clsx(styles.modal__input)}
+                                placeholder="username"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="password" className={clsx(styles.modal__label)}>
+                                Пароль
+                            </label>
+                            <div className={clsx(styles.modal__passwordWrapper)}>
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    id="password"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className={clsx(styles.modal__input)}
+                                    placeholder="Оставьте пустым, чтобы не менять"
+                                    disabled={loading}
+                                />
+                                <button
+                                    type="button"
+                                    className={clsx(styles.modal__togglePassword)}
+                                    onClick={togglePasswordVisibility}
+                                    disabled={loading}
+                                >
+                                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye}/>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <label className={clsx(styles.modal__label)}>
+                                <input
+                                    type="checkbox"
+                                    name="is_favorite"
+                                    checked={formData.is_favorite}
+                                    onChange={handleCheckboxChange}
+                                    disabled={loading}
+                                    style={{marginRight: '8px'}}
+                                />
+                                Добавить в избранное
+                            </label>
+                        </div>
+
+                        <div className={clsx(styles.modal__formFooter)}>
+                            <button
+                                type="button"
+                                className={clsx(styles.modal__cancelButton)}
+                                onClick={handleClose}
+                                disabled={loading}
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                type="submit"
+                                className={clsx(styles.modal__submitButton)}
+                                disabled={!isFormChanged() || loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <FontAwesomeIcon icon={faSpinner} spin/>
+                                        Сохранение...
+                                    </>
+                                ) : (
+                                    'Сохранить'
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </div>
+        </div>
+    );
+}
