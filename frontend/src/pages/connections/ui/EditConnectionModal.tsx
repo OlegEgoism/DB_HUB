@@ -278,6 +278,70 @@ export function EditConnectionModal({
                         </div>
 
                         <div className={clsx(styles.modal__formGroup)}>
+                            <label htmlFor="database_name" className={clsx(styles.modal__label)}>
+                                Имя базы данных *
+                            </label>
+                            <input
+                                type="text"
+                                id="database_name"
+                                name="database_name"
+                                value={formData.database_name}
+                                onChange={handleChange}
+                                required
+                                className={clsx(styles.modal__input)}
+                                placeholder="database_name"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        {/* Имя пользователя и Пароль в одной строке */}
+                        <div className={clsx(styles.modal__formGroup)}>
+                            <div className={clsx(styles.modal__dualRow)}>
+                                <div className={clsx(styles.modal__dualColumn)}>
+                                    <label htmlFor="username" className={clsx(styles.modal__label)}>
+                                        Имя пользователя *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="username"
+                                        name="username"
+                                        value={formData.username}
+                                        onChange={handleChange}
+                                        required
+                                        className={clsx(styles.modal__input)}
+                                        placeholder="username"
+                                        disabled={loading}
+                                    />
+                                </div>
+                                <div className={clsx(styles.modal__dualColumn)}>
+                                    <label htmlFor="password" className={clsx(styles.modal__label)}>
+                                        Пароль
+                                    </label>
+                                    <div className={clsx(styles.modal__passwordWrapper)}>
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            id="password"
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            className={clsx(styles.modal__input)}
+                                            placeholder="Оставьте пустым"
+                                            disabled={loading}
+                                        />
+                                        <button
+                                            type="button"
+                                            className={clsx(styles.modal__togglePassword)}
+                                            onClick={togglePasswordVisibility}
+                                            disabled={loading}
+                                        >
+                                            <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye}/>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="host" className={clsx(styles.modal__label)}>
                                 Хост *
                             </label>
@@ -309,66 +373,6 @@ export function EditConnectionModal({
                                 placeholder="5432"
                                 disabled={loading}
                             />
-                        </div>
-
-                        <div className={clsx(styles.modal__formGroup)}>
-                            <label htmlFor="database_name" className={clsx(styles.modal__label)}>
-                                Имя базы данных *
-                            </label>
-                            <input
-                                type="text"
-                                id="database_name"
-                                name="database_name"
-                                value={formData.database_name}
-                                onChange={handleChange}
-                                required
-                                className={clsx(styles.modal__input)}
-                                placeholder="database_name"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div className={clsx(styles.modal__formGroup)}>
-                            <label htmlFor="username" className={clsx(styles.modal__label)}>
-                                Имя пользователя *
-                            </label>
-                            <input
-                                type="text"
-                                id="username"
-                                name="username"
-                                value={formData.username}
-                                onChange={handleChange}
-                                required
-                                className={clsx(styles.modal__input)}
-                                placeholder="username"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div className={clsx(styles.modal__formGroup)}>
-                            <label htmlFor="password" className={clsx(styles.modal__label)}>
-                                Пароль
-                            </label>
-                            <div className={clsx(styles.modal__passwordWrapper)}>
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    id="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className={clsx(styles.modal__input)}
-                                    placeholder="Оставьте пустым, чтобы не менять"
-                                    disabled={loading}
-                                />
-                                <button
-                                    type="button"
-                                    className={clsx(styles.modal__togglePassword)}
-                                    onClick={togglePasswordVisibility}
-                                    disabled={loading}
-                                >
-                                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye}/>
-                                </button>
-                            </div>
                         </div>
 
                         <div className={clsx(styles.modal__formGroup)}>
