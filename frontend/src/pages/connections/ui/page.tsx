@@ -19,7 +19,9 @@ import {
     faCodeBranch,
     faUser,
     faPlug,
-    faHdd, faChevronCircleRight, faChevronCircleLeft,
+    faHdd,
+    faChevronCircleRight,
+    faChevronCircleLeft,
 } from '@fortawesome/free-solid-svg-icons';
 
 interface Connection {
@@ -69,6 +71,9 @@ export default function ConnectionsPage() {
     const [totalPages, setTotalPages] = useState(0);
     const [hasNext, setHasNext] = useState(false);
     const [hasPrev, setHasPrev] = useState(false);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+    const [confirmDeleteName, setConfirmDeleteName] = useState<string>('');
     const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
     // Загрузка подключений
@@ -179,6 +184,57 @@ export default function ConnectionsPage() {
 
     const handleConnectionClick = (connectionId: number) => {
         navigate(`/connections/${connectionId}`);
+    };
+
+    // Открытие модального окна подтверждения
+    const openDeleteConfirm = (connectionId: number, connectionName: string) => {
+        setConfirmDeleteId(connectionId);
+        setConfirmDeleteName(connectionName);
+    };
+
+    // Закрытие модального окна
+    const closeDeleteConfirm = () => {
+        setConfirmDeleteId(null);
+        setConfirmDeleteName('');
+    };
+
+    // Удаление подключения
+    const deleteConnection = async () => {
+        if (!confirmDeleteId) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            closeDeleteConfirm();
+            return;
+        }
+
+        setDeletingId(confirmDeleteId);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${confirmDeleteId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось удалить подключение');
+            }
+
+            // Обновляем список подключений
+            loadConnections();
+            closeDeleteConfirm();
+        } catch (err) {
+            console.error('Ошибка при удалении подключения:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось удалить подключение');
+            closeDeleteConfirm();
+        } finally {
+            setDeletingId(null);
+        }
     };
 
     const toggleFavorite = async (connectionId: number, isFavorite: boolean) => {
@@ -513,6 +569,7 @@ export default function ConnectionsPage() {
                                                                 toggleFavorite(connection.id, connection.is_favorite);
                                                             }}
                                                             title={connection.is_favorite ? "Убрать из избранного" : "Добавить в избранное"}
+                                                            disabled={deletingId === connection.id}
                                                         >
                                                             <FontAwesomeIcon
                                                                 icon={faStar}
@@ -529,6 +586,7 @@ export default function ConnectionsPage() {
                                                                 handleConnectionClick(connection.id);
                                                             }}
                                                             title="Просмотреть подключение"
+                                                            disabled={deletingId === connection.id}
                                                         >
                                                             <FontAwesomeIcon
                                                                 icon={faEye}
@@ -542,6 +600,7 @@ export default function ConnectionsPage() {
                                                                 // TODO: Implement edit connection
                                                             }}
                                                             title="Редактировать подключение"
+                                                            disabled={deletingId === connection.id}
                                                         >
                                                             <FontAwesomeIcon
                                                                 icon={faPencilAlt}
@@ -549,12 +608,16 @@ export default function ConnectionsPage() {
                                                             />
                                                         </button>
                                                         <button
-                                                            className={clsx(styles.actionButton)}
+                                                            className={clsx(
+                                                                styles.actionButton,
+                                                                styles.actionButton_delete
+                                                            )}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                // TODO: Implement delete connection
+                                                                openDeleteConfirm(connection.id, connection.name || 'Без имени');
                                                             }}
                                                             title="Удалить подключение"
+                                                            disabled={deletingId !== null}
                                                         >
                                                             <FontAwesomeIcon
                                                                 icon={faTrashAlt}
@@ -650,6 +713,66 @@ export default function ConnectionsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Модальное окно подтверждения удаления */}
+            {confirmDeleteId !== null && (
+                <div className={clsx(styles.modalOverlay)} onClick={closeDeleteConfirm}>
+                    <div
+                        className={clsx(styles.modalContent)}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className={clsx(styles.modalHeader)}>
+                            <FontAwesomeIcon
+                                icon={faExclamationCircle}
+                                className={clsx(styles.modalIcon)}
+                            />
+                            <h2 className={clsx(styles.modalTitle)}>
+                                Подтверждение удаления
+                            </h2>
+                        </div>
+
+                        <div className={clsx(styles.modalBody)}>
+                            <p className={clsx(styles.modalText)}>
+                                Удалить подключение <strong> {confirmDeleteName}</strong>?
+                            </p>
+                            <p className={clsx(styles.modalWarning)}>
+                                <FontAwesomeIcon icon={faExclamationCircle} />
+                                Все данные будут удалены безвозвратно.
+                            </p>
+                        </div>
+
+                        <div className={clsx(styles.modalFooter)}>
+                            <button
+                                className={clsx(styles.modalCancelButton)}
+                                onClick={closeDeleteConfirm}
+                                disabled={deletingId !== null}
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.modalDeleteButton,
+                                    deletingId !== null && styles.modalDeleteButton_loading
+                                )}
+                                onClick={deleteConnection}
+                                disabled={deletingId !== null}
+                            >
+                                {deletingId !== null ? (
+                                    <>
+                                        <FontAwesomeIcon icon={faSpinner} spin />
+                                        Удаление...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FontAwesomeIcon icon={faTrashAlt} />
+                                        Удалить
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 }
