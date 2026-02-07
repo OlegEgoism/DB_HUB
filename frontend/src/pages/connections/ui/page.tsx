@@ -213,8 +213,8 @@ export default function ConnectionsPage() {
 
         return (
             <span className={clsx(styles.badge, colorClass)}>
-        {label}
-      </span>
+                {label}
+            </span>
         );
     };
 
@@ -276,12 +276,13 @@ export default function ConnectionsPage() {
         <section className={clsx(styles.connections)}>
             <div className="container">
                 <div className={clsx(styles.connections__section)}>
+                    {/* Заголовок и действия на одном уровне */}
                     <div className={clsx(styles.connections__header)}>
                         <div className={clsx(styles.connections__titleContainer)}>
                             <h1 className={clsx(styles.connections__title)}>
                                 Подключения
                                 <span className={clsx(styles.profile__usernameBadge)}>
-                                    {connections.length}
+                                    {totalItems}
                                 </span>
                             </h1>
                         </div>
@@ -298,7 +299,11 @@ export default function ConnectionsPage() {
                                     />
                                 </div>
                             </div>
-                            <button className={clsx(styles.addButton)}>
+                            <button
+                                className={clsx(styles.addButton)}
+                                onClick={() => navigate('/connections/create')}
+                                aria-label="Создать новое подключение к базе данных"
+                            >
                                 <FontAwesomeIcon icon={faPlus}/>
                                 Создать подключение
                             </button>
@@ -548,8 +553,8 @@ export default function ConnectionsPage() {
                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                             </button>
                                             <span className={clsx(styles.pageInfo)}>
-                        Страница {currentPage} из {totalPages}
-                      </span>
+                                                Страница {currentPage} из {totalPages}
+                                            </span>
                                             <button
                                                 className={clsx(styles.paginationButton)}
                                                 onClick={() => handlePageChange(currentPage + 1)}
@@ -571,7 +576,11 @@ export default function ConnectionsPage() {
                             ) : (
                                 <p>У вас пока нет подключений к базам данных</p>
                             )}
-                            <button className={clsx(styles.emptyButton)}>
+                            <button
+                                className={clsx(styles.emptyButton)}
+                                onClick={() => navigate('/connections/create')}
+                                aria-label="Создать первое подключение к базе данных"
+                            >
                                 <FontAwesomeIcon icon={faPlus}/>
                                 Создать первое подключение
                             </button>
