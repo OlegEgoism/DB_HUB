@@ -10,18 +10,7 @@ import styles from './header.module.scss';
 import clsx from 'clsx';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
-    faUser,
     faSignOutAlt,
-    faDatabase,
-    faKitchenSet,
-    faHeadset,
-    faHouseTsunami,
-    faPesetaSign,
-    faSquarePersonConfined,
-    faWrench,
-    faSliders,
-    faCogs,
-    faRegistered, faCashRegister, faBlog, faUserPlus, faRightToBracket
 } from '@fortawesome/free-solid-svg-icons';
 
 export function Header() {
