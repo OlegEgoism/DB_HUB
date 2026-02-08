@@ -6,7 +6,7 @@
     background: white;
     border-radius: 20px;
     border: 1px solid var(--gray-200);
-    padding: 20px;
+    //padding: 20px;
     width: 100%;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     position: relative;
@@ -121,8 +121,8 @@
 }
 
 .cardIconContainer {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   background: rgba($clr-indigo-500, 0.1);
   border-radius: 20px;
   display: flex;
@@ -532,21 +532,7 @@
   }
 }
 
-.infoItem {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  background: var(--color-surface-glass);
-  border: 1px solid var(--border-glass);
-  border-radius: 12px;
-  transition: all 02s ease;
 
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
-  }
-}
 
 .infoLabel {
   display: flex;
