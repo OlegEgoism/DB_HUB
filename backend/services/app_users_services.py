@@ -1,9 +1,10 @@
 # backend/services/app_users_services.py
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.core.security import (
     create_access_token,
     get_password_hash,
@@ -134,12 +135,7 @@ class UserService:
 
     async def update_last_login(self, user_id: int) -> None:
         """Обновление времени последнего входа"""
-        await self.db.execute(
-            update(User)
-            .where(User.id == user_id)
-            .values(last_login=datetime.now(timezone.utc))
-        )
-        # await self.db.commit()
+        await self.db.execute(update(User).where(User.id == user_id).values(last_login=datetime.now(UTC)))
 
     async def login_user(self, username: str, password: str) -> dict | None:
         """Вход пользователя и генерация токена"""

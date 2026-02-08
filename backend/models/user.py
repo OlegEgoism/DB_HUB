@@ -8,9 +8,10 @@ from sqlalchemy import (
     Integer,
     String,
     event,
+    func,
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy import func
+
 from backend.database.session import Base
 from backend.models.base_mixin import DateTimeMixin
 
@@ -70,7 +71,6 @@ class User(Base, DateTimeMixin):
 def receive_before_update(mapper, connection, target):
     """Обновляем updated_at только если изменились поля, кроме last_login"""
     state = target._sa_instance_state
-    changes = state.committed_state
     changed_columns = []
     for attr in state.mapper.column_attrs:
         hist = state.get_history(attr.key, True)
