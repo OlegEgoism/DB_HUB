@@ -1,9 +1,9 @@
 import clsx from 'clsx';
-import { useDocumentations } from '../lib/useDocumentations';
+import {useDocumentations} from '../lib/useDocumentations';
 import styles from './styles.module.scss';
 
 export default function DocumentationsPage() {
-    const { documentations, loading, error } = useDocumentations();
+    const {documentations, loading, error} = useDocumentations();
 
     return (
         <section className={clsx(styles.documentations)}>
@@ -26,7 +26,6 @@ export default function DocumentationsPage() {
                     {!loading && !error && (
                         <div className={clsx(styles.documentations__list)}>
                             {documentations
-                                .filter(documentation => documentation.is_active === true)
                                 .map((documentation) => (
                                     <div
                                         key={documentation.id}
@@ -45,7 +44,7 @@ export default function DocumentationsPage() {
                         </div>
                     )}
 
-                    {!loading && !error && documentations.filter(d => d.is_active === true).length === 0 && (
+                    {!loading && !error && documentations.length === 0 && (
                         <div className={clsx(styles.documentations__empty)}>
                             Активная документация не найдена
                         </div>

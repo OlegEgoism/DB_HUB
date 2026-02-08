@@ -1,11 +1,11 @@
 // frontend/src/pages/agreements/ui/page.tsx
 
 import clsx from 'clsx';
-import { useAgreements } from '../lib/useAgreements';
+import {useAgreements} from '../lib/useAgreements';
 import styles from './styles.module.scss';
 
 export default function AgreementsPage() {
-    const { agreements, loading, error } = useAgreements();
+    const {agreements, loading, error} = useAgreements();
 
     // Отладка: выводим все данные в консоль
     if (!loading && agreements.length > 0) {
@@ -34,7 +34,6 @@ export default function AgreementsPage() {
                     {!loading && !error && (
                         <div className={clsx(styles.agreements__list)}>
                             {agreements
-                                .filter(agreement => agreement.is_active === true)
                                 .map((agreement) => (
                                     <div
                                         key={agreement.id}
@@ -53,7 +52,7 @@ export default function AgreementsPage() {
                         </div>
                     )}
 
-                    {!loading && !error && agreements.filter(a => a.is_active === true).length === 0 && (
+                    {!loading && !error && agreements.length === 0 && (
                         <div className={clsx(styles.agreements__empty)}>
                             Активные соглашения не найдены
                         </div>
