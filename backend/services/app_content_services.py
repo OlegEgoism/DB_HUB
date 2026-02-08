@@ -138,28 +138,28 @@ class AppContentService:
         await self.db.commit()
         return True
 
-    async def toggle_active(self, content_id: int) -> AppContent | None:
-        """Переключить статус активности"""
-        content = await self.get_content(content_id)
-        if not content:
-            return None
-        content.is_active = not content.is_active
-        await self.db.commit()
-        await self.db.refresh(content)
-        return content
-
-    async def bulk_create_agreements(self, agreements_data: list[dict]) -> list[AppContent]:
-        """Массовое создание соглашений"""
-        created = []
-        for data in agreements_data:
-            content_data = AppContentCreate(content_type="agreement", **data)
-            try:
-                content = await self.create_content(content_data)
-                created.append(content)
-            except ValueError:
-                # Пропускаем дубликаты
-                continue
-        return created
+    # async def toggle_active(self, content_id: int) -> AppContent | None:
+    #     """Переключить статус активности"""
+    #     content = await self.get_content(content_id)
+    #     if not content:
+    #         return None
+    #     content.is_active = not content.is_active
+    #     await self.db.commit()
+    #     await self.db.refresh(content)
+    #     return content
+    #
+    # async def bulk_create_agreements(self, agreements_data: list[dict]) -> list[AppContent]:
+    #     """Массовое создание соглашений"""
+    #     created = []
+    #     for data in agreements_data:
+    #         content_data = AppContentCreate(content_type="agreement", **data)
+    #         try:
+    #             content = await self.create_content(content_data)
+    #             created.append(content)
+    #         except ValueError:
+    #             # Пропускаем дубликаты
+    #             continue
+    #     return created
 
     async def bulk_create_documentations(self, contents: list[dict]) -> list[AppContent]:
         created = []

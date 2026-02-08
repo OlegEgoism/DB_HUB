@@ -17,7 +17,7 @@ export default function AgreementsPage() {
         <section className={clsx(styles.agreements)}>
             <div className="container">
                 <div className={clsx(styles.agreements__section)}>
-                    <h1 className={clsx(styles.agreements__title)}>Соглашения</h1>
+                    <p className={clsx(styles.agreements__title)}>Соглашения</p>
 
                     {loading && (
                         <div className={clsx(styles.agreements__loading)}>

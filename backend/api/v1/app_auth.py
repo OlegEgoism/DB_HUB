@@ -107,13 +107,13 @@ async def login_form(
 
 
 @router.post("/logout")
-async def logout(current_user: dict = Depends(get_current_user)):
+async def logout():
     return {"message": "Успешный выход из системы"}
 
 
-@router.get("/me", response_model=UserProfile)
-async def get_current_user_profile(current_user=Depends(get_current_user)):
-    return current_user
+# @router.get("/me", response_model=UserProfile)
+# async def get_current_user_profile(current_user=Depends(get_current_user)):
+#     return current_user
 
 
 @router.post("/validate-token")

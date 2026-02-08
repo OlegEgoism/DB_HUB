@@ -9,7 +9,7 @@ export default function DocumentationsPage() {
         <section className={clsx(styles.documentations)}>
             <div className="container">
                 <div className={clsx(styles.documentations__section)}>
-                    <h1 className={clsx(styles.documentations__title)}>Документация</h1>
+                    <p className={clsx(styles.documentations__title)}>Документация</p>
 
                     {loading && (
                         <div className={clsx(styles.documentations__loading)}>
