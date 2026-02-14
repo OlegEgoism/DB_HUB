@@ -708,3 +708,310 @@
     transform: translateY(0);
   }
 }
+
+// Пользователи
+.usersContent {
+  animation: fadeIn 0.3s ease;
+}
+
+.usersHeader {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.usersSearchContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 350px;
+}
+
+.usersSearchWrapper {
+  position: relative;
+  flex: 1;
+  max-width: 450px;
+}
+
+.usersSearchIcon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $clr-gray-400;
+  font-size: 18px;
+}
+
+.usersSearchInput {
+  width: 100%;
+  padding: 12px 48px 12px 48px;
+  border: 1px solid $clr-gray-300;
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--color-text-main);
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.1);
+  }
+}
+
+.usersSearchClear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: $clr-gray-400;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: $clr-gray-500;
+    background: $clr-gray-200;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.usersSearchButton {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 100px;
+
+  &:hover {
+    background: var(--color-primary);
+    transform: translateY(-2px);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.2);
+  }
+}
+
+.usersLoading {
+  text-align: center;
+  padding: 60px 20px;
+
+  p {
+    margin-top: 16px;
+    font-size: 18px;
+    color: var(--color-text-muted);
+  }
+}
+
+// Список пользователей (вертикальный)
+.usersList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.userItem {
+  background: var(--color-surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+.userItemHeader {
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid var(--border-glass);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userItemIcon {
+  color: var(--color-primary);
+  font-size: 20px;
+  width: 24px;
+  height: 24px;
+}
+
+.userItemTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin: 0;
+  flex: 1;
+}
+
+.userItemContent {
+  padding: 20px 24px;
+}
+
+.userItemRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-glass);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.userItemLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  width: 40%;
+}
+
+.userItemValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  text-align: right;
+  width: 60%;
+  word-break: break-word;
+}
+
+.usersEmpty {
+  text-align: center;
+  padding: 60px 20px;
+
+  svg {
+    color: var(--color-text-muted);
+    margin-bottom: 16px;
+  }
+
+  p {
+    font-size: 18px;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+}
+
+// Пагинация пользователей
+.usersPagination {
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--color-surface-glass);
+  border-radius: 12px;
+  border: 1px solid var(--border-glass);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.paginationInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.paginationText {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.paginationHighlight {
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.paginationSelect {
+  padding: 8px 12px;
+  border: 1px solid $clr-gray-300;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--color-text-main);
+  background: white;
+  cursor: pointer;
+  min-width: 140px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+}
+
+.paginationButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paginationButton {
+  background: white;
+  border: 1px solid $clr-gray-300;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &_first,
+  &_last {
+    width: 40px;
+    height: 36px;
+  }
+}
+
+.pageInfo {
+  font-size: 14px;
+  color: var(--color-text-main);
+  font-weight: 500;
+  min-width: 120px;
+  text-align: center;
+}
