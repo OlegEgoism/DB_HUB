@@ -178,21 +178,21 @@ export function CreateConnectionModal({
               />
             </div>
 
-            <div className={clsx(styles.modal__formGroup)}>
-              <label htmlFor="description" className={clsx(styles.modal__label)}>
-                Описание
-              </label>
-              <input
-                type="text"
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                className={clsx(styles.modal__input)}
-                placeholder="Описание подключения"
-                disabled={loading}
-              />
-            </div>
+            {/*<div className={clsx(styles.modal__formGroup)}>*/}
+            {/*  <label htmlFor="description" className={clsx(styles.modal__label)}>*/}
+            {/*    Описание*/}
+            {/*  </label>*/}
+            {/*  <input*/}
+            {/*    type="text"*/}
+            {/*    id="description"*/}
+            {/*    name="description"*/}
+            {/*    value={formData.description}*/}
+            {/*    onChange={handleChange}*/}
+            {/*    className={clsx(styles.modal__input)}*/}
+            {/*    placeholder="Описание подключения"*/}
+            {/*    disabled={loading}*/}
+            {/*  />*/}
+            {/*</div>*/}
 
             {/* Тип базы данных и Окружение в одной строке */}
             <div className={clsx(styles.modal__formGroup)}>

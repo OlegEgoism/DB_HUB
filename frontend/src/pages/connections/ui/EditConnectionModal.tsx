@@ -87,18 +87,16 @@ export function EditConnectionModal({
         const hasChanges = Object.keys(formData).some(
             (key) => formData[key as keyof typeof formData] !== initialData[key as keyof typeof initialData]
         );
-
         if (!hasChanges && !formData.password) {
             alert('Нет изменений для сохранения');
             return;
         }
-
         try {
-            // Формируем данные для отправки (исключаем пустой пароль)
             const updateData: any = {};
-
             if (formData.name !== initialData.name) updateData.name = formData.name;
-            if (formData.description !== initialData.description) updateData.description = formData.description;
+            if (formData.description !== initialData.description) {
+                updateData.description = formData.description.trim() === '' ? null : formData.description;
+            }
             if (formData.database_type !== initialData.database_type) updateData.database_type = formData.database_type;
             if (formData.environment !== initialData.environment) updateData.environment = formData.environment;
             if (formData.is_favorite !== initialData.is_favorite) updateData.is_favorite = formData.is_favorite;
@@ -107,11 +105,9 @@ export function EditConnectionModal({
             if (formData.database_name !== initialData.database_name) updateData.database_name = formData.database_name;
             if (formData.username !== initialData.username) updateData.username = formData.username;
             if (formData.password) updateData.password = formData.password;
-
             await updateConnection(updateData);
             onSuccess();
         } catch (err) {
-            // Ошибка уже обработана в хуке
         }
     };
 
@@ -218,6 +214,7 @@ export function EditConnectionModal({
                                 className={clsx(styles.modal__input)}
                                 placeholder="Введите название подключения"
                                 disabled={loading}
+                                maxLength={30}
                             />
                         </div>
 
@@ -234,6 +231,7 @@ export function EditConnectionModal({
                                 className={clsx(styles.modal__input)}
                                 placeholder="Описание подключения"
                                 disabled={loading}
+                                maxLength={100}
                             />
                         </div>
 

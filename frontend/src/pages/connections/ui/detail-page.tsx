@@ -372,8 +372,15 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.cardName)}>
                                     {connection.name || 'Без имени'}
                                 </div>
-                                <div className={clsx(styles.cardDescription)}>
-                                    {connection.description || ''}
+                                <div
+                                    className={clsx(styles.cardDescription)}
+                                    title={connection.description || ''}
+                                >
+                                    {connection.description
+                                        ? (connection.description.length > 50
+                                            ? connection.description.slice(0, 50) + '...'
+                                            : connection.description)
+                                        : ''}
                                 </div>
                             </div>
                         </div>

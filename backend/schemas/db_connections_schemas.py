@@ -30,8 +30,9 @@ class ConnectionBase(BaseModel):
 
 
 class ConnectionCreate(ConnectionBase):
-    password: str
     owner_id: int
+    password: str
+    description: str | None = Field(None, max_length=255)
 
 
 class ConnectionUpdate(BaseModel):
@@ -77,13 +78,11 @@ class ConnectionOut(BaseModel):
 
 class PaginatedConnectionResponse(BasePaginatedResponse[ConnectionOut]):
     """Пагинация подключений"""
-
     pass
 
 
 class ActiveConnectionInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     pid: int
     username: str | None = None
     application_name: str | None = None

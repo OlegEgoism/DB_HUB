@@ -548,8 +548,15 @@ export default function ConnectionsPage() {
                         <div className={clsx(styles.cardName)}>
                           {connection.name || 'Без имени'}
                         </div>
-                        <div className={clsx(styles.cardDescription)}>
-                          {connection.description || ''}
+                        <div
+                            className={clsx(styles.cardDescription)}
+                            title={connection.description || ''}
+                        >
+                          {connection.description
+                              ? (connection.description.length > 30
+                                  ? connection.description.slice(0, 30) + '...'
+                                  : connection.description)
+                              : ''}
                         </div>
                       </div>
                     </div>
@@ -557,7 +564,7 @@ export default function ConnectionsPage() {
                       <div className={clsx(styles.cardInfo)}>
                         <div className={clsx(styles.infoItem)}>
                           <div className={clsx(styles.infoLabel)}>
-                            <FontAwesomeIcon icon={faDatabase} className={clsx(styles.infoIcon)} />
+                            <FontAwesomeIcon icon={faDatabase} className={clsx(styles.infoIcon)}/>
                             БАЗА ДАННЫХ
                           </div>
                           <div className={clsx(styles.infoValue)}>
