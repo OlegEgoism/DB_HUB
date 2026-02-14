@@ -6,7 +6,6 @@
     background: white;
     border-radius: 20px;
     border: 1px solid var(--gray-200);
-    //padding: 20px;
     width: 100%;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     position: relative;
@@ -21,10 +20,6 @@
       height: 4px;
       background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
     }
-  }
-
-  &__header {
-    margin-bottom: 24px;
   }
 
   &__loading,
@@ -72,31 +67,6 @@
   }
 }
 
-.backButton {
-  background: var(--color-surface-glass);
-  border: 1px solid var(--border-glass);
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-main);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-
-  &:hover {
-    background: rgba($clr-indigo-500, 0.05);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-}
-
 .connectionCard {
   background: var(--color-surface-glass);
   border: 1px solid var(--border-glass);
@@ -132,8 +102,8 @@
   position: relative;
 
   @media (max-width: 768px) {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
   }
 }
 
@@ -142,7 +112,7 @@
   font-size: 48px;
 
   @media (max-width: 768px) {
-    font-size: 36px;
+    font-size: 32px;
   }
 }
 
@@ -180,7 +150,6 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  //gap: 12px;
   min-width: 0;
 }
 
@@ -194,7 +163,7 @@
 }
 
 .cardTitle {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text-main);
   margin: 0;
@@ -224,13 +193,14 @@
 }
 
 .cardDescription {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-text-muted);
   display: flex;
   align-items: flex-start;
   gap: 8px;
   margin: 0;
   line-height: 1.6;
+  cursor: help;
 }
 
 // Вкладки
@@ -374,10 +344,10 @@
 }
 
 .metricsCardValue {
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-main);
-  width: 50%;
+  //width: 50%;
   text-align: right;
 }
 
@@ -468,95 +438,6 @@
   }
 }
 
-// Основной контент (без изменений)
-.statusSection,
-.infoSection {
-  margin-bottom: 32px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.sectionTitle {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-text-main);
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--border-glass);
-}
-
-.statusContainer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-
-  svg {
-    font-size: 18px;
-  }
-
-  &_success {
-    background: rgba($clr-emerald-500, 0.1);
-    color: $clr-emerald-500;
-  }
-
-  &_error {
-    background: rgba($clr-red-500, 0.1);
-    color: $clr-red-500;
-  }
-
-  &_unknown {
-    background: rgba($clr-gray-500, 0.1);
-    color: $clr-gray-500;
-  }
-}
-
-.infoGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-
-.infoLabel {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-
-  .infoIcon {
-    font-size: 18px;
-    color: var(--color-primary);
-  }
-}
-
-.infoValue {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text-main);
-  word-break: break-word;
-}
-
 .cardFooter {
   padding: 24px 32px;
   border-top: 1px solid var(--border-glass);
@@ -572,7 +453,6 @@
   }
 }
 
-.cardFooterLeft,
 .cardFooterRight {
   display: flex;
   align-items: center;
@@ -580,6 +460,7 @@
 
   @media (max-width: 768px) {
     width: 100%;
+    justify-content: flex-end;
   }
 }
 
@@ -609,38 +490,10 @@
     transform: none;
   }
 
-  .actionIcon {
-    font-size: 16px;
-    color: $clr-gray-600;
-
-    &_active {
-      color: var(--color-status-warning);
-    }
-  }
-
-  &_favorite {
-    background: rgba($clr-amber-500, 0.1);
-    border-color: rgba($clr-amber-500, 0.3);
-    color: $clr-amber-500;
-
-    .actionIcon {
-      color: $clr-amber-500;
-    }
-
-    &:hover:not(:disabled) {
-      background: rgba($clr-amber-500, 0.15);
-      box-shadow: 0 4px 12px rgba($clr-amber-500, 0.2);
-    }
-  }
-
   &_edit {
     background: rgba($clr-indigo-500, 0.1);
     border-color: rgba($clr-indigo-500, 0.3);
     color: var(--color-primary);
-
-    .actionIcon {
-      color: var(--color-primary);
-    }
 
     &:hover:not(:disabled) {
       background: rgba($clr-indigo-500, 0.15);
@@ -653,10 +506,6 @@
     border-color: rgba($clr-red-500, 0.3);
     color: $clr-red-500;
 
-    .actionIcon {
-      color: $clr-red-500;
-    }
-
     &:hover:not(:disabled) {
       background: rgba($clr-red-500, 0.15);
       box-shadow: 0 4px 12px rgba($clr-red-500, 0.2);
@@ -664,13 +513,16 @@
   }
 }
 
+// Стили для бейджей окружения
 .badge {
   display: inline-block;
   padding: 6px 16px;
   border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 
   &_production {
     background: rgba($clr-red-500, 0.1);

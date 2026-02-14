@@ -9,18 +9,12 @@ import {
     faSpinner,
     faExclamationCircle,
     faTrashAlt,
-    faUser,
-    faCodeBranch,
-    faPlug,
-    faHdd,
-    faKey,
     faChartBar,
     faInfoCircle,
     faCogs,
     faTable,
     faUserGroup,
     faNetworkWired,
-    faCalendarDays,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 
@@ -40,7 +34,6 @@ interface Connection {
     status: string;
     db_size_mb: number | null;
     created_at: string;
-    updated_at: string;
 }
 
 interface Metric {
@@ -71,16 +64,14 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
-type TabType = 'overview' | 'metrics' | 'extensions';
+type TabType = 'metrics' | 'extensions';
 
 export default function ConnectionDetailPage() {
     const {id} = useParams<{ id: string }>();
     const navigate = useNavigate();
-
     const [connection, setConnection] = useState<Connection | null>(null);
     const [metrics, setMetrics] = useState<DatabaseMetrics | null>(null);
-    const [activeTab, setActiveTab] = useState<TabType>('overview');
+    const [activeTab, setActiveTab] = useState<TabType>('metrics');
     const [loading, setLoading] = useState(true);
     const [loadingMetrics, setLoadingMetrics] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -96,10 +87,8 @@ export default function ConnectionDetailPage() {
             navigate('/login');
             return;
         }
-
         setLoading(true);
         setError(null);
-
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}`, {
                 headers: {
@@ -107,12 +96,10 @@ export default function ConnectionDetailPage() {
                     'Content-Type': 'application/json',
                 },
             });
-
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData?.detail || `Ошибка: ${response.status}`);
             }
-
             const data = await response.json();
             setConnection(data);
         } catch (err) {
@@ -125,16 +112,13 @@ export default function ConnectionDetailPage() {
 
     const loadMetrics = async () => {
         if (!id) return;
-
         const token = localStorage.getItem('access_token');
         if (!token) {
             navigate('/login');
             return;
         }
-
         setLoadingMetrics(true);
         setError(null);
-
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/metrics`, {
                 headers: {
@@ -142,17 +126,15 @@ export default function ConnectionDetailPage() {
                     'Content-Type': 'application/json',
                 },
             });
-
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData?.detail || `Ошибка: ${response.status}`);
             }
-
             const data = await response.json();
             setMetrics(data);
         } catch (err) {
-            console.error('Ошибка загрузки метрик:', err);
-            setError(err instanceof Error ? err.message : 'Не удалось загрузить метрики');
+            console.error('Ошибка загрузки информации:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось загрузить информацию');
         } finally {
             setLoadingMetrics(false);
         }
@@ -170,12 +152,11 @@ export default function ConnectionDetailPage() {
         }
     }, [activeTab]);
 
-
+// Функция для получения бейджа окружения
     const getEnvironmentBadge = (env: string) => {
         const envLower = env.toLowerCase();
         let colorClass = '';
         let label = env;
-
         switch (envLower) {
             case 'production':
                 colorClass = styles.badge_production;
@@ -195,11 +176,10 @@ export default function ConnectionDetailPage() {
                 label = 'РАЗРАБОТКА';
                 break;
         }
-
         return (
             <span className={clsx(styles.badge, colorClass)}>
-        {label}
-      </span>
+{label}
+</span>
         );
     };
 
@@ -210,11 +190,53 @@ export default function ConnectionDetailPage() {
         return styles.statusIndicator_unknown;
     };
 
+// Форматирование времени работы: преобразует "1 day 02:30:45" в "26:30:45"
+    const formatUptime = (uptimeStr: string): string => {
+        if (!uptimeStr || uptimeStr === '—') return '—';
 
-    const formatSize = (sizeMb: number | null | undefined) => {
-        if (sizeMb === null || sizeMb === undefined || sizeMb === 0) return '—';
-        if (sizeMb < 1024) return `${sizeMb.toFixed(1)} MB`;
-        return `${(sizeMb / 1024).toFixed(1)} ГБ`;
+// Обработка формата "X days HH:MM:SS" или "X day HH:MM:SS"
+        if (uptimeStr.includes('day')) {
+            try {
+                const parts = uptimeStr.split(' ');
+                const days = parseInt(parts[0], 10) || 0;
+                const timePart = parts[2] || '00:00:00';
+                const [hoursStr, minutes, seconds] = timePart.split(':');
+                const totalHours = days * 24 + (parseInt(hoursStr, 10) || 0);
+                return `${totalHours.toString().padStart(2, '0')}:${minutes}:${seconds}`;
+            } catch (e) {
+                console.error('Ошибка форматирования времени работы:', e);
+                return uptimeStr;
+            }
+        }
+
+// Обработка формата "HH:MM:SS" или "X days"
+        if (/^\d+:\d+:\d+$/.test(uptimeStr.trim())) {
+            return uptimeStr.trim();
+        }
+
+// Если формат не распознан, возвращаем исходную строку
+        return uptimeStr;
+    };
+
+// Форматирование времени начала работы: "2024-02-15 10:30:45 +03" -> "15.02.2024 10:30:45"
+    const formatStartTime = (startTimeStr: string): string => {
+        if (!startTimeStr || startTimeStr === '—') return '—';
+
+        try {
+// Удаляем временную зону в конце (например, " +03")
+            const cleanStr = startTimeStr.replace(/ [+-]\d{2}(:\d{2})?$/, '').trim();
+
+// Разделяем на дату и время
+            const [datePart, timePart] = cleanStr.split(' ');
+            if (!datePart || !timePart) return startTimeStr;
+
+// Форматируем дату: ГГГГ-ММ-ДД -> ДД.ММ.ГГГГ
+            const [year, month, day] = datePart.split('-');
+            return `${day}.${month}.${year} ${timePart}`;
+        } catch (e) {
+            console.error('Ошибка форматирования времени начала работы:', e);
+            return startTimeStr;
+        }
     };
 
     const formatDate = (dateString: string) => {
@@ -222,10 +244,11 @@ export default function ConnectionDetailPage() {
             const date = new Date(dateString);
             return date.toLocaleString('ru-RU', {
                 year: 'numeric',
-                month: 'long',
+                month: 'numeric',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit',
+                second: '2-digit',
             });
         } catch (e) {
             return dateString;
@@ -250,9 +273,7 @@ export default function ConnectionDetailPage() {
             closeDeleteConfirm();
             return;
         }
-
         setDeletingId(confirmDeleteId);
-
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${confirmDeleteId}`, {
                 method: 'DELETE',
@@ -261,12 +282,10 @@ export default function ConnectionDetailPage() {
                     'Content-Type': 'application/json',
                 },
             });
-
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData?.detail || 'Не удалось удалить подключение');
             }
-
             navigate('/connections');
         } catch (err) {
             console.error('Ошибка при удалении подключения:', err);
@@ -332,7 +351,6 @@ export default function ConnectionDetailPage() {
         );
     }
 
-    // Функция для получения значения метрики по ключу
     const getMetricValue = (metricKey: string, defaultValue: string = '—') => {
         if (!metrics) return defaultValue;
         const metric = metrics.basic_metrics.find(m => m.metric === metricKey);
@@ -343,8 +361,6 @@ export default function ConnectionDetailPage() {
         <section className={clsx(styles.connectionDetail)}>
             <div className="container">
                 <div className={clsx(styles.connectionDetail__section)}>
-
-                    {/* Карточка подключения */}
                     <div className={clsx(styles.connectionCard)}>
                         <div className={clsx(styles.cardHeader)}>
                             <div className={clsx(styles.cardIconContainer)}>
@@ -377,25 +393,15 @@ export default function ConnectionDetailPage() {
                                     title={connection.description || ''}
                                 >
                                     {connection.description
-                                        ? (connection.description.length > 30
-                                            ? connection.description.slice(0, 30) + '...'
+                                        ? (connection.description.length > 50
+                                            ? connection.description.slice(0, 50) + '...'
                                             : connection.description)
-                                        : ''}
+                                        : '—'}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Вкладки */}
                         <div className={clsx(styles.tabsContainer)}>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'overview' && styles.tabButton_active
-                                )}
-                                onClick={() => setActiveTab('overview')}
-                            >
-                                Информация
-                            </button>
                             <button
                                 className={clsx(
                                     styles.tabButton,
@@ -404,7 +410,7 @@ export default function ConnectionDetailPage() {
                                 onClick={() => setActiveTab('metrics')}
                             >
                                 <FontAwesomeIcon icon={faChartBar}/>
-                                Метрики
+                                Информация
                             </button>
                             <button
                                 className={clsx(
@@ -418,124 +424,7 @@ export default function ConnectionDetailPage() {
                             </button>
                         </div>
 
-                        {/* Содержимое вкладок */}
                         <div className={clsx(styles.tabContent)}>
-                            {/* Вкладка Обзор */}
-                            {activeTab === 'overview' && (
-                                <div className={clsx(styles.overviewContent)}>
-
-                                    {/* Основная информация */}
-                                    <div className={clsx(styles.infoSection)}>
-                                        <div className={clsx(styles.infoGrid)}>
-                                            <div className={clsx(styles.infoItem)}>
-                                                <div className={clsx(styles.infoLabel)}>
-                                                    <FontAwesomeIcon icon={faDatabase} className={clsx(styles.infoIcon)}/>
-                                                    ИМЯ БАЗЫ ДАННЫХ
-                                                </div>
-                                                <div className={clsx(styles.infoValue)}>
-                                                    {connection.database_name || '—'}
-                                                </div>
-                                            </div>
-                                            <div className={clsx(styles.infoItem)}>
-                                                <div className={clsx(styles.infoLabel)}>
-                                                    <FontAwesomeIcon icon={faUser} className={clsx(styles.infoIcon)}/>
-                                                    ПОЛЬЗОВАТЕЛЬ
-                                                </div>
-                                                <div className={clsx(styles.infoValue)}>
-                                                    {connection.username}
-                                                </div>
-                                            </div>
-                                            <div className={clsx(styles.infoItem)}>
-                                                <div className={clsx(styles.infoLabel)}>
-                                                    <FontAwesomeIcon icon={faCodeBranch} className={clsx(styles.infoIcon)}/>
-                                                    ХОСТ
-                                                </div>
-                                                <div className={clsx(styles.infoValue)}>
-                                                    {connection.host}
-                                                </div>
-                                            </div>
-                                            <div className={clsx(styles.infoItem)}>
-                                                <div className={clsx(styles.infoLabel)}>
-                                                    <FontAwesomeIcon icon={faPlug} className={clsx(styles.infoIcon)}/>
-                                                    ПОРТ
-                                                </div>
-                                                <div className={clsx(styles.infoValue)}>
-                                                    {connection.port}
-                                                </div>
-                                            </div>
-
-
-                                        </div>
-                                    </div>
-
-                                    {/* Дополнительная информация */}
-                                    <div className={clsx(styles.infoSection)}>
-                                        <div className={clsx(styles.infoGrid)}>
-
-                                            <div className={clsx(styles.infoItem)}>
-                                                <div className={clsx(styles.infoLabel)}>
-                                                    <FontAwesomeIcon icon={faHdd} className={clsx(styles.infoIcon)}/>
-                                                    РАЗМЕР БАЗЫ
-                                                </div>
-                                                <div className={clsx(styles.infoValue)}>
-                                                    {formatSize(connection.db_size_mb)}
-                                                </div>
-                                            </div>
-
-                                            <div className={clsx(styles.infoItem)}>
-                                                <div className={clsx(styles.infoLabel)}>
-                                                    <FontAwesomeIcon icon={faKey} className={clsx(styles.infoIcon)}/>
-                                                    ВЛАДЕЛЕЦ
-                                                </div>
-                                                <div className={clsx(styles.infoValue)}>
-                                                    {connection.owner_username || '—'}
-                                                </div>
-                                            </div>
-                                            <div className={clsx(styles.infoItem)}>
-                                                <div className={clsx(styles.infoLabel)}>
-                                                    <FontAwesomeIcon icon={faCalendarDays} className={clsx(styles.infoIcon)}/>
-                                                    ДАТА СОЗДАНИЯ ПОДКЛЮЧЕНИЯ
-                                                </div>
-                                                <div className={clsx(styles.infoValue)}>
-                                                    {formatDate(connection.created_at)}
-                                                </div>
-                                            </div>
-                                            <div className={clsx(styles.infoItem)}>
-                                                <div className={clsx(styles.infoLabel)}>
-                                                    <FontAwesomeIcon icon={faCalendarDays} className={clsx(styles.infoIcon)}/>
-                                                    ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ
-                                                </div>
-                                                <div className={clsx(styles.infoValue)}>
-                                                    {formatDate(connection.updated_at)}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                    <div className={clsx(styles.cardFooter)}>
-                                        <div className={clsx(styles.cardFooterRight)}>
-                                            <button
-                                                className={clsx(styles.actionButton, styles.actionButton_edit)}
-                                                onClick={openEditModal}
-                                                title="Редактировать подключение"
-                                                disabled={deletingId === connection.id}
-                                            >
-                                                Редактировать
-                                            </button>
-                                            <button
-                                                className={clsx(styles.actionButton, styles.actionButton_delete)}
-                                                onClick={() => openDeleteConfirm(connection.id, connection.name || 'Без имени')}
-                                                title="Удалить подключение"
-                                                disabled={deletingId !== null}
-                                            >
-                                                Удалить
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Вкладка Метрики - обновленная версия */}
                             {activeTab === 'metrics' && (
                                 <div className={clsx(styles.metricsContent)}>
                                     {loadingMetrics ? (
@@ -543,7 +432,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка метрик...</p>
+                                            <p>Загрузка информации...</p>
                                         </div>
                                     ) : metrics && metrics.basic_metrics.length > 0 ? (
                                         <div className={clsx(styles.metricsGrid)}>
@@ -579,16 +468,44 @@ export default function ConnectionDetailPage() {
                                                         <div className={clsx(styles.metricsCardValue)}>{getMetricValue('server_version', '—')}</div>
                                                     </div>
                                                     <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Кодировка по умолчанию:</div>
+                                                        <div className={clsx(styles.metricsCardLabel)}>Кодировка:</div>
                                                         <div className={clsx(styles.metricsCardValue)}>{getMetricValue('client_encoding', '—')}</div>
+                                                    </div>
+                                                    <div className={clsx(styles.metricsCardRow)}>
+                                                        <div className={clsx(styles.metricsCardLabel)}>Авто очистка:</div>
+                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('autovacuum', '—')}</div>
+                                                    </div>
+                                                    <div className={clsx(styles.metricsCardRow)}>
+                                                        <div className={clsx(styles.metricsCardLabel)}>Логирование:</div>
+                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('log_statement_stats', '—')}</div>
                                                     </div>
                                                     <div className={clsx(styles.metricsCardRow)}>
                                                         <div className={clsx(styles.metricsCardLabel)}>Коллация:</div>
                                                         <div className={clsx(styles.metricsCardValue)}>{getMetricValue('database_collation', '—')}</div>
                                                     </div>
                                                     <div className={clsx(styles.metricsCardRow)}>
+                                                        <div className={clsx(styles.metricsCardLabel)}>Буфер:</div>
+                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('shared_buffers', '—')}</div>
+                                                    </div>
+                                                    <div className={clsx(styles.metricsCardRow)}>
+                                                        <div className={clsx(styles.metricsCardLabel)}>Рабочая память:</div>
+                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('work_mem', '—')}</div>
+                                                    </div>
+                                                    <div className={clsx(styles.metricsCardRow)}>
+                                                        <div className={clsx(styles.metricsCardLabel)}>Временная зона:</div>
+                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('TimeZone', '—')}</div>
+                                                    </div>
+                                                    <div className={clsx(styles.metricsCardRow)}>
                                                         <div className={clsx(styles.metricsCardLabel)}>Время работы:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('server_uptime', '—')}</div>
+                                                        <div className={clsx(styles.metricsCardValue)}>{formatUptime(getMetricValue('server_uptime', '—'))}</div>
+                                                    </div>
+                                                    <div className={clsx(styles.metricsCardRow)}>
+                                                        <div className={clsx(styles.metricsCardLabel)}>Начало работы:</div>
+                                                        <div className={clsx(styles.metricsCardValue)}>{formatStartTime(getMetricValue('server_start_time', '—'))}</div>
+                                                    </div>
+                                                    <div className={clsx(styles.metricsCardRow)}>
+                                                        <div className={clsx(styles.metricsCardLabel)}>Дата создания подключения:</div>
+                                                        <div className={clsx(styles.metricsCardValue)}>{formatDate(connection.created_at)}</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -710,14 +627,13 @@ export default function ConnectionDetailPage() {
                                     ) : (
                                         <div className={clsx(styles.metricsEmpty)}>
                                             <FontAwesomeIcon icon={faInfoCircle} size="3x"/>
-                                            <p>Метрики недоступны</p>
+                                            <p>Информация недоступна</p>
                                             {error && <p className={clsx(styles.errorMessage)}>{error}</p>}
                                         </div>
                                     )}
                                 </div>
                             )}
 
-                            {/* Вкладка Расширения */}
                             {activeTab === 'extensions' && (
                                 <div className={clsx(styles.extensionsContent)}>
                                     {metrics && metrics.extensions.length > 0 ? (
@@ -748,7 +664,27 @@ export default function ConnectionDetailPage() {
                             )}
                         </div>
 
-
+                        {/* Кнопки действий - вынесены за пределы вкладок */}
+                        <div className={clsx(styles.cardFooter)}>
+                            <div className={clsx(styles.cardFooterRight)}>
+                                <button
+                                    className={clsx(styles.actionButton, styles.actionButton_edit)}
+                                    onClick={openEditModal}
+                                    title="Редактировать подключение"
+                                    disabled={deletingId === connection.id}
+                                >
+                                    Редактировать
+                                </button>
+                                <button
+                                    className={clsx(styles.actionButton, styles.actionButton_delete)}
+                                    onClick={() => openDeleteConfirm(connection.id, connection.name || 'Без имени')}
+                                    title="Удалить подключение"
+                                    disabled={deletingId !== null}
+                                >
+                                    Удалить
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
