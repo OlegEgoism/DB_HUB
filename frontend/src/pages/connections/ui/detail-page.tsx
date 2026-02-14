@@ -193,7 +193,6 @@ export default function ConnectionDetailPage() {
 // Форматирование времени работы: преобразует "1 day 02:30:45" в "26:30:45"
     const formatUptime = (uptimeStr: string): string => {
         if (!uptimeStr || uptimeStr === '—') return '—';
-
 // Обработка формата "X days HH:MM:SS" или "X day HH:MM:SS"
         if (uptimeStr.includes('day')) {
             try {
@@ -208,12 +207,10 @@ export default function ConnectionDetailPage() {
                 return uptimeStr;
             }
         }
-
 // Обработка формата "HH:MM:SS" или "X days"
         if (/^\d+:\d+:\d+$/.test(uptimeStr.trim())) {
             return uptimeStr.trim();
         }
-
 // Если формат не распознан, возвращаем исходную строку
         return uptimeStr;
     };
@@ -221,15 +218,12 @@ export default function ConnectionDetailPage() {
 // Форматирование времени начала работы: "2024-02-15 10:30:45 +03" -> "15.02.2024 10:30:45"
     const formatStartTime = (startTimeStr: string): string => {
         if (!startTimeStr || startTimeStr === '—') return '—';
-
         try {
 // Удаляем временную зону в конце (например, " +03")
             const cleanStr = startTimeStr.replace(/ [+-]\d{2}(:\d{2})?$/, '').trim();
-
 // Разделяем на дату и время
             const [datePart, timePart] = cleanStr.split(' ');
             if (!datePart || !timePart) return startTimeStr;
-
 // Форматируем дату: ГГГГ-ММ-ДД -> ДД.ММ.ГГГГ
             const [year, month, day] = datePart.split('-');
             return `${day}.${month}.${year} ${timePart}`;
@@ -435,195 +429,218 @@ export default function ConnectionDetailPage() {
                                             <p>Загрузка информации...</p>
                                         </div>
                                     ) : metrics && metrics.basic_metrics.length > 0 ? (
-                                        <div className={clsx(styles.metricsGrid)}>
-                                            {/* Общая информация */}
-                                            <div className={clsx(styles.metricsCard)}>
-                                                <div className={clsx(styles.metricsCardHeader)}>
-                                                    <FontAwesomeIcon icon={faDatabase} className={clsx(styles.metricsCardIcon)}/>
-                                                    <h3 className={clsx(styles.metricsCardTitle)}>Общая информация</h3>
+                                        <>
+                                            <div className={clsx(styles.metricsGrid)}>
+                                                {/* Общая информация */}
+                                                <div className={clsx(styles.metricsCard)}>
+                                                    <div className={clsx(styles.metricsCardHeader)}>
+                                                        <FontAwesomeIcon icon={faDatabase} className={clsx(styles.metricsCardIcon)}/>
+                                                        <h3 className={clsx(styles.metricsCardTitle)}>Общая информация</h3>
+                                                    </div>
+                                                    <div className={clsx(styles.metricsCardContent)}>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>База данных:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{connection.database_name || '—'}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Хост:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{connection.host || '—'}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Порт:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{connection.port || '—'}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Пользователь:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{connection.username || '—'}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Размер базы данных:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('db_size', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Версия СУБД:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('server_version', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Кодировка:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('client_encoding', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Авто очистка:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('autovacuum', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Логирование:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('log_statement_stats', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Коллация:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('database_collation', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Буфер:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('shared_buffers', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Рабочая память:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('work_mem', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Временная зона:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('TimeZone', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Время работы:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{formatUptime(getMetricValue('server_uptime', '—'))}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Начало работы:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{formatStartTime(getMetricValue('server_start_time', '—'))}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Дата создания подключения:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{formatDate(connection.created_at)}</div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className={clsx(styles.metricsCardContent)}>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>База данных:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{connection.database_name || '—'}</div>
+                                                {/* Структура базы */}
+                                                <div className={clsx(styles.metricsCard)}>
+                                                    <div className={clsx(styles.metricsCardHeader)}>
+                                                        <FontAwesomeIcon icon={faTable} className={clsx(styles.metricsCardIcon)}/>
+                                                        <h3 className={clsx(styles.metricsCardTitle)}>Структура базы</h3>
                                                     </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Хост:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{connection.host || '—'}</div>
+                                                    <div className={clsx(styles.metricsCardContent)}>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Количество таблиц:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('table_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Размер таблиц:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('table_size', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Количество временных таблиц:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('temp_table_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Размер временных таблиц:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('temp_table_size', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Количество системных таблиц:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('system_table_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Размер системных таблиц:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('system_table_size', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Количество индексов:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('index_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Размер индексов:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('index_size', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Количество представлений:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('view_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Материализованных представлений:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('materialized_view_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Хранимых процедур:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('procedure_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Триггеров:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('trigger_count', '—')}</div>
+                                                        </div>
                                                     </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Порт:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{connection.port || '—'}</div>
+                                                </div>
+                                                {/* Пользователи и группы */}
+                                                <div className={clsx(styles.metricsCard)}>
+                                                    <div className={clsx(styles.metricsCardHeader)}>
+                                                        <FontAwesomeIcon icon={faUserGroup} className={clsx(styles.metricsCardIcon)}/>
+                                                        <h3 className={clsx(styles.metricsCardTitle)}>Пользователи и группы</h3>
                                                     </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Пользователь:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{connection.username || '—'}</div>
+                                                    <div className={clsx(styles.metricsCardContent)}>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Всего пользователей:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('total_users', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Всего суперпользователей:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('superuser_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Активных пользователей:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('active_users', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Количество групп:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('role_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Количество системных групп:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('pg_role_count', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Максимальное кол-во подключений:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('max_connections', '—')}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Текущих подключений:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{getMetricValue('current_connections', '—')}</div>
+                                                        </div>
                                                     </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Размер базы данных:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('db_size', '—')}</div>
+                                                </div>
+                                                {/* Кластеризация и репликация */}
+                                                <div className={clsx(styles.metricsCard)}>
+                                                    <div className={clsx(styles.metricsCardHeader)}>
+                                                        <FontAwesomeIcon icon={faNetworkWired} className={clsx(styles.metricsCardIcon)}/>
+                                                        <h3 className={clsx(styles.metricsCardTitle)}>Кластеризация и репликация</h3>
                                                     </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Версия СУБД:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('server_version', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Кодировка:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('client_encoding', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Авто очистка:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('autovacuum', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Логирование:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('log_statement_stats', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Коллация:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('database_collation', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Буфер:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('shared_buffers', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Рабочая память:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('work_mem', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Временная зона:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('TimeZone', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Время работы:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{formatUptime(getMetricValue('server_uptime', '—'))}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Начало работы:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{formatStartTime(getMetricValue('server_start_time', '—'))}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Дата создания подключения:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{formatDate(connection.created_at)}</div>
+                                                    <div className={clsx(styles.metricsCardContent)}>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Статус репликации:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{metrics.cluster_replication.length > 0 ? 'Поддерживается' : 'Не поддерживается'}</div>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsCardRow)}>
+                                                            <div className={clsx(styles.metricsCardLabel)}>Задержка репликации:</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{metrics.cluster_replication.length > 0 ? metrics.cluster_replication[0].replication_lag : '—'}</div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Структура базы */}
-                                            <div className={clsx(styles.metricsCard)}>
-                                                <div className={clsx(styles.metricsCardHeader)}>
-                                                    <FontAwesomeIcon icon={faTable} className={clsx(styles.metricsCardIcon)}/>
-                                                    <h3 className={clsx(styles.metricsCardTitle)}>Структура базы</h3>
-                                                </div>
-                                                <div className={clsx(styles.metricsCardContent)}>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Количество таблиц:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('table_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Размер таблиц:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('table_size', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Количество временных таблиц:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('temp_table_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Размер временных таблиц:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('temp_table_size', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Количество системных таблиц:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('system_table_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Размер системных таблиц:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('system_table_size', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Количество индексов:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('index_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Размер индексов:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('index_size', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Количество представлений:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('view_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Материализованных представлений:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('materialized_view_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Хранимых процедур:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('procedure_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Триггеров:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('trigger_count', '—')}</div>
+                                            {/* Кнопки действий - отображаются ТОЛЬКО на вкладке "Информация" */}
+                                            {activeTab === 'metrics' && (
+                                                <div className={clsx(styles.cardFooter)}>
+                                                    <div className={clsx(styles.cardFooterRight)}>
+                                                        <button
+                                                            className={clsx(styles.actionButton, styles.actionButton_edit)}
+                                                            onClick={openEditModal}
+                                                            title="Редактировать подключение"
+                                                            disabled={deletingId === connection.id}
+                                                        >
+                                                            Редактировать
+                                                        </button>
+                                                        <button
+                                                            className={clsx(styles.actionButton, styles.actionButton_delete)}
+                                                            onClick={() => openDeleteConfirm(connection.id, connection.name || 'Без имени')}
+                                                            title="Удалить подключение"
+                                                            disabled={deletingId !== null}
+                                                        >
+                                                            Удалить
+                                                        </button>
                                                     </div>
                                                 </div>
-                                            </div>
-
-                                            {/* Пользователи и группы */}
-                                            <div className={clsx(styles.metricsCard)}>
-                                                <div className={clsx(styles.metricsCardHeader)}>
-                                                    <FontAwesomeIcon icon={faUserGroup} className={clsx(styles.metricsCardIcon)}/>
-                                                    <h3 className={clsx(styles.metricsCardTitle)}>Пользователи и группы</h3>
-                                                </div>
-                                                <div className={clsx(styles.metricsCardContent)}>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Всего пользователей:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('total_users', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Всего суперпользователей:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('superuser_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Активных пользователей:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('active_users', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Количество групп:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('role_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Количество системных групп:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('pg_role_count', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Максимальное кол-во подключений:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('max_connections', '—')}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Текущих подключений:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{getMetricValue('current_connections', '—')}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Кластеризация и репликация */}
-                                            <div className={clsx(styles.metricsCard)}>
-                                                <div className={clsx(styles.metricsCardHeader)}>
-                                                    <FontAwesomeIcon icon={faNetworkWired} className={clsx(styles.metricsCardIcon)}/>
-                                                    <h3 className={clsx(styles.metricsCardTitle)}>Кластеризация и репликация</h3>
-                                                </div>
-                                                <div className={clsx(styles.metricsCardContent)}>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Статус репликации:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{metrics.cluster_replication.length > 0 ? 'Поддерживается' : 'Не поддерживается'}</div>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsCardRow)}>
-                                                        <div className={clsx(styles.metricsCardLabel)}>Задержка репликации:</div>
-                                                        <div className={clsx(styles.metricsCardValue)}>{metrics.cluster_replication.length > 0 ? metrics.cluster_replication[0].replication_lag : '—'}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            )}
+                                        </>
                                     ) : (
                                         <div className={clsx(styles.metricsEmpty)}>
                                             <FontAwesomeIcon icon={faInfoCircle} size="3x"/>
@@ -662,28 +679,6 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                        </div>
-
-                        {/* Кнопки действий - вынесены за пределы вкладок */}
-                        <div className={clsx(styles.cardFooter)}>
-                            <div className={clsx(styles.cardFooterRight)}>
-                                <button
-                                    className={clsx(styles.actionButton, styles.actionButton_edit)}
-                                    onClick={openEditModal}
-                                    title="Редактировать подключение"
-                                    disabled={deletingId === connection.id}
-                                >
-                                    Редактировать
-                                </button>
-                                <button
-                                    className={clsx(styles.actionButton, styles.actionButton_delete)}
-                                    onClick={() => openDeleteConfirm(connection.id, connection.name || 'Без имени')}
-                                    title="Удалить подключение"
-                                    disabled={deletingId !== null}
-                                >
-                                    Удалить
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>

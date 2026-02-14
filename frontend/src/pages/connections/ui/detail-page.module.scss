@@ -439,8 +439,9 @@
 }
 
 .cardFooter {
-  padding: 24px 32px;
-  border-top: 1px solid var(--border-glass);
+  //padding: 24px;
+  //border-top: 1px solid var(--border-glass);
+  margin-top: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
