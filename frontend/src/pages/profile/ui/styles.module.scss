@@ -1,0 +1,270 @@
+// frontend/src/pages/profile/ui/styles.module.scss
+@use "@shared/styles/_palette" as *;
+
+.profile {
+  &__title {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: var(--color-text-main);
+    text-align: left;
+  }
+
+  &__section {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid var(--gray-200);
+    padding: 20px;
+    width: 100%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    }
+  }
+
+  &__loading,
+  &__error {
+    padding: 60px 20px;
+    text-align: center;
+  }
+
+  &__loading {
+    p {
+      margin-top: 16px;
+      font-size: 18px;
+      color: var(--color-text-muted);
+    }
+  }
+
+  &__spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba($clr-indigo-500, 0.1);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    margin: 0 auto;
+    animation: spin 1s linear infinite;
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  }
+
+  &__error {
+    p {
+      font-size: 18px;
+      color: var(--color-status-danger);
+      margin-bottom: 20px;
+    }
+  }
+
+  &__retryButton {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--color-primary-dark);
+      transform: translateY(-2px);
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  &__card {
+    background: var(--color-surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  &__cardHeader {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-glass);
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  &__cardTitle {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-text-main);
+    margin: 0;
+  }
+
+  &__cardBody {
+    padding: 24px;
+  }
+
+  &__infoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+  }
+
+  &__infoItem {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__infoLabel {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+  }
+
+  &__infoValue {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-text-main);
+
+    &_primary {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+  }
+
+  &__badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+
+    &_success {
+      background: rgba($clr-emerald-500, 0.1);
+      color: $clr-emerald-500;
+    }
+
+    &_secondary {
+      background: rgba($clr-gray-500, 0.1);
+      color: $clr-gray-500;
+    }
+  }
+
+  &__statusBadge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+
+    &_active {
+      background: rgba($clr-emerald-500, 0.1);
+      color: $clr-emerald-500;
+    }
+
+    &_inactive {
+      background: rgba($clr-red-500, 0.1);
+      color: $clr-red-500;
+    }
+  }
+
+  &__roleBadge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+
+    &_admin {
+      background: rgba($clr-red-500, 0.1);
+      color: $clr-red-500;
+    }
+
+    &_analyst {
+      background: rgba($clr-indigo-500, 0.1);
+      color: $clr-indigo-500;
+    }
+
+    &_developer {
+      background: rgba($clr-indigo-500, 0.1);
+      color: $clr-indigo-500;
+    }
+
+    &_tester {
+      background: rgba($clr-amber-500, 0.1);
+      color: $clr-amber-500;
+    }
+
+    &_user {
+      background: rgba($clr-gray-500, 0.1);
+      color: $clr-gray-500;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 16px;
+    justify-content: right;
+    padding: 24px 0;
+  }
+
+  &__actionButton {
+    padding: 12px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid var(--border-glass);
+    background: white;
+    color: var(--color-text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    &_primary {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+
+      &:hover {
+        background: var(--color-primary-dark);
+        box-shadow: 0 4px 12px rgba($clr-indigo-500, 0.3);
+      }
+    }
+
+    &_secondary {
+      background: $clr-gray-200;
+      color: var(--color-text-main);
+      border-color: $clr-gray-300;
+
+      &:hover {
+        background: $clr-gray-300;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+}

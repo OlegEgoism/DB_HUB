@@ -1,0 +1,30 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 200
+
+# Где не проверять (exclude остаётся на верхнем уровне!)
+extend-exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    "frontend",
+    "load_data.py",
+    "collect_backend.py",
+    "collect_frontend.py",
+]
+
+[tool.ruff.lint]
+# Что включаем
+select = [
+    "E", # pycodestyle errors
+    "F", # pyflakes
+    "W", # pycodestyle warnings
+    "I", # isort (импорты)
+    "B", # flake8-bugbear
+    "UP", # pyupgrade
+]
+
+# Что часто мешает в FastAPI
+ignore = [
+    "B008",
+]

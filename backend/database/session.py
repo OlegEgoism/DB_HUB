@@ -1,8 +1,10 @@
 # backend/database/session.py
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+
 import os
+
 from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import declarative_base
 
 load_dotenv()
 
@@ -17,11 +19,7 @@ print(f"🔗 Подключение к базе данных: {DB_HOST}:{DB_PORT
 
 try:
     engine = create_async_engine(DATABASE_URL, echo=True)
-    AsyncSessionLocal = async_sessionmaker(
-        engine,
-        class_=AsyncSession,
-        expire_on_commit=False
-    )
+    AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     print("✅ Движок базы данных успешно создан")
 except Exception as e:
     print(f"❌ Ошибка при создании движка базы данных: {e}")

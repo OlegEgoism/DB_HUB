@@ -1,0 +1,95 @@
+ //frontend/src/widgets/footer/ui/footer.module.scss
+
+.footer {
+    align-items: center;
+
+    &__body {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 30px;
+        background: white;
+        border-radius: 20px;
+        border: 1px solid var(--gray-200);
+        margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+        }
+    }
+
+
+    &__nav {
+        &List {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        &Item {
+            position: relative;
+        }
+
+        &Link {
+            background: none;
+            border: none;
+            color: var(--gray-600);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0;
+            text-align: left;
+            transition: color 0.2s ease;
+            text-decoration: none;
+
+            i {
+                font-size: 16px;
+                color: var(--gray-500);
+                transition: color 0.2s ease;
+            }
+
+            &:hover {
+                color: var(--primary);
+
+                i {
+                    color: var(--primary);
+                }
+            }
+
+            &_active {
+                color: var(--primary);
+                font-weight: 600;
+
+                i {
+                    color: var(--primary);
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+

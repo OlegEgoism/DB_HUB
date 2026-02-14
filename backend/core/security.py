@@ -1,11 +1,12 @@
 # backend/core/security.py
+
 from datetime import datetime, timedelta
-from typing import Optional
+
+import bcrypt
+from backend.core.config import settings
+from cryptography.fernet import Fernet
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from cryptography.fernet import Fernet
-from backend.core.config import settings
-import bcrypt
 
 fernet = Fernet(settings.ENCRYPTION_KEY.encode())
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -24,14 +25,14 @@ def decrypt_password(encrypted_password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Проверяет пароль"""
     try:
-        plain_bytes = plain_password.encode('utf-8')
-        hashed_bytes = hashed_password.encode('utf-8')
+        plain_bytes = plain_password.encode("utf-8")
+        hashed_bytes = hashed_password.encode("utf-8")
         return bcrypt.checkpw(plain_bytes, hashed_bytes)
     except Exception:
         return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Создает JWT токен"""
     to_encode = data.copy()
     if expires_delta:
@@ -55,6 +56,6 @@ def decode_access_token(token: str):
 def get_password_hash(password: str) -> str:
     """Хеширует пароль"""
     salt = bcrypt.gensalt()
-    password_bytes = password.encode('utf-8')
+    password_bytes = password.encode("utf-8")
     hashed = bcrypt.hashpw(password_bytes, salt)
-    return hashed.decode('utf-8')
+    return hashed.decode("utf-8")
