@@ -246,7 +246,7 @@ export function CreateConnectionModal({
                 onChange={handleChange}
                 required
                 className={clsx(styles.modal__input)}
-                placeholder="database_name"
+                placeholder="Укажите имя базы данных"
                 disabled={loading}
               />
             </div>
@@ -266,7 +266,7 @@ export function CreateConnectionModal({
                     onChange={handleChange}
                     required
                     className={clsx(styles.modal__input)}
-                    placeholder="username"
+                    placeholder="Пользователь"
                     disabled={loading}
                   />
                 </div>
@@ -311,7 +311,7 @@ export function CreateConnectionModal({
                 onChange={handleChange}
                 required
                 className={clsx(styles.modal__input)}
-                placeholder="localhost"
+                placeholder="Укажите хост подключения"
                 disabled={loading}
               />
             </div>
