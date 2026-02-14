@@ -377,8 +377,8 @@ export default function ConnectionDetailPage() {
                                     title={connection.description || ''}
                                 >
                                     {connection.description
-                                        ? (connection.description.length > 50
-                                            ? connection.description.slice(0, 50) + '...'
+                                        ? (connection.description.length > 30
+                                            ? connection.description.slice(0, 30) + '...'
                                             : connection.description)
                                         : ''}
                                 </div>
