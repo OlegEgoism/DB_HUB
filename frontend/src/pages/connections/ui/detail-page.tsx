@@ -1,5 +1,5 @@
 // frontend/src/pages/connections/ui/detail-page.tsx
-import {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useParams, useNavigate} from 'react-router';
 import clsx from 'clsx';
 import styles from './detail-page.module.scss';
@@ -28,6 +28,7 @@ import {
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
 import {useConnectionUsers} from '../lib/useConnectionUsers';
+import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 
 interface Connection {
     id: number;
@@ -101,6 +102,24 @@ export default function ConnectionDetailPage() {
     const [usersPageSize, setUsersPageSize] = useState(8);
     const [usersSearchQuery, setUsersSearchQuery] = useState('');
     const [usersSearchTerm, setUsersSearchTerm] = useState('');
+
+    const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+
+// Обработчики для создания пользователя
+    const openCreateUserModal = () => {
+        setIsCreateUserModalOpen(true);
+    };
+
+    const closeCreateUserModal = () => {
+        setIsCreateUserModalOpen(false);
+    };
+
+    const handleCreateUserSuccess = () => {
+        closeCreateUserModal();
+        // Перезагружаем список пользователей
+        setUsersPage(1);
+        setUsersSearchTerm('');
+    };
 
 // Используем хук с параметрами пагинации
     const {
@@ -787,7 +806,6 @@ export default function ConnectionDetailPage() {
                                             onSubmit={handleUsersSearchSubmit}
                                             className={clsx(styles.usersSearchContainer)}
                                         >
-
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
@@ -816,6 +834,13 @@ export default function ConnectionDetailPage() {
                                                 Поиск
                                             </button>
                                         </form>
+                                        <button
+                                            className={clsx(styles.createUserButton)}
+                                            onClick={openCreateUserModal}
+                                            aria-label="Создать нового пользователя"
+                                        >
+                                            Создать пользователя
+                                        </button>
                                     </div>
                                     {loadingUsers ? (
                                         <div className={clsx(styles.usersLoading)}>
@@ -1013,6 +1038,14 @@ export default function ConnectionDetailPage() {
                     user={editingUser}
                     onClose={closeEditUserModal}
                     onSuccess={handleEditUserSuccess}
+                />
+            )}
+            {/* Модальное окно создания пользователя */}
+            {isCreateUserModalOpen && (
+                <CreateUserModal
+                    connectionId={parseInt(id || '0')}
+                    onClose={closeCreateUserModal}
+                    onSuccess={handleCreateUserSuccess}
                 />
             )}
         </section>

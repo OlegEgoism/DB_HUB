@@ -1092,3 +1092,34 @@
   min-width: 120px;
   text-align: center;
 }
+
+
+// Кнопка создания пользователя
+.createUserButton {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  &:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba($clr-indigo-500, 0.3);
+  }
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.2);
+  }
+  svg {
+    font-size: 16px;
+  }
+}
