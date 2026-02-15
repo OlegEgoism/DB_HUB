@@ -844,18 +844,19 @@ export default function ConnectionDetailPage() {
                                                                     <div className={clsx(styles.userItemInfo)}>
                                                                         <span className={clsx(styles.userItemInfoLabel)}>Email:</span>
                                                                         <span className={clsx(styles.userItemInfoValue)}>{user.email}</span>
-                                                                        <button
-                                                                            className={clsx(styles.editEmailButton)}
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                openEditUserModal(user);
-                                                                            }}
-                                                                            title="Редактировать пользователя"
-                                                                        >
-                                                                            <FontAwesomeIcon icon={faPencilAlt}/>
-                                                                        </button>
                                                                     </div>
                                                                 )}
+                                                                {/* Кнопка редактирования отображается для всех пользователей */}
+                                                                <button
+                                                                    className={clsx(styles.editEmailButton)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openEditUserModal(user);
+                                                                    }}
+                                                                    title="Редактировать пользователя"
+                                                                >
+                                                                    <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </div>
