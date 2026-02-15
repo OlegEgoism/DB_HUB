@@ -23,8 +23,10 @@ import {
     faChevronCircleLeft,
     faChevronCircleRight,
     faUser,
+    faPencilAlt,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
+import {EditUserModal} from './EditUserModal';
 import {useConnectionUsers} from '../lib/useConnectionUsers';
 
 interface Connection {
@@ -74,7 +76,6 @@ interface DatabaseMetrics {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 type TabType = 'metrics' | 'extensions' | 'users';
-
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -91,14 +92,17 @@ export default function ConnectionDetailPage() {
     const [confirmDeleteName, setConfirmDeleteName] = useState<string>('');
     const [editingConnection, setEditingConnection] = useState<Connection | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+// Состояния для редактирования пользователя
+    const [editingUser, setEditingUser] = useState<any>(null);
+    const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
 
-    // Состояния для пагинации пользователей
+// Состояния для пагинации пользователей
     const [usersPage, setUsersPage] = useState(1);
     const [usersPageSize, setUsersPageSize] = useState(8);
     const [usersSearchQuery, setUsersSearchQuery] = useState('');
     const [usersSearchTerm, setUsersSearchTerm] = useState('');
 
-    // Используем хук с параметрами пагинации
+// Используем хук с параметрами пагинации
     const {
         users,
         loading: loadingUsers,
@@ -185,7 +189,7 @@ export default function ConnectionDetailPage() {
         }
     }, [activeTab]);
 
-    // Обработчики для поиска и пагинации пользователей
+// Обработчики для поиска и пагинации пользователей
     const handleUsersSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setUsersSearchQuery(e.target.value);
     };
@@ -222,7 +226,7 @@ export default function ConnectionDetailPage() {
         setUsersPage(totalUsersPages);
     };
 
-    // Функция для получения бейджа окружения
+// Функция для получения бейджа окружения
     const getEnvironmentBadge = (env: string) => {
         const envLower = env.toLowerCase();
         let colorClass = '';
@@ -248,8 +252,8 @@ export default function ConnectionDetailPage() {
         }
         return (
             <span className={clsx(styles.badge, colorClass)}>
-        {label}
-      </span>
+{label}
+</span>
         );
     };
 
@@ -260,7 +264,7 @@ export default function ConnectionDetailPage() {
         return styles.statusIndicator_unknown;
     };
 
-    // Форматирование времени работы
+// Форматирование времени работы
     const formatUptime = (uptimeStr: string): string => {
         if (!uptimeStr || uptimeStr === '—') return '—';
         if (uptimeStr.includes('day')) {
@@ -282,7 +286,7 @@ export default function ConnectionDetailPage() {
         return uptimeStr;
     };
 
-    // Форматирование времени начала работы
+// Форматирование времени начала работы
     const formatStartTime = (startTimeStr: string): string => {
         if (!startTimeStr || startTimeStr === '—') return '—';
         try {
@@ -369,6 +373,26 @@ export default function ConnectionDetailPage() {
     const handleEditSuccess = () => {
         closeEditModal();
         loadConnection();
+    };
+
+// Открытие модального окна редактирования пользователя
+    const openEditUserModal = (user: any) => {
+        setEditingUser(user);
+        setIsEditUserModalOpen(true);
+    };
+
+// Закрытие модального окна редактирования пользователя
+    const closeEditUserModal = () => {
+        setIsEditUserModalOpen(false);
+        setEditingUser(null);
+    };
+
+// Обработчик успешного редактирования пользователя
+    const handleEditUserSuccess = () => {
+        closeEditUserModal();
+// Перезагружаем список пользователей
+        setUsersPage(1);
+        setUsersSearchTerm('');
     };
 
     if (loading) {
@@ -486,7 +510,7 @@ export default function ConnectionDetailPage() {
                                 )}
                                 onClick={() => {
                                     setActiveTab('users');
-                                    // Сбрасываем поиск при переключении на вкладку
+// Сбрасываем поиск при переключении на вкладку
                                     setUsersSearchQuery('');
                                     setUsersSearchTerm('');
                                     setUsersPage(1);
@@ -792,7 +816,6 @@ export default function ConnectionDetailPage() {
                                             </button>
                                         </form>
                                     </div>
-
                                     {loadingUsers ? (
                                         <div className={clsx(styles.usersLoading)}>
                                             <div className={clsx(styles.spinner)}>
@@ -821,6 +844,16 @@ export default function ConnectionDetailPage() {
                                                                     <div className={clsx(styles.userItemInfo)}>
                                                                         <span className={clsx(styles.userItemInfoLabel)}>Email:</span>
                                                                         <span className={clsx(styles.userItemInfoValue)}>{user.email}</span>
+                                                                        <button
+                                                                            className={clsx(styles.editEmailButton)}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                openEditUserModal(user);
+                                                                            }}
+                                                                            title="Редактировать пользователя"
+                                                                        >
+                                                                            <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                        </button>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -829,14 +862,15 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
 
+
                                             {/* Пагинация */}
                                             {totalUsers > 0 && (
                                                 <div className={clsx(styles.usersPagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
-                            <span className={clsx(styles.paginationText)}>
-                              Показано <span className={clsx(styles.paginationHighlight)}>{((usersPage - 1) * usersPageSize) + 1}</span>–
-                              <span className={clsx(styles.paginationHighlight)}>{Math.min(usersPage * usersPageSize, totalUsers)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalUsers}</span> пользователей
-                            </span>
+<span className={clsx(styles.paginationText)}>
+Показано <span className={clsx(styles.paginationHighlight)}>{((usersPage - 1) * usersPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(usersPage * usersPageSize, totalUsers)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalUsers}</span> пользователей
+</span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select
@@ -868,8 +902,8 @@ export default function ConnectionDetailPage() {
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
                                                             <span className={clsx(styles.pageInfo)}>
-                                Страница {usersPage} из {totalUsersPages}
-                              </span>
+Страница {usersPage} из {totalUsersPages}
+</span>
                                                             <button
                                                                 className={clsx(styles.paginationButton)}
                                                                 onClick={() => handleUsersPageChange(usersPage + 1)}
@@ -904,7 +938,6 @@ export default function ConnectionDetailPage() {
                     </div>
                 </div>
             </div>
-
             {/* Модальное окно подтверждения удаления */}
             {confirmDeleteId !== null && (
                 <div className={clsx(styles.modalOverlay)} onClick={closeDeleteConfirm}>
@@ -962,13 +995,21 @@ export default function ConnectionDetailPage() {
                     </div>
                 </div>
             )}
-
-            {/* Модальное окно редактирования */}
+            {/* Модальное окно редактирования подключения */}
             {isEditModalOpen && editingConnection && (
                 <EditConnectionModal
                     connection={editingConnection}
                     onClose={closeEditModal}
                     onSuccess={handleEditSuccess}
+                />
+            )}
+            {/* Модальное окно редактирования пользователя */}
+            {isEditUserModalOpen && editingUser && (
+                <EditUserModal
+                    connectionId={parseInt(id || '0')}
+                    user={editingUser}
+                    onClose={closeEditUserModal}
+                    onSuccess={handleEditUserSuccess}
                 />
             )}
         </section>

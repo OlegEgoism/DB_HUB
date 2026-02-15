@@ -882,6 +882,35 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  // Кнопка редактирования
+  .editEmailButton {
+    background: transparent;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+
+    &:hover {
+      background: rgba($clr-indigo-500, 0.1);
+      transform: scale(1.1);
+    }
+
+    &:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    svg {
+      font-size: 14px;
+    }
+  }
 }
 
 .userItemInfoRow {
