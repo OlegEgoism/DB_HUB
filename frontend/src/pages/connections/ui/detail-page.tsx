@@ -22,6 +22,7 @@ import {
     faChevronRight,
     faChevronCircleLeft,
     faChevronCircleRight,
+    faUser,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {useConnectionUsers} from '../lib/useConnectionUsers';
@@ -453,7 +454,7 @@ export default function ConnectionDetailPage() {
                                         ? (connection.description.length > 50
                                             ? connection.description.slice(0, 50) + '...'
                                             : connection.description)
-                                        : '—'}
+                                        : ''}
                                 </div>
                             </div>
                         </div>
@@ -491,7 +492,7 @@ export default function ConnectionDetailPage() {
                                     setUsersPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faUsers}/>
+                                <FontAwesomeIcon icon={faUser}/>
                                 Пользователи
                             </button>
                         </div>
