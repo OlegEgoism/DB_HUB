@@ -787,6 +787,7 @@ export default function ConnectionDetailPage() {
                                             onSubmit={handleUsersSearchSubmit}
                                             className={clsx(styles.usersSearchContainer)}
                                         >
+
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
