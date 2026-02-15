@@ -846,7 +846,7 @@
 }
 
 .userItemHeader {
-  padding: 16px 24px;
+  padding: 16px 16px;
   background: white;
   border-bottom: 1px solid var(--border-glass);
   display: flex;
@@ -862,6 +862,51 @@
   gap: 12px;
   flex: 1;
   min-width: 0; // Для корректного обрезания длинных имен
+}
+
+.userItemHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 24px; // Отступ между полями
+  max-width: 60%;
+  text-align: right;
+  flex-wrap: wrap; // Для адаптивности на маленьких экранах
+}
+
+.userItemInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userItemInfoRow {
+  display: flex;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.userItemInfoValue {
+  font-weight: 600;
+  color: var(--color-text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.userItemInfoLabel {
+  font-weight: 500;
+  flex-shrink: 0;
 }
 
 .userItemTitle {

@@ -807,22 +807,22 @@ export default function ConnectionDetailPage() {
                                                     <div key={user.oid} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faUsers} className={clsx(styles.userItemIcon)}/>
+                                                                <FontAwesomeIcon icon={faUser} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>{user.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                {/*{user.description && (*/}
-                                                                    <div className={clsx(styles.userItemInfoRow)}>
+                                                                {user.description && (
+                                                                    <div className={clsx(styles.userItemInfo)}>
                                                                         <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
                                                                         <span className={clsx(styles.userItemInfoValue)}>{user.description}</span>
-                                                                {/*    </div>*/}
-                                                                {/*)}*/}
-                                                                {/*{user.email && (*/}
-                                                                {/*    <div className={clsx(styles.userItemInfoRow)}>*/}
+                                                                    </div>
+                                                                )}
+                                                                {user.email && (
+                                                                    <div className={clsx(styles.userItemInfo)}>
                                                                         <span className={clsx(styles.userItemInfoLabel)}>Email:</span>
                                                                         <span className={clsx(styles.userItemInfoValue)}>{user.email}</span>
                                                                     </div>
-                                                                {/*)}*/}
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>
