@@ -850,15 +850,18 @@
   background: white;
   border-bottom: 1px solid var(--border-glass);
   display: flex;
-  align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start; // Выравнивание по верхнему краю
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.userItemIcon {
-  color: var(--color-primary);
-  font-size: 20px;
-  width: 24px;
-  height: 24px;
+.userItemHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0; // Для корректного обрезания длинных имен
 }
 
 .userItemTitle {
