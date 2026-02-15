@@ -846,14 +846,15 @@ export default function ConnectionDetailPage() {
                                                                         <span className={clsx(styles.userItemInfoValue)}>{user.email}</span>
                                                                     </div>
                                                                 )}
-                                                                {/* Кнопка редактирования отображается для всех пользователей */}
+                                                                {/* Кнопка редактирования для ВСЕХ пользователей */}
                                                                 <button
-                                                                    className={clsx(styles.editEmailButton)}
+                                                                    className={clsx(styles.paginationButton)}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         openEditUserModal(user);
                                                                     }}
-                                                                    title="Редактировать пользователя"
+                                                                    title={`Редактировать ${user.name}`}
+                                                                    aria-label={`Редактировать пользователя ${user.name}`}
                                                                 >
                                                                     <FontAwesomeIcon icon={faPencilAlt}/>
                                                                 </button>

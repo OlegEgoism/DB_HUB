@@ -857,9 +857,9 @@
 }
 
 .userItemHeaderLeft {
-  display: flex;
+  //display: flex;
   align-items: center;
-  gap: 12px;
+  //gap: 12px;
   flex: 1;
   min-width: 0; // Для корректного обрезания длинных имен
 }
