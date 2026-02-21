@@ -28,6 +28,7 @@ import {
     faUserMinus,
     faLayerGroup,
     faSitemap,
+    faTableList,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
@@ -35,6 +36,8 @@ import {useConnectionUsers} from '../lib/useConnectionUsers';
 import {useConnectionGroups} from '../lib/useConnectionGroups';
 import {useConnectionSchemas} from '../lib/useConnectionSchemas';
 import type {SchemaPrivilegeInfo, SchemaRolePrivilege} from '../lib/useConnectionSchemas';
+import {useConnectionTables} from '../lib/useConnectionTables';
+import type {TablePrivilegeInfo, TableGroupPrivilege} from '../lib/useConnectionTables';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 
 interface Connection {
@@ -83,7 +86,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas';
+type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -138,6 +141,15 @@ export default function ConnectionDetailPage() {
     const [editingSchema, setEditingSchema] = useState<SchemaPrivilegeInfo | null>(null);
     const [schemaRolesForm, setSchemaRolesForm] = useState<SchemaRolePrivilege[]>([]);
     const [schemaModalLoading, setSchemaModalLoading] = useState(false);
+
+    const [tablesPage, setTablesPage] = useState(1);
+    const [tablesPageSize, setTablesPageSize] = useState(8);
+    const [tablesSearchQuery, setTablesSearchQuery] = useState('');
+    const [tablesSearchTerm, setTablesSearchTerm] = useState('');
+    const [tablesReloadTrigger, setTablesReloadTrigger] = useState(0);
+    const [editingTable, setEditingTable] = useState<TablePrivilegeInfo | null>(null);
+    const [tableGroupsForm, setTableGroupsForm] = useState<TableGroupPrivilege[]>([]);
+    const [tableModalLoading, setTableModalLoading] = useState(false);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -205,6 +217,22 @@ export default function ConnectionDetailPage() {
         schemasPageSize,
         schemasSearchTerm || null,
         schemasReloadTrigger
+    );
+
+    const {
+        tables,
+        loading: loadingTables,
+        error: tablesError,
+        total: totalTables,
+        pages: totalTablesPages,
+        hasNext: tablesHasNext,
+        hasPrev: tablesHasPrev
+    } = useConnectionTables(
+        id ? parseInt(id) : 0,
+        tablesPage,
+        tablesPageSize,
+        tablesSearchTerm || null,
+        tablesReloadTrigger
     );
 
     const loadConnection = async () => {
@@ -545,6 +573,101 @@ export default function ConnectionDetailPage() {
             setError(err instanceof Error ? err.message : 'Не удалось обновить привилегии схемы');
         } finally {
             setSchemaModalLoading(false);
+        }
+    };
+
+    const handleTablesSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setTablesSearchQuery(e.target.value);
+    };
+
+    const handleTablesSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setTablesSearchTerm(tablesSearchQuery.trim());
+        setTablesPage(1);
+    };
+
+    const handleTablesSearchClear = () => {
+        setTablesSearchQuery('');
+        setTablesSearchTerm('');
+        setTablesPage(1);
+    };
+
+    const handleTablesPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalTablesPages) {
+            setTablesPage(newPage);
+        }
+    };
+
+    const handleTablesPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setTablesPageSize(newSize);
+        setTablesPage(1);
+    };
+
+    const openTableEditModal = (table: TablePrivilegeInfo) => {
+        setEditingTable(table);
+        setTableGroupsForm(table.group_privileges.map((group) => ({ ...group })));
+    };
+
+    const closeTableEditModal = () => {
+        if (tableModalLoading) return;
+        setEditingTable(null);
+        setTableGroupsForm([]);
+    };
+
+    const toggleTableGroupPrivilege = (
+        groupName: string,
+        field: 'select' | 'insert' | 'update' | 'delete' | 'truncate',
+    ) => {
+        setTableGroupsForm((prev) => prev.map((group) => (
+            group.group === groupName ? { ...group, [field]: !group[field] } : group
+        )));
+    };
+
+    const saveTablePrivileges = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingTable) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        setTableModalLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/tables/privileges_groups`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    schema_name: editingTable.schema_name,
+                    table_name: editingTable.table_name,
+                    groups: tableGroupsForm.map((group) => ({
+                        groupname: group.group,
+                        select: group.select,
+                        insert: group.insert,
+                        update: group.update,
+                        delete: group.delete,
+                        truncate: group.truncate,
+                    })),
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось обновить привилегии таблицы');
+            }
+
+            closeTableEditModal();
+            setTablesReloadTrigger((prev) => prev + 1);
+        } catch (err) {
+            console.error('Ошибка обновления привилегий таблицы:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось обновить привилегии таблицы');
+        } finally {
+            setTableModalLoading(false);
         }
     };
 
@@ -919,6 +1042,21 @@ export default function ConnectionDetailPage() {
                             >
                                 <FontAwesomeIcon icon={faSitemap}/>
                                 Схемы
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'tables' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('tables');
+                                    setTablesSearchQuery('');
+                                    setTablesSearchTerm('');
+                                    setTablesPage(1);
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faTableList}/>
+                                Таблицы
                             </button>
                         </div>
                         <div className={clsx(styles.tabContent)}>
@@ -1581,6 +1719,101 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
+                            {activeTab === 'tables' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <form onSubmit={handleTablesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchWrapper)}>
+                                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Поиск таблиц..."
+                                                    value={tablesSearchQuery}
+                                                    onChange={handleTablesSearchInputChange}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                />
+                                                {tablesSearchQuery && (
+                                                    <button type="button" onClick={handleTablesSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                        <FontAwesomeIcon icon={faTimes}/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                        </form>
+                                    </div>
+
+                                    {loadingTables ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка таблиц...</p>
+                                        </div>
+                                    ) : tables && tables.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {tables.map((table) => (
+                                                    <div key={`${table.schema_name}.${table.table_name}`} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <FontAwesomeIcon icon={faTableList} className={clsx(styles.userItemIcon)}/>
+                                                                <h3 className={clsx(styles.userItemTitle)}>{table.schema_name}.{table.table_name}</h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Владелец:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{table.owner}</span>
+                                                                </div>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Групп:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{table.group_privileges.length}</span>
+                                                                </div>
+                                                                <div className={clsx(styles.userActions)}>
+                                                                    <button className={clsx(styles.userActionButton)} onClick={() => openTableEditModal(table)} title={`Изменить права для ${table.table_name}`}>
+                                                                        <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalTables > 0 && (
+                                                <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+<span className={clsx(styles.paginationText)}>
+Показано <span className={clsx(styles.paginationHighlight)}>{((tablesPage - 1) * tablesPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(tablesPage * tablesPageSize, totalTables)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalTables}</span> таблиц
+</span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={tablesPageSize} onChange={handleTablesPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на странице</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleTablesPageChange(tablesPage - 1)} disabled={tablesPage === 1 || !tablesHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {tablesPage} из {totalTablesPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleTablesPageChange(tablesPage + 1)} disabled={tablesPage === totalTablesPages || !tablesHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faTableList} size="3x"/>
+                                            <p>Таблицы не найдены</p>
+                                            {tablesError && <p className={clsx(styles.errorMessage)}>{tablesError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1803,6 +2036,59 @@ export default function ConnectionDetailPage() {
                                 <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeSchemaEditModal} disabled={schemaModalLoading}>Отмена</button>
                                 <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={schemaModalLoading}>
                                     {schemaModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {editingTable !== null && (
+                <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeTableEditModal}>
+                    <div className={clsx(groupModalStyles.modal__content)} onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className={clsx(groupModalStyles.modal__closeButton)}
+                            onClick={closeTableEditModal}
+                            disabled={tableModalLoading}
+                            aria-label="Закрыть окно редактирования таблицы"
+                        >
+                            <FontAwesomeIcon icon={faTimes}/>
+                        </button>
+                        <div className={clsx(groupModalStyles.modal__header)}>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>Редактирование таблицы</h2>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>{editingTable.schema_name}.{editingTable.table_name}</p>
+                        </div>
+                        <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveTablePrivileges}>
+                            <div className={clsx(styles.schemasPrivilegesList)}>
+                                {tableGroupsForm.map((group) => (
+                                    <div key={group.group} className={clsx(styles.schemasPrivilegeRow)}>
+                                        <div className={clsx(styles.schemasPrivilegeRole)}>{group.group}</div>
+                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                            <input type="checkbox" checked={group.select} onChange={() => toggleTableGroupPrivilege(group.group, 'select')} disabled={tableModalLoading}/>
+                                            SELECT
+                                        </label>
+                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                            <input type="checkbox" checked={group.insert} onChange={() => toggleTableGroupPrivilege(group.group, 'insert')} disabled={tableModalLoading}/>
+                                            INSERT
+                                        </label>
+                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                            <input type="checkbox" checked={group.update} onChange={() => toggleTableGroupPrivilege(group.group, 'update')} disabled={tableModalLoading}/>
+                                            UPDATE
+                                        </label>
+                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                            <input type="checkbox" checked={group.delete} onChange={() => toggleTableGroupPrivilege(group.group, 'delete')} disabled={tableModalLoading}/>
+                                            DELETE
+                                        </label>
+                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                            <input type="checkbox" checked={group.truncate} onChange={() => toggleTableGroupPrivilege(group.group, 'truncate')} disabled={tableModalLoading}/>
+                                            TRUNCATE
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className={clsx(groupModalStyles.modal__formFooter)}>
+                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeTableEditModal} disabled={tableModalLoading}>Отмена</button>
+                                <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={tableModalLoading}>
+                                    {tableModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
                                 </button>
                             </div>
                         </form>
