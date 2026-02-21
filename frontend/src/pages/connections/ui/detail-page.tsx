@@ -627,7 +627,25 @@ export default function ConnectionDetailPage() {
     const setTablePrivilegeForAllGroups = (
         field: 'select' | 'insert' | 'update' | 'delete' | 'truncate',
     ) => {
-        setTableGroupsForm((prev) => prev.map((group) => ({ ...group, [field]: true })));
+        setTableGroupsForm((prev) => {
+            const allSelected = prev.length > 0 && prev.every((group) => group[field]);
+            return prev.map((group) => ({ ...group, [field]: !allSelected }));
+        });
+    };
+
+    const getTablePrivilegeButtonState = (
+        field: 'select' | 'insert' | 'update' | 'delete' | 'truncate',
+    ) => {
+        const total = tableGroupsForm.length;
+        const selected = tableGroupsForm.filter((group) => group[field]).length;
+
+        if (total > 0 && selected === total) {
+            return 'all';
+        }
+        if (selected > 0) {
+            return 'partial';
+        }
+        return 'none';
     };
 
     const saveTablePrivileges = async (e: React.FormEvent) => {
@@ -2065,11 +2083,66 @@ export default function ConnectionDetailPage() {
                         </div>
                         <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveTablePrivileges}>
                             <div className={clsx(styles.bulkPrivilegeActions)}>
-                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('select')} disabled={tableModalLoading}>SELECT</button>
-                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('insert')} disabled={tableModalLoading}>INSERT</button>
-                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('update')} disabled={tableModalLoading}>UPDATE</button>
-                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('delete')} disabled={tableModalLoading}>DELETE</button>
-                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('truncate')} disabled={tableModalLoading}>TRUNCATE</button>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        styles.bulkPrivilegeButton,
+                                        getTablePrivilegeButtonState('select') === 'all' && styles.bulkPrivilegeButton_all,
+                                        getTablePrivilegeButtonState('select') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                    )}
+                                    onClick={() => setTablePrivilegeForAllGroups('select')}
+                                    disabled={tableModalLoading}
+                                >
+                                    SELECT
+                                </button>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        styles.bulkPrivilegeButton,
+                                        getTablePrivilegeButtonState('insert') === 'all' && styles.bulkPrivilegeButton_all,
+                                        getTablePrivilegeButtonState('insert') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                    )}
+                                    onClick={() => setTablePrivilegeForAllGroups('insert')}
+                                    disabled={tableModalLoading}
+                                >
+                                    INSERT
+                                </button>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        styles.bulkPrivilegeButton,
+                                        getTablePrivilegeButtonState('update') === 'all' && styles.bulkPrivilegeButton_all,
+                                        getTablePrivilegeButtonState('update') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                    )}
+                                    onClick={() => setTablePrivilegeForAllGroups('update')}
+                                    disabled={tableModalLoading}
+                                >
+                                    UPDATE
+                                </button>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        styles.bulkPrivilegeButton,
+                                        getTablePrivilegeButtonState('delete') === 'all' && styles.bulkPrivilegeButton_all,
+                                        getTablePrivilegeButtonState('delete') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                    )}
+                                    onClick={() => setTablePrivilegeForAllGroups('delete')}
+                                    disabled={tableModalLoading}
+                                >
+                                    DELETE
+                                </button>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        styles.bulkPrivilegeButton,
+                                        getTablePrivilegeButtonState('truncate') === 'all' && styles.bulkPrivilegeButton_all,
+                                        getTablePrivilegeButtonState('truncate') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                    )}
+                                    onClick={() => setTablePrivilegeForAllGroups('truncate')}
+                                    disabled={tableModalLoading}
+                                >
+                                    TRUNCATE
+                                </button>
                             </div>
                             <div className={clsx(styles.schemasPrivilegesList)}>
                                 {tableGroupsForm.map((group) => (

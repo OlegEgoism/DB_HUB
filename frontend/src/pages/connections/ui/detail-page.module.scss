@@ -1236,4 +1236,16 @@
     opacity: 0.6;
     cursor: not-allowed;
   }
+
+  &_all {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+  }
+
+  &_partial {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: white;
+  }
 }
