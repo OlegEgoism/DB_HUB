@@ -857,6 +857,13 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     {/* Панель поиска */}
                                     <div className={clsx(styles.usersHeader)}>
+                                        <button
+                                            className={clsx(styles.createUserButton)}
+                                            onClick={openCreateUserModal}
+                                            aria-label="Создать нового пользователя"
+                                        >
+                                            Создать пользователя
+                                        </button>
                                         <form
                                             onSubmit={handleUsersSearchSubmit}
                                             className={clsx(styles.usersSearchContainer)}
@@ -889,13 +896,6 @@ export default function ConnectionDetailPage() {
                                                 Поиск
                                             </button>
                                         </form>
-                                        <button
-                                            className={clsx(styles.createUserButton)}
-                                            onClick={openCreateUserModal}
-                                            aria-label="Создать нового пользователя"
-                                        >
-                                            Создать пользователя
-                                        </button>
                                     </div>
                                     {loadingUsers ? (
                                         <div className={clsx(styles.usersLoading)}>
