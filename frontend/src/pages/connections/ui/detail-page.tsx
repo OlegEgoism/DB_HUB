@@ -29,6 +29,7 @@ import {
     faLayerGroup,
     faSitemap,
     faTableList,
+    faEye,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
@@ -38,6 +39,7 @@ import {useConnectionSchemas} from '../lib/useConnectionSchemas';
 import type {SchemaPrivilegeInfo, SchemaRolePrivilege} from '../lib/useConnectionSchemas';
 import {useConnectionTables} from '../lib/useConnectionTables';
 import type {TablePrivilegeInfo, TableGroupPrivilege} from '../lib/useConnectionTables';
+import {useConnectionViews} from '../lib/useConnectionViews';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 
 interface Connection {
@@ -86,7 +88,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables';
+type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -150,6 +152,12 @@ export default function ConnectionDetailPage() {
     const [editingTable, setEditingTable] = useState<TablePrivilegeInfo | null>(null);
     const [tableGroupsForm, setTableGroupsForm] = useState<TableGroupPrivilege[]>([]);
     const [tableModalLoading, setTableModalLoading] = useState(false);
+
+    const [viewsPage, setViewsPage] = useState(1);
+    const [viewsPageSize, setViewsPageSize] = useState(8);
+    const [viewsSearchQuery, setViewsSearchQuery] = useState('');
+    const [viewsSearchTerm, setViewsSearchTerm] = useState('');
+
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -233,6 +241,23 @@ export default function ConnectionDetailPage() {
         tablesPageSize,
         tablesSearchTerm || null,
         tablesReloadTrigger
+    );
+
+
+    const {
+        views,
+        loading: loadingViews,
+        error: viewsError,
+        total: totalViews,
+        pages: totalViewsPages,
+        hasNext: viewsHasNext,
+        hasPrev: viewsHasPrev
+    } = useConnectionViews(
+        id ? parseInt(id) : 0,
+        viewsPage,
+        viewsPageSize,
+        viewsSearchTerm || null,
+        0
     );
 
     const loadConnection = async () => {
@@ -618,6 +643,34 @@ export default function ConnectionDetailPage() {
         const newSize = parseInt(e.target.value, 10);
         setTablesPageSize(newSize);
         setTablesPage(1);
+    };
+
+    const handleViewsSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setViewsSearchQuery(e.target.value);
+    };
+
+    const handleViewsSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setViewsSearchTerm(viewsSearchQuery.trim());
+        setViewsPage(1);
+    };
+
+    const handleViewsSearchClear = () => {
+        setViewsSearchQuery('');
+        setViewsSearchTerm('');
+        setViewsPage(1);
+    };
+
+    const handleViewsPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalViewsPages) {
+            setViewsPage(newPage);
+        }
+    };
+
+    const handleViewsPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setViewsPageSize(newSize);
+        setViewsPage(1);
     };
 
     const openTableEditModal = (table: TablePrivilegeInfo) => {
@@ -1097,6 +1150,21 @@ export default function ConnectionDetailPage() {
                             >
                                 <FontAwesomeIcon icon={faTableList}/>
                                 Таблицы
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'views' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('views');
+                                    setViewsSearchQuery('');
+                                    setViewsSearchTerm('');
+                                    setViewsPage(1);
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faEye}/>
+                                Представления
                             </button>
                         </div>
                         <div className={clsx(styles.tabContent)}>
@@ -1850,6 +1918,92 @@ export default function ConnectionDetailPage() {
                                             <FontAwesomeIcon icon={faTableList} size="3x"/>
                                             <p>Таблицы не найдены</p>
                                             {tablesError && <p className={clsx(styles.errorMessage)}>{tablesError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {activeTab === 'views' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <form onSubmit={handleViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchWrapper)}>
+                                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Поиск представлений..."
+                                                    value={viewsSearchQuery}
+                                                    onChange={handleViewsSearchInputChange}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                />
+                                                {viewsSearchQuery && (
+                                                    <button type="button" onClick={handleViewsSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                        <FontAwesomeIcon icon={faTimes}/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                        </form>
+                                    </div>
+
+                                    {loadingViews ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка представлений...</p>
+                                        </div>
+                                    ) : views && views.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {views.map((view) => (
+                                                    <div key={`${view.schema_name}.${view.view_name}`} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <FontAwesomeIcon icon={faEye} className={clsx(styles.userItemIcon)}/>
+                                                                <h3 className={clsx(styles.userItemTitle)}>{view.schema_name}.{view.view_name}</h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{view.description || '—'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalViews > 0 && (
+                                                <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+<span className={clsx(styles.paginationText)}>
+Показано <span className={clsx(styles.paginationHighlight)}>{((viewsPage - 1) * viewsPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(viewsPage * viewsPageSize, totalViews)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalViews}</span> представлений
+</span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={viewsPageSize} onChange={handleViewsPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на странице</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage - 1)} disabled={viewsPage === 1 || !viewsHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {viewsPage} из {totalViewsPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage + 1)} disabled={viewsPage === totalViewsPages || !viewsHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faEye} size="3x"/>
+                                            <p>Представления не найдены</p>
+                                            {viewsError && <p className={clsx(styles.errorMessage)}>{viewsError}</p>}
                                         </div>
                                     )}
                                 </div>
