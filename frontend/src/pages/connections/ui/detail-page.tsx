@@ -25,10 +25,12 @@ import {
     faUser,
     faPencilAlt,
     faUserMinus,
+    faLayerGroup,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
 import {useConnectionUsers} from '../lib/useConnectionUsers';
+import {useConnectionGroups} from '../lib/useConnectionGroups';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 
 interface Connection {
@@ -77,7 +79,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'extensions' | 'users';
+type TabType = 'metrics' | 'extensions' | 'users' | 'groups';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -108,6 +110,20 @@ export default function ConnectionDetailPage() {
     const [userDeleteTarget, setUserDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
     const [deletingUserOid, setDeletingUserOid] = useState<number | null>(null);
     const [usersReloadTrigger, setUsersReloadTrigger] = useState(0);
+
+
+    const [groupsPage, setGroupsPage] = useState(1);
+    const [groupsPageSize, setGroupsPageSize] = useState(8);
+    const [groupsSearchQuery, setGroupsSearchQuery] = useState('');
+    const [groupsSearchTerm, setGroupsSearchTerm] = useState('');
+    const [groupsReloadTrigger, setGroupsReloadTrigger] = useState(0);
+    const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+    const [editingGroup, setEditingGroup] = useState<{ oid: number; name: string; description: string | null } | null>(null);
+    const [groupFormName, setGroupFormName] = useState('');
+    const [groupFormDescription, setGroupFormDescription] = useState('');
+    const [groupFormLoading, setGroupFormLoading] = useState(false);
+    const [groupDeleteTarget, setGroupDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
+    const [deletingGroupOid, setDeletingGroupOid] = useState<number | null>(null);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -141,6 +157,23 @@ export default function ConnectionDetailPage() {
         usersPageSize,
         usersSearchTerm || null,
         usersReloadTrigger
+    );
+
+
+    const {
+        groups,
+        loading: loadingGroups,
+        error: groupsError,
+        total: totalGroups,
+        pages: totalGroupsPages,
+        hasNext: groupsHasNext,
+        hasPrev: groupsHasPrev
+    } = useConnectionGroups(
+        id ? parseInt(id) : 0,
+        groupsPage,
+        groupsPageSize,
+        groupsSearchTerm || null,
+        groupsReloadTrigger
     );
 
     const loadConnection = async () => {
@@ -249,6 +282,151 @@ export default function ConnectionDetailPage() {
 
     const handleUsersLastPage = () => {
         setUsersPage(totalUsersPages);
+    };
+
+    const handleGroupsSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setGroupsSearchQuery(e.target.value);
+    };
+
+    const handleGroupsSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setGroupsSearchTerm(groupsSearchQuery.trim());
+        setGroupsPage(1);
+    };
+
+    const handleGroupsSearchClear = () => {
+        setGroupsSearchQuery('');
+        setGroupsSearchTerm('');
+        setGroupsPage(1);
+    };
+
+    const handleGroupsPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalGroupsPages) {
+            setGroupsPage(newPage);
+        }
+    };
+
+    const handleGroupsPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setGroupsPageSize(newSize);
+        setGroupsPage(1);
+    };
+
+    const openCreateGroupModal = () => {
+        setEditingGroup(null);
+        setGroupFormName('');
+        setGroupFormDescription('');
+        setIsCreateGroupModalOpen(true);
+    };
+
+    const openEditGroupModal = (group: { oid: number; name: string; description: string | null }) => {
+        setEditingGroup(group);
+        setGroupFormName(group.name);
+        setGroupFormDescription(group.description || '');
+        setIsCreateGroupModalOpen(true);
+    };
+
+    const closeGroupModal = () => {
+        if (groupFormLoading) return;
+        setIsCreateGroupModalOpen(false);
+        setEditingGroup(null);
+        setGroupFormName('');
+        setGroupFormDescription('');
+    };
+
+    const saveGroup = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        if (!groupFormName.trim()) {
+            setError('Название группы обязательно');
+            return;
+        }
+
+        setGroupFormLoading(true);
+        try {
+            const payload = {
+                name: groupFormName.trim(),
+                description: groupFormDescription.trim() || null,
+            };
+
+            const url = editingGroup
+                ? `${API_BASE_URL}/api/v1/db_connections/${id}/groups/${editingGroup.oid}`
+                : `${API_BASE_URL}/api/v1/db_connections/${id}/groups`;
+            const method = editingGroup ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось сохранить группу');
+            }
+
+            closeGroupModal();
+            setGroupsPage(1);
+            setGroupsReloadTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error('Ошибка при сохранении группы:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось сохранить группу');
+        } finally {
+            setGroupFormLoading(false);
+        }
+    };
+
+    const openGroupDeleteConfirm = (group: { oid: number; name: string }) => {
+        setGroupDeleteTarget({ oid: group.oid, name: group.name });
+    };
+
+    const closeGroupDeleteConfirm = () => {
+        if (deletingGroupOid !== null) return;
+        setGroupDeleteTarget(null);
+    };
+
+    const deleteGroup = async () => {
+        if (!groupDeleteTarget) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            setGroupDeleteTarget(null);
+            return;
+        }
+
+        setDeletingGroupOid(groupDeleteTarget.oid);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups/${groupDeleteTarget.oid}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось удалить группу');
+            }
+
+            setGroupDeleteTarget(null);
+            setGroupsReloadTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error('Ошибка при удалении группы:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось удалить группу');
+        } finally {
+            setDeletingGroupOid(null);
+        }
     };
 
 // Функция для получения бейджа окружения
@@ -592,6 +770,21 @@ export default function ConnectionDetailPage() {
                             >
                                 <FontAwesomeIcon icon={faUser}/>
                                 Пользователи
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'groups' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('groups');
+                                    setGroupsSearchQuery('');
+                                    setGroupsSearchTerm('');
+                                    setGroupsPage(1);
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faLayerGroup}/>
+                                Группы
                             </button>
                         </div>
                         <div className={clsx(styles.tabContent)}>
@@ -1030,6 +1223,135 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
+                            {activeTab === 'groups' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <form onSubmit={handleGroupsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchWrapper)}>
+                                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Поиск групп..."
+                                                    value={groupsSearchQuery}
+                                                    onChange={handleGroupsSearchInputChange}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                />
+                                                {groupsSearchQuery && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleGroupsSearchClear}
+                                                        className={clsx(styles.usersSearchClear)}
+                                                        title="Очистить поиск"
+                                                    >
+                                                        <FontAwesomeIcon icon={faTimes}/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">
+                                                Поиск
+                                            </button>
+                                        </form>
+                                        <button
+                                            className={clsx(styles.createUserButton)}
+                                            onClick={openCreateGroupModal}
+                                            aria-label="Создать новую группу"
+                                        >
+                                            Создать группу
+                                        </button>
+                                    </div>
+
+                                    {loadingGroups ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка групп...</p>
+                                        </div>
+                                    ) : groups && groups.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {groups.map((group) => (
+                                                    <div key={group.oid} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <FontAwesomeIcon icon={faLayerGroup} className={clsx(styles.userItemIcon)}/>
+                                                                <h3 className={clsx(styles.userItemTitle)}>{group.name}</h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Пользователей:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{group.user_count}</span>
+                                                                </div>
+                                                                {group.description && (
+                                                                    <div className={clsx(styles.userItemInfo)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                        <span className={clsx(styles.userItemInfoValue)}>{group.description}</span>
+                                                                    </div>
+                                                                )}
+                                                                <div className={clsx(styles.userActions)}>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton)}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            openEditGroupModal(group);
+                                                                        }}
+                                                                        title={`Редактировать ${group.name}`}
+                                                                    >
+                                                                        <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                    </button>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton, styles.userActionButton_delete)}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            openGroupDeleteConfirm(group);
+                                                                        }}
+                                                                        title={`Удалить ${group.name}`}
+                                                                        disabled={deletingGroupOid === group.oid}
+                                                                    >
+                                                                        <FontAwesomeIcon icon={faUserMinus}/>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalGroups > 0 && (
+                                                <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+<span className={clsx(styles.paginationText)}>
+Показано <span className={clsx(styles.paginationHighlight)}>{((groupsPage - 1) * groupsPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(groupsPage * groupsPageSize, totalGroups)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalGroups}</span> групп
+</span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={groupsPageSize} onChange={handleGroupsPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на странице</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage - 1)} disabled={groupsPage === 1 || !groupsHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {groupsPage} из {totalGroupsPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage + 1)} disabled={groupsPage === totalGroupsPages || !groupsHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faLayerGroup} size="3x"/>
+                                            <p>Группы не найдены</p>
+                                            {groupsError && <p className={clsx(styles.errorMessage)}>{groupsError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1144,6 +1466,48 @@ export default function ConnectionDetailPage() {
                                 )}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+            {groupDeleteTarget !== null && (
+                <div className={clsx(styles.modalOverlay)} onClick={closeGroupDeleteConfirm}>
+                    <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
+                        <div className={clsx(styles.modalHeader)}>
+                            <FontAwesomeIcon icon={faExclamationCircle} className={clsx(styles.modalIcon)}/>
+                            <h2 className={clsx(styles.modalTitle)}>Подтверждение удаления</h2>
+                        </div>
+                        <div className={clsx(styles.modalBody)}>
+                            <p className={clsx(styles.modalText)}>
+                                Удалить группу <strong>{groupDeleteTarget.name}</strong>?
+                            </p>
+                        </div>
+                        <div className={clsx(styles.modalFooter)}>
+                            <button className={clsx(styles.modalCancelButton)} onClick={closeGroupDeleteConfirm} disabled={deletingGroupOid !== null}>Отмена</button>
+                            <button className={clsx(styles.modalDeleteButton)} onClick={deleteGroup} disabled={deletingGroupOid !== null}>
+                                {deletingGroupOid !== null ? <><FontAwesomeIcon icon={faSpinner} spin/> Удаление...</> : <><FontAwesomeIcon icon={faTrashAlt}/> Удалить</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {isCreateGroupModalOpen && (
+                <div className={clsx(styles.modalOverlay)} onClick={closeGroupModal}>
+                    <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
+                        <div className={clsx(styles.modalHeader)}>
+                            <h2 className={clsx(styles.modalTitle)}>{editingGroup ? 'Редактирование группы' : 'Создание группы'}</h2>
+                        </div>
+                        <form className={clsx(styles.groupForm)} onSubmit={saveGroup}>
+                            <label className={clsx(styles.groupFormLabel)} htmlFor="groupName">Название группы</label>
+                            <input id="groupName" className={clsx(styles.groupFormInput)} value={groupFormName} onChange={(e) => setGroupFormName(e.target.value)} disabled={groupFormLoading}/>
+                            <label className={clsx(styles.groupFormLabel)} htmlFor="groupDescription">Описание</label>
+                            <textarea id="groupDescription" className={clsx(styles.groupFormTextarea)} value={groupFormDescription} onChange={(e) => setGroupFormDescription(e.target.value)} disabled={groupFormLoading} rows={3}/>
+                            <div className={clsx(styles.modalFooter)}>
+                                <button type="button" className={clsx(styles.modalCancelButton)} onClick={closeGroupModal} disabled={groupFormLoading}>Отмена</button>
+                                <button type="submit" className={clsx(styles.modalDeleteButton)} disabled={groupFormLoading}>
+                                    {groupFormLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
