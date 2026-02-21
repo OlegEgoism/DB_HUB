@@ -624,6 +624,12 @@ export default function ConnectionDetailPage() {
         )));
     };
 
+    const setTablePrivilegeForAllGroups = (
+        field: 'select' | 'insert' | 'update' | 'delete' | 'truncate',
+    ) => {
+        setTableGroupsForm((prev) => prev.map((group) => ({ ...group, [field]: true })));
+    };
+
     const saveTablePrivileges = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingTable) return;
@@ -2058,6 +2064,13 @@ export default function ConnectionDetailPage() {
                             <p className={clsx(groupModalStyles.modal__subtitle)}>{editingTable.schema_name}.{editingTable.table_name}</p>
                         </div>
                         <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveTablePrivileges}>
+                            <div className={clsx(styles.bulkPrivilegeActions)}>
+                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('select')} disabled={tableModalLoading}>SELECT</button>
+                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('insert')} disabled={tableModalLoading}>INSERT</button>
+                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('update')} disabled={tableModalLoading}>UPDATE</button>
+                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('delete')} disabled={tableModalLoading}>DELETE</button>
+                                <button type="button" className={clsx(styles.bulkPrivilegeButton)} onClick={() => setTablePrivilegeForAllGroups('truncate')} disabled={tableModalLoading}>TRUNCATE</button>
+                            </div>
                             <div className={clsx(styles.schemasPrivilegesList)}>
                                 {tableGroupsForm.map((group) => (
                                     <div key={group.group} className={clsx(styles.schemasPrivilegeRow)}>
