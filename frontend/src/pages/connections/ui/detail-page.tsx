@@ -123,6 +123,7 @@ export default function ConnectionDetailPage() {
         // Перезагружаем список пользователей
         setUsersPage(1);
         setUsersSearchTerm('');
+        setUsersReloadTrigger(prev => prev + 1);
     };
 
 // Используем хук с параметрами пагинации
