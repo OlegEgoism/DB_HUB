@@ -1177,6 +1177,14 @@
   margin-bottom: 16px;
 }
 
+.schemaBulkPrivilegeHeaderRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
 .schemasPrivilegeRow {
   display: flex;
   align-items: center;

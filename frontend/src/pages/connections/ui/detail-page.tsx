@@ -533,6 +533,22 @@ export default function ConnectionDetailPage() {
         )));
     };
 
+    const setSchemaPrivilegeForAllRoles = (field: 'create' | 'usage') => {
+        setSchemaRolesForm((prev) => {
+            const allSelected = prev.length > 0 && prev.every((role) => role[field]);
+            return prev.map((role) => ({ ...role, [field]: !allSelected }));
+        });
+    };
+
+    const getSchemaPrivilegeButtonState = (field: 'create' | 'usage') => {
+        const total = schemaRolesForm.length;
+        const selected = schemaRolesForm.filter((role) => role[field]).length;
+
+        if (total > 0 && selected === total) return 'all';
+        if (selected > 0) return 'partial';
+        return 'none';
+    };
+
     const saveSchemaPrivileges = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingSchema) return;
@@ -2041,6 +2057,33 @@ export default function ConnectionDetailPage() {
                             <p className={clsx(groupModalStyles.modal__subtitle)}>{editingSchema.schema_name}</p>
                         </div>
                         <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveSchemaPrivileges}>
+                            <div className={clsx(styles.schemaBulkPrivilegeHeaderRow)}>
+                                <div className={clsx(styles.bulkPrivilegeHeaderSpacer)}></div>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        styles.bulkPrivilegeButton,
+                                        getSchemaPrivilegeButtonState('create') === 'all' && styles.bulkPrivilegeButton_all,
+                                        getSchemaPrivilegeButtonState('create') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                    )}
+                                    onClick={() => setSchemaPrivilegeForAllRoles('create')}
+                                    disabled={schemaModalLoading || schemaRolesForm.length === 0}
+                                >
+                                    CREATE
+                                </button>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        styles.bulkPrivilegeButton,
+                                        getSchemaPrivilegeButtonState('usage') === 'all' && styles.bulkPrivilegeButton_all,
+                                        getSchemaPrivilegeButtonState('usage') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                    )}
+                                    onClick={() => setSchemaPrivilegeForAllRoles('usage')}
+                                    disabled={schemaModalLoading || schemaRolesForm.length === 0}
+                                >
+                                    USAGE
+                                </button>
+                            </div>
                             <div className={clsx(styles.schemasPrivilegesList)}>
                                 {schemaRolesForm.map((role) => (
                                     <div key={role.role} className={clsx(styles.schemasPrivilegeRow)}>
