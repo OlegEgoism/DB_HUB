@@ -2082,7 +2082,8 @@ export default function ConnectionDetailPage() {
                             <p className={clsx(groupModalStyles.modal__subtitle)}>{editingTable.schema_name}.{editingTable.table_name}</p>
                         </div>
                         <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveTablePrivileges}>
-                            <div className={clsx(styles.bulkPrivilegeActions)}>
+                            <div className={clsx(styles.bulkPrivilegeHeaderRow)}>
+                                <div className={clsx(styles.bulkPrivilegeHeaderSpacer)}></div>
                                 <button
                                     type="button"
                                     className={clsx(
@@ -2146,27 +2147,22 @@ export default function ConnectionDetailPage() {
                             </div>
                             <div className={clsx(styles.schemasPrivilegesList)}>
                                 {tableGroupsForm.map((group) => (
-                                    <div key={group.group} className={clsx(styles.schemasPrivilegeRow)}>
-                                        <div className={clsx(styles.schemasPrivilegeRole)}>{group.group}</div>
-                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                    <div key={group.group} className={clsx(styles.tablePrivilegeRow)}>
+                                        <div className={clsx(styles.tablePrivilegeRole)}>{group.group}</div>
+                                        <label className={clsx(styles.tablePrivilegeCell)}>
                                             <input type="checkbox" checked={group.select} onChange={() => toggleTableGroupPrivilege(group.group, 'select')} disabled={tableModalLoading}/>
-                                            SELECT
                                         </label>
-                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                        <label className={clsx(styles.tablePrivilegeCell)}>
                                             <input type="checkbox" checked={group.insert} onChange={() => toggleTableGroupPrivilege(group.group, 'insert')} disabled={tableModalLoading}/>
-                                            INSERT
                                         </label>
-                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                        <label className={clsx(styles.tablePrivilegeCell)}>
                                             <input type="checkbox" checked={group.update} onChange={() => toggleTableGroupPrivilege(group.group, 'update')} disabled={tableModalLoading}/>
-                                            UPDATE
                                         </label>
-                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                        <label className={clsx(styles.tablePrivilegeCell)}>
                                             <input type="checkbox" checked={group.delete} onChange={() => toggleTableGroupPrivilege(group.group, 'delete')} disabled={tableModalLoading}/>
-                                            DELETE
                                         </label>
-                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                        <label className={clsx(styles.tablePrivilegeCell)}>
                                             <input type="checkbox" checked={group.truncate} onChange={() => toggleTableGroupPrivilege(group.group, 'truncate')} disabled={tableModalLoading}/>
-                                            TRUNCATE
                                         </label>
                                     </div>
                                 ))}

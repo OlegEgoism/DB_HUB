@@ -1208,11 +1208,16 @@
   }
 }
 
-.bulkPrivilegeActions {
-  display: flex;
-  flex-wrap: wrap;
+.bulkPrivilegeHeaderRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(5, minmax(110px, 1fr));
   gap: 8px;
   margin-bottom: 12px;
+  align-items: center;
+}
+
+.bulkPrivilegeHeaderSpacer {
+  min-height: 1px;
 }
 
 .bulkPrivilegeButton {
@@ -1247,5 +1252,35 @@
     background: #f59e0b;
     border-color: #f59e0b;
     color: white;
+  }
+}
+
+
+.tablePrivilegeRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(5, minmax(110px, 1fr));
+  gap: 8px;
+  align-items: center;
+  border: 1px solid $clr-gray-300;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+}
+
+.tablePrivilegeRole {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  overflow-wrap: anywhere;
+}
+
+.tablePrivilegeCell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  input {
+    width: 16px;
+    height: 16px;
   }
 }
