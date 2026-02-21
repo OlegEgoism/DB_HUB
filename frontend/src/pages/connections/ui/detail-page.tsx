@@ -2044,7 +2044,7 @@ export default function ConnectionDetailPage() {
             )}
             {editingTable !== null && (
                 <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeTableEditModal}>
-                    <div className={clsx(groupModalStyles.modal__content)} onClick={(e) => e.stopPropagation()}>
+                    <div className={clsx(groupModalStyles.modal__content, groupModalStyles.modal__content_wide)} onClick={(e) => e.stopPropagation()}>
                         <button
                             className={clsx(groupModalStyles.modal__closeButton)}
                             onClick={closeTableEditModal}

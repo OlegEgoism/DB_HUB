@@ -1180,6 +1180,7 @@
 .schemasPrivilegeRow {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
   border: 1px solid $clr-gray-300;
   border-radius: 8px;

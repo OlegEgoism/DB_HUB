@@ -37,6 +37,12 @@
     }
   }
 
+  &__content_wide {
+    max-width: 960px;
+    max-height: 82vh;
+    overflow-y: auto;
+  }
+
   &__closeButton {
     position: absolute;
     top: 16px;
@@ -80,6 +86,9 @@
     font-size: 16px;
     color: var(--color-text-muted);
     margin: 0;
+    line-height: 1.4;
+    white-space: normal;
+    word-break: break-word;
   }
 
   &__form {
