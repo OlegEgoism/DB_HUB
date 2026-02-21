@@ -1167,28 +1167,3 @@
     font-size: 16px;
   }
 }
-
-.groupForm {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.groupFormLabel {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-main);
-}
-
-.groupFormInput,
-.groupFormTextarea {
-  width: 100%;
-  border: 1px solid $clr-gray-300;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 14px;
-}
-
-.groupFormTextarea {
-  resize: vertical;
-}

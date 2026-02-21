@@ -3,6 +3,7 @@ import React, {useEffect, useState} from 'react';
 import {useParams, useNavigate} from 'react-router';
 import clsx from 'clsx';
 import styles from './detail-page.module.scss';
+import groupModalStyles from './edit-group-modal.module.scss';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
     faDatabase,
@@ -1491,19 +1492,47 @@ export default function ConnectionDetailPage() {
                 </div>
             )}
             {isCreateGroupModalOpen && (
-                <div className={clsx(styles.modalOverlay)} onClick={closeGroupModal}>
-                    <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
-                        <div className={clsx(styles.modalHeader)}>
-                            <h2 className={clsx(styles.modalTitle)}>{editingGroup ? 'Редактирование группы' : 'Создание группы'}</h2>
+                <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeGroupModal}>
+                    <div className={clsx(groupModalStyles.modal__content)} onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className={clsx(groupModalStyles.modal__closeButton)}
+                            onClick={closeGroupModal}
+                            disabled={groupFormLoading}
+                            aria-label="Закрыть окно редактирования группы"
+                        >
+                            <FontAwesomeIcon icon={faTimes}/>
+                        </button>
+                        <div className={clsx(groupModalStyles.modal__header)}>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>{editingGroup ? 'Редактирование группы' : 'Создание группы'}</h2>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>{editingGroup ? editingGroup.name : 'Новая группа'}</p>
                         </div>
-                        <form className={clsx(styles.groupForm)} onSubmit={saveGroup}>
-                            <label className={clsx(styles.groupFormLabel)} htmlFor="groupName">Название группы</label>
-                            <input id="groupName" className={clsx(styles.groupFormInput)} value={groupFormName} onChange={(e) => setGroupFormName(e.target.value)} disabled={groupFormLoading}/>
-                            <label className={clsx(styles.groupFormLabel)} htmlFor="groupDescription">Описание</label>
-                            <textarea id="groupDescription" className={clsx(styles.groupFormTextarea)} value={groupFormDescription} onChange={(e) => setGroupFormDescription(e.target.value)} disabled={groupFormLoading} rows={3}/>
-                            <div className={clsx(styles.modalFooter)}>
-                                <button type="button" className={clsx(styles.modalCancelButton)} onClick={closeGroupModal} disabled={groupFormLoading}>Отмена</button>
-                                <button type="submit" className={clsx(styles.modalDeleteButton)} disabled={groupFormLoading}>
+                        <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveGroup}>
+                            <div className={clsx(groupModalStyles.modal__formGroup)}>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupName">Название группы</label>
+                                <input
+                                    id="groupName"
+                                    className={clsx(groupModalStyles.modal__input)}
+                                    value={groupFormName}
+                                    onChange={(e) => setGroupFormName(e.target.value)}
+                                    disabled={groupFormLoading}
+                                    placeholder="Введите название группы"
+                                />
+                            </div>
+                            <div className={clsx(groupModalStyles.modal__formGroup)}>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupDescription">Описание</label>
+                                <textarea
+                                    id="groupDescription"
+                                    className={clsx(groupModalStyles.modal__textarea)}
+                                    value={groupFormDescription}
+                                    onChange={(e) => setGroupFormDescription(e.target.value)}
+                                    disabled={groupFormLoading}
+                                    rows={3}
+                                    placeholder="Описание группы"
+                                />
+                            </div>
+                            <div className={clsx(groupModalStyles.modal__formFooter)}>
+                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeGroupModal} disabled={groupFormLoading}>Отмена</button>
+                                <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={groupFormLoading}>
                                     {groupFormLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
                                 </button>
                             </div>
