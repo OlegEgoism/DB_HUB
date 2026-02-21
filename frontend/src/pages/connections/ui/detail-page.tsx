@@ -27,11 +27,14 @@ import {
     faPencilAlt,
     faUserMinus,
     faLayerGroup,
+    faSitemap,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
 import {useConnectionUsers} from '../lib/useConnectionUsers';
 import {useConnectionGroups} from '../lib/useConnectionGroups';
+import {useConnectionSchemas} from '../lib/useConnectionSchemas';
+import type {SchemaPrivilegeInfo, SchemaRolePrivilege} from '../lib/useConnectionSchemas';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 
 interface Connection {
@@ -80,7 +83,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'extensions' | 'users' | 'groups';
+type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -125,6 +128,16 @@ export default function ConnectionDetailPage() {
     const [groupFormLoading, setGroupFormLoading] = useState(false);
     const [groupDeleteTarget, setGroupDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
     const [deletingGroupOid, setDeletingGroupOid] = useState<number | null>(null);
+
+
+    const [schemasPage, setSchemasPage] = useState(1);
+    const [schemasPageSize, setSchemasPageSize] = useState(8);
+    const [schemasSearchQuery, setSchemasSearchQuery] = useState('');
+    const [schemasSearchTerm, setSchemasSearchTerm] = useState('');
+    const [schemasReloadTrigger, setSchemasReloadTrigger] = useState(0);
+    const [editingSchema, setEditingSchema] = useState<SchemaPrivilegeInfo | null>(null);
+    const [schemaRolesForm, setSchemaRolesForm] = useState<SchemaRolePrivilege[]>([]);
+    const [schemaModalLoading, setSchemaModalLoading] = useState(false);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -175,6 +188,23 @@ export default function ConnectionDetailPage() {
         groupsPageSize,
         groupsSearchTerm || null,
         groupsReloadTrigger
+    );
+
+
+    const {
+        schemas,
+        loading: loadingSchemas,
+        error: schemasError,
+        total: totalSchemas,
+        pages: totalSchemasPages,
+        hasNext: schemasHasNext,
+        hasPrev: schemasHasPrev
+    } = useConnectionSchemas(
+        id ? parseInt(id) : 0,
+        schemasPage,
+        schemasPageSize,
+        schemasSearchTerm || null,
+        schemasReloadTrigger
     );
 
     const loadConnection = async () => {
@@ -427,6 +457,94 @@ export default function ConnectionDetailPage() {
             setError(err instanceof Error ? err.message : 'Не удалось удалить группу');
         } finally {
             setDeletingGroupOid(null);
+        }
+    };
+
+    const handleSchemasSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSchemasSearchQuery(e.target.value);
+    };
+
+    const handleSchemasSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setSchemasSearchTerm(schemasSearchQuery.trim());
+        setSchemasPage(1);
+    };
+
+    const handleSchemasSearchClear = () => {
+        setSchemasSearchQuery('');
+        setSchemasSearchTerm('');
+        setSchemasPage(1);
+    };
+
+    const handleSchemasPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalSchemasPages) {
+            setSchemasPage(newPage);
+        }
+    };
+
+    const handleSchemasPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setSchemasPageSize(newSize);
+        setSchemasPage(1);
+    };
+
+    const openSchemaEditModal = (schema: SchemaPrivilegeInfo) => {
+        setEditingSchema(schema);
+        setSchemaRolesForm(schema.role_privileges.map((role) => ({ ...role })));
+    };
+
+    const closeSchemaEditModal = () => {
+        if (schemaModalLoading) return;
+        setEditingSchema(null);
+        setSchemaRolesForm([]);
+    };
+
+    const toggleSchemaRolePrivilege = (roleName: string, field: 'create' | 'usage') => {
+        setSchemaRolesForm((prev) => prev.map((role) => (
+            role.role === roleName ? { ...role, [field]: !role[field] } : role
+        )));
+    };
+
+    const saveSchemaPrivileges = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingSchema) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        setSchemaModalLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/schemas/privileges_groups`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    schema_name: editingSchema.schema_name,
+                    groups: schemaRolesForm.map((role) => ({
+                        groupname: role.role,
+                        create: role.create,
+                        usage: role.usage,
+                    })),
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось обновить привилегии схемы');
+            }
+
+            closeSchemaEditModal();
+            setSchemasReloadTrigger((prev) => prev + 1);
+        } catch (err) {
+            console.error('Ошибка обновления привилегий схемы:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось обновить привилегии схемы');
+        } finally {
+            setSchemaModalLoading(false);
         }
     };
 
@@ -786,6 +904,21 @@ export default function ConnectionDetailPage() {
                             >
                                 <FontAwesomeIcon icon={faLayerGroup}/>
                                 Группы
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'schemas' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('schemas');
+                                    setSchemasSearchQuery('');
+                                    setSchemasSearchTerm('');
+                                    setSchemasPage(1);
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faSitemap}/>
+                                Схемы
                             </button>
                         </div>
                         <div className={clsx(styles.tabContent)}>
@@ -1353,6 +1486,101 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
+                            {activeTab === 'schemas' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <form onSubmit={handleSchemasSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchWrapper)}>
+                                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Поиск схем..."
+                                                    value={schemasSearchQuery}
+                                                    onChange={handleSchemasSearchInputChange}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                />
+                                                {schemasSearchQuery && (
+                                                    <button type="button" onClick={handleSchemasSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                        <FontAwesomeIcon icon={faTimes}/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                        </form>
+                                    </div>
+
+                                    {loadingSchemas ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка схем...</p>
+                                        </div>
+                                    ) : schemas && schemas.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {schemas.map((schema) => (
+                                                    <div key={schema.schema_name} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <FontAwesomeIcon icon={faSitemap} className={clsx(styles.userItemIcon)}/>
+                                                                <h3 className={clsx(styles.userItemTitle)}>{schema.schema_name}</h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Владелец:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{schema.owner}</span>
+                                                                </div>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Ролей:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{schema.role_privileges.length}</span>
+                                                                </div>
+                                                                <div className={clsx(styles.userActions)}>
+                                                                    <button className={clsx(styles.userActionButton)} onClick={() => openSchemaEditModal(schema)} title={`Изменить права для ${schema.schema_name}`}>
+                                                                        <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalSchemas > 0 && (
+                                                <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+<span className={clsx(styles.paginationText)}>
+Показано <span className={clsx(styles.paginationHighlight)}>{((schemasPage - 1) * schemasPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(schemasPage * schemasPageSize, totalSchemas)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalSchemas}</span> схем
+</span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={schemasPageSize} onChange={handleSchemasPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на странице</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage - 1)} disabled={schemasPage === 1 || !schemasHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {schemasPage} из {totalSchemasPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage + 1)} disabled={schemasPage === totalSchemasPages || !schemasHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faSitemap} size="3x"/>
+                                            <p>Схемы не найдены</p>
+                                            {schemasError && <p className={clsx(styles.errorMessage)}>{schemasError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1534,6 +1762,47 @@ export default function ConnectionDetailPage() {
                                 <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeGroupModal} disabled={groupFormLoading}>Отмена</button>
                                 <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={groupFormLoading}>
                                     {groupFormLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {editingSchema !== null && (
+                <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeSchemaEditModal}>
+                    <div className={clsx(groupModalStyles.modal__content)} onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className={clsx(groupModalStyles.modal__closeButton)}
+                            onClick={closeSchemaEditModal}
+                            disabled={schemaModalLoading}
+                            aria-label="Закрыть окно редактирования схемы"
+                        >
+                            <FontAwesomeIcon icon={faTimes}/>
+                        </button>
+                        <div className={clsx(groupModalStyles.modal__header)}>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>Редактирование схемы</h2>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>{editingSchema.schema_name}</p>
+                        </div>
+                        <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveSchemaPrivileges}>
+                            <div className={clsx(styles.schemasPrivilegesList)}>
+                                {schemaRolesForm.map((role) => (
+                                    <div key={role.role} className={clsx(styles.schemasPrivilegeRow)}>
+                                        <div className={clsx(styles.schemasPrivilegeRole)}>{role.role}</div>
+                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                            <input type="checkbox" checked={role.create} onChange={() => toggleSchemaRolePrivilege(role.role, 'create')} disabled={schemaModalLoading}/>
+                                            CREATE
+                                        </label>
+                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
+                                            <input type="checkbox" checked={role.usage} onChange={() => toggleSchemaRolePrivilege(role.role, 'usage')} disabled={schemaModalLoading}/>
+                                            USAGE
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className={clsx(groupModalStyles.modal__formFooter)}>
+                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeSchemaEditModal} disabled={schemaModalLoading}>Отмена</button>
+                                <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={schemaModalLoading}>
+                                    {schemaModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
                                 </button>
                             </div>
                         </form>
