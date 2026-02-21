@@ -1,7 +1,6 @@
 // frontend/src/pages/connections/ui/EditUserModal.tsx
 import {useState, useEffect} from 'react';
 import {useUpdateUser} from '../lib/useUpdateUser';
-import {useDeleteUser} from '../lib/useDeleteUser';
 import clsx from 'clsx';
 import styles from './edit-user-modal.module.scss';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -41,7 +40,6 @@ export function EditUserModal({
     const [initialData, setInitialData] = useState({...formData});
 
     const {updateUser, loading, error, success} = useUpdateUser(connectionId, user.oid);
-    const {deleteUser, loading: deleting, error: deleteError, success: deleteSuccess} = useDeleteUser(connectionId, user.oid);
 
     useEffect(() => {
         setFormData({
@@ -86,7 +84,7 @@ export function EditUserModal({
 
             await updateUser(updateData);
             onSuccess();
-        } catch {
+        } catch (err) {
             // Ошибка уже обработана в хуке
         }
     };
@@ -108,20 +106,8 @@ export function EditUserModal({
         );
     };
 
-    const handleDelete = async () => {
-        const isConfirmed = window.confirm(`Удалить пользователя ${user.name}? Это действие необратимо.`);
-        if (!isConfirmed) return;
-
-        try {
-            await deleteUser();
-            onSuccess();
-        } catch {
-            // Ошибка уже обработана в хуке
-        }
-    };
-
     const handleClose = () => {
-        if (!loading && !deleting) {
+        if (!loading) {
             onClose();
         }
     };
@@ -152,7 +138,7 @@ export function EditUserModal({
                 <button
                     className={clsx(styles.modal__closeButton)}
                     onClick={handleClose}
-                    disabled={loading || deleting}
+                    disabled={loading}
                     aria-label="Закрыть окно редактирования"
                 >
                     <FontAwesomeIcon icon={faTimes}/>
@@ -165,26 +151,7 @@ export function EditUserModal({
                         {user.name}
                     </p>
                 </div>
-                {deleteSuccess ? (
-                    <div className={clsx(styles.modal__success)}>
-                        <div className={clsx(styles.modal__successMessage)}>
-                            <FontAwesomeIcon
-                                icon={faCheckCircle}
-                                style={{
-                                    marginRight: '8px',
-                                    color: 'var(--color-status-success)',
-                                }}
-                            />
-                            Пользователь удален!
-                        </div>
-                        <div className={clsx(styles.modal__successHint)}>
-                            Пользователь успешно удален из базы
-                        </div>
-                        <button className={clsx(styles.modal__successButton)} onClick={onClose}>
-                            OK
-                        </button>
-                    </div>
-                ) : success ? (
+                {success ? (
                     <div className={clsx(styles.modal__success)}>
                         <div className={clsx(styles.modal__successMessage)}>
                             <FontAwesomeIcon
@@ -205,7 +172,7 @@ export function EditUserModal({
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className={clsx(styles.modal__form)}>
-                        {(error || deleteError) && <div className={clsx(styles.modal__error)}>{deleteError || getErrorMessage()}</div>}
+                        {error && <div className={clsx(styles.modal__error)}>{getErrorMessage()}</div>}
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="email" className={clsx(styles.modal__label)}>
@@ -219,7 +186,7 @@ export function EditUserModal({
                                 onChange={handleChange}
                                 className={clsx(styles.modal__input)}
                                 placeholder="user@example.com"
-                                disabled={loading || deleting}
+                                disabled={loading}
                             />
                         </div>
 
@@ -234,7 +201,7 @@ export function EditUserModal({
                                 onChange={handleChange}
                                 className={clsx(styles.modal__textarea)}
                                 placeholder="Описание пользователя"
-                                disabled={loading || deleting}
+                                disabled={loading}
                                 rows={3}
                             />
                         </div>
@@ -252,13 +219,13 @@ export function EditUserModal({
                                     onChange={handleChange}
                                     className={clsx(styles.modal__input)}
                                     placeholder="Минимум 4 символа"
-                                    disabled={loading || deleting}
+                                    disabled={loading}
                                 />
                                 <button
                                     type="button"
                                     className={clsx(styles.modal__togglePassword)}
                                     onClick={togglePasswordVisibility}
-                                    disabled={loading || deleting}
+                                    disabled={loading}
                                 >
                                     <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye}/>
                                 </button>
@@ -268,31 +235,16 @@ export function EditUserModal({
                         <div className={clsx(styles.modal__formFooter)}>
                             <button
                                 type="button"
-                                className={clsx(styles.modal__deleteButton)}
-                                onClick={handleDelete}
-                                disabled={loading || deleting}
-                            >
-                                {deleting ? (
-                                    <>
-                                        <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Удаление...
-                                    </>
-                                ) : (
-                                    'Удалить'
-                                )}
-                            </button>
-                            <button
-                                type="button"
                                 className={clsx(styles.modal__cancelButton)}
                                 onClick={handleClose}
-                                disabled={loading || deleting}
+                                disabled={loading}
                             >
                                 Отмена
                             </button>
                             <button
                                 type="submit"
                                 className={clsx(styles.modal__submitButton)}
-                                disabled={!isFormChanged() || loading || deleting}
+                                disabled={!isFormChanged() || loading}
                             >
                                 {loading ? (
                                     <>

@@ -24,7 +24,8 @@ export function useConnectionUsers(
   connectionId: number,
   page: number = 1,
   size: number = 20,
-  search: string | null = null
+  search: string | null = null,
+  reloadTrigger: number = 0
 ) {
   const [users, setUsers] = useState<DBUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +83,7 @@ export function useConnectionUsers(
     };
 
     fetchUsers();
-  }, [connectionId, page, size, search]);
+  }, [connectionId, page, size, search, reloadTrigger]);
 
   return { users, loading, error, total, pages, hasNext, hasPrev };
 }

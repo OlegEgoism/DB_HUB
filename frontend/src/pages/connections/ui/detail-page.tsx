@@ -24,6 +24,7 @@ import {
     faChevronCircleRight,
     faUser,
     faPencilAlt,
+    faUserMinus,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
@@ -104,6 +105,9 @@ export default function ConnectionDetailPage() {
     const [usersSearchTerm, setUsersSearchTerm] = useState('');
 
     const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+    const [userDeleteTarget, setUserDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
+    const [deletingUserOid, setDeletingUserOid] = useState<number | null>(null);
+    const [usersReloadTrigger, setUsersReloadTrigger] = useState(0);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -134,7 +138,8 @@ export default function ConnectionDetailPage() {
         id ? parseInt(id) : 0,
         usersPage,
         usersPageSize,
-        usersSearchTerm || null
+        usersSearchTerm || null,
+        usersReloadTrigger
     );
 
     const loadConnection = async () => {
@@ -412,6 +417,54 @@ export default function ConnectionDetailPage() {
 // Перезагружаем список пользователей
         setUsersPage(1);
         setUsersSearchTerm('');
+    };
+
+
+    const openUserDeleteConfirm = (user: { oid: number; name: string }) => {
+        setUserDeleteTarget({oid: user.oid, name: user.name});
+    };
+
+    const closeUserDeleteConfirm = () => {
+        if (deletingUserOid !== null) return;
+        setUserDeleteTarget(null);
+    };
+
+    const deleteUser = async () => {
+        if (!userDeleteTarget) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            setUserDeleteTarget(null);
+            return;
+        }
+
+        setDeletingUserOid(userDeleteTarget.oid);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/users/${userDeleteTarget.oid}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось удалить пользователя');
+            }
+
+            setUserDeleteTarget(null);
+            setUsersReloadTrigger(prev => prev + 1);
+            if (editingUser?.oid === userDeleteTarget.oid) {
+                closeEditUserModal();
+            }
+        } catch (err) {
+            console.error('Ошибка при удалении пользователя:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось удалить пользователя');
+        } finally {
+            setDeletingUserOid(null);
+        }
     };
 
     if (loading) {
@@ -872,18 +925,31 @@ export default function ConnectionDetailPage() {
                                                                         <span className={clsx(styles.userItemInfoValue)}>{user.email}</span>
                                                                     </div>
                                                                 )}
-                                                                {/* Кнопка редактирования для ВСЕХ пользователей */}
-                                                                <button
-                                                                    className={clsx(styles.paginationButton)}
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        openEditUserModal(user);
-                                                                    }}
-                                                                    title={`Редактировать ${user.name}`}
-                                                                    aria-label={`Редактировать пользователя ${user.name}`}
-                                                                >
-                                                                    <FontAwesomeIcon icon={faPencilAlt}/>
-                                                                </button>
+                                                                <div className={clsx(styles.userActions)}>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton)}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            openEditUserModal(user);
+                                                                        }}
+                                                                        title={`Редактировать ${user.name}`}
+                                                                        aria-label={`Редактировать пользователя ${user.name}`}
+                                                                    >
+                                                                        <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                    </button>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton, styles.userActionButton_delete)}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            openUserDeleteConfirm(user);
+                                                                        }}
+                                                                        title={`Удалить ${user.name}`}
+                                                                        aria-label={`Удалить пользователя ${user.name}`}
+                                                                        disabled={deletingUserOid === user.oid}
+                                                                    >
+                                                                        <FontAwesomeIcon icon={faUserMinus}/>
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1008,6 +1074,62 @@ export default function ConnectionDetailPage() {
                                 disabled={deletingId !== null}
                             >
                                 {deletingId !== null ? (
+                                    <>
+                                        <FontAwesomeIcon icon={faSpinner} spin/>
+                                        Удаление...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FontAwesomeIcon icon={faTrashAlt}/>
+                                        Удалить
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {userDeleteTarget !== null && (
+                <div className={clsx(styles.modalOverlay)} onClick={closeUserDeleteConfirm}>
+                    <div
+                        className={clsx(styles.modalContent)}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className={clsx(styles.modalHeader)}>
+                            <FontAwesomeIcon
+                                icon={faExclamationCircle}
+                                className={clsx(styles.modalIcon)}
+                            />
+                            <h2 className={clsx(styles.modalTitle)}>
+                                Подтверждение удаления
+                            </h2>
+                        </div>
+                        <div className={clsx(styles.modalBody)}>
+                            <p className={clsx(styles.modalText)}>
+                                Удалить пользователя <strong>{userDeleteTarget.name}</strong>?
+                            </p>
+                            <p className={clsx(styles.modalWarning)}>
+                                <FontAwesomeIcon icon={faExclamationCircle}/>
+                                Пользователь будет удален безвозвратно.
+                            </p>
+                        </div>
+                        <div className={clsx(styles.modalFooter)}>
+                            <button
+                                className={clsx(styles.modalCancelButton)}
+                                onClick={closeUserDeleteConfirm}
+                                disabled={deletingUserOid !== null}
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.modalDeleteButton,
+                                    deletingUserOid !== null && styles.modalDeleteButton_loading
+                                )}
+                                onClick={deleteUser}
+                                disabled={deletingUserOid !== null}
+                            >
+                                {deletingUserOid !== null ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/>
                                         Удаление...

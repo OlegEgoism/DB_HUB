@@ -913,6 +913,48 @@
   }
 }
 
+
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.userActionButton {
+  background: white;
+  border: 1px solid $clr-gray-300;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &_delete {
+    &:hover:not(:disabled) {
+      background: $clr-red-500;
+      border-color: $clr-red-500;
+      color: white;
+    }
+  }
+}
+
 .userItemInfoRow {
   display: flex;
   gap: 6px;
