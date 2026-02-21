@@ -2043,7 +2043,7 @@ export default function ConnectionDetailPage() {
             )}
             {editingSchema !== null && (
                 <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeSchemaEditModal}>
-                    <div className={clsx(groupModalStyles.modal__content)} onClick={(e) => e.stopPropagation()}>
+                    <div className={clsx(groupModalStyles.modal__content, groupModalStyles.modal__content_wide)} onClick={(e) => e.stopPropagation()}>
                         <button
                             className={clsx(groupModalStyles.modal__closeButton)}
                             onClick={closeSchemaEditModal}
@@ -2088,14 +2088,26 @@ export default function ConnectionDetailPage() {
                                 {schemaRolesForm.map((role) => (
                                     <div key={role.role} className={clsx(styles.schemasPrivilegeRow)}>
                                         <div className={clsx(styles.schemasPrivilegeRole)}>{role.role}</div>
-                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
-                                            <input type="checkbox" checked={role.create} onChange={() => toggleSchemaRolePrivilege(role.role, 'create')} disabled={schemaModalLoading}/>
-                                            CREATE
-                                        </label>
-                                        <label className={clsx(styles.schemasPrivilegeCheckbox)}>
-                                            <input type="checkbox" checked={role.usage} onChange={() => toggleSchemaRolePrivilege(role.role, 'usage')} disabled={schemaModalLoading}/>
-                                            USAGE
-                                        </label>
+                                        <div className={clsx(styles.schemasPrivilegeCell)}>
+                                            <input
+                                                type="checkbox"
+                                                className={clsx(styles.schemasPrivilegeCheckbox)}
+                                                checked={role.create}
+                                                onChange={() => toggleSchemaRolePrivilege(role.role, 'create')}
+                                                disabled={schemaModalLoading}
+                                                aria-label={`Привилегия CREATE для роли ${role.role}`}
+                                            />
+                                        </div>
+                                        <div className={clsx(styles.schemasPrivilegeCell)}>
+                                            <input
+                                                type="checkbox"
+                                                className={clsx(styles.schemasPrivilegeCheckbox)}
+                                                checked={role.usage}
+                                                onChange={() => toggleSchemaRolePrivilege(role.role, 'usage')}
+                                                disabled={schemaModalLoading}
+                                                aria-label={`Привилегия USAGE для роли ${role.role}`}
+                                            />
+                                        </div>
                                     </div>
                                 ))}
                             </div>

@@ -1186,10 +1186,10 @@
 }
 
 .schemasPrivilegeRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(110px, 1fr));
+  gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
   border: 1px solid $clr-gray-300;
   border-radius: 8px;
   padding: 10px 12px;
@@ -1197,23 +1197,20 @@
 }
 
 .schemasPrivilegeRole {
-  flex: 1;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-main);
+  overflow-wrap: anywhere;
+}
+
+.schemasPrivilegeCell {
+  display: flex;
+  justify-content: center;
 }
 
 .schemasPrivilegeCheckbox {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--color-text-main);
-
-  input {
-    width: 16px;
-    height: 16px;
-  }
+  width: 16px;
+  height: 16px;
 }
 
 .bulkPrivilegeHeaderRow {
