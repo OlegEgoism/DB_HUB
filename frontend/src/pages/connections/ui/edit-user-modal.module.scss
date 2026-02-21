@@ -215,7 +215,8 @@
   }
 
   &__cancelButton,
-  &__submitButton {
+  &__submitButton,
+  &__deleteButton {
     flex: 1;
     padding: 12px;
     border-radius: 8px;
@@ -228,6 +229,21 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+  }
+
+
+  &__deleteButton {
+    background: $clr-red-500;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: #dc2626;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 
   &__cancelButton {
