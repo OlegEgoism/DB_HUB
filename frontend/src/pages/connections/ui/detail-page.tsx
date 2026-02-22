@@ -2802,7 +2802,7 @@ export default function ConnectionDetailPage() {
                                                 placeholder="Мин. длительность, мс"
                                                 value={activeSqlMinDuration}
                                                 onChange={(e) => setActiveSqlMinDuration(e.target.value)}
-                                                className={clsx(styles.paginationSelect)}
+                                                className={clsx(styles.usersSearchInput)}
                                             />
                                             <input
                                                 type="number"
@@ -2810,10 +2810,10 @@ export default function ConnectionDetailPage() {
                                                 placeholder="Макс. длительность, мс"
                                                 value={activeSqlMaxDuration}
                                                 onChange={(e) => setActiveSqlMaxDuration(e.target.value)}
-                                                className={clsx(styles.paginationSelect)}
+                                                className={clsx(styles.usersSearchInput)}
                                             />
                                             <button type="submit" className={clsx(styles.usersSearchButton)}>Применить</button>
-                                            <button type="button" className={clsx(styles.sqlSecondaryButton)} onClick={handleActiveSqlFilterClear}>Сброс</button>
+                                            <button type="button" className={clsx(styles.usersSearchButton)} onClick={handleActiveSqlFilterClear}>Сброс</button>
                                         </form>
                                     </div>
 
