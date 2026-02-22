@@ -1428,9 +1428,17 @@
   grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr);
   gap: 12px 20px;
   align-items: center;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .usersMetaCell {
   min-width: 0;
   justify-content: flex-end;
+
+  @media (max-width: 1200px) {
+    justify-content: flex-start;
+  }
 }
