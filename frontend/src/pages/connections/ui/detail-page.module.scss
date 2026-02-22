@@ -927,6 +927,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  padding-right: 12px;
+
+  @media (max-width: 1024px) {
+    padding-right: 0;
+  }
 }
 
 .userActionButton {
