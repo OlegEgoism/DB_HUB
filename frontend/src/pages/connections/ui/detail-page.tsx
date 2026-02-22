@@ -2142,28 +2142,12 @@ export default function ConnectionDetailPage() {
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
-                                                            <button
-                                                                className={clsx(styles.paginationButton, styles.paginationButton_first)}
-                                                                onClick={() => handleIndexesPageChange(1)}
-                                                                disabled={indexesPage === 1}
-                                                                title="Первая страница"
-                                                            >
-                                                                <FontAwesomeIcon icon={faChevronCircleLeft}/>
-                                                            </button>
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleIndexesPageChange(indexesPage - 1)} disabled={indexesPage === 1 || !indexesHasPrev} title="Предыдущая страница">
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
                                                             <span className={clsx(styles.pageInfo)}>Страница {indexesPage} из {totalIndexesPages}</span>
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleIndexesPageChange(indexesPage + 1)} disabled={indexesPage === totalIndexesPages || !indexesHasNext} title="Следующая страница">
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
-                                                            </button>
-                                                            <button
-                                                                className={clsx(styles.paginationButton, styles.paginationButton_last)}
-                                                                onClick={() => handleIndexesPageChange(totalIndexesPages)}
-                                                                disabled={indexesPage === totalIndexesPages}
-                                                                title="Последняя страница"
-                                                            >
-                                                                <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
                                                         </div>
                                                     </div>
