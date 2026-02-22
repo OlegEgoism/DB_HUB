@@ -502,6 +502,14 @@ export default function ConnectionDetailPage() {
         setGroupsPage(1);
     };
 
+    const handleGroupsFirstPage = () => {
+        setGroupsPage(1);
+    };
+
+    const handleGroupsLastPage = () => {
+        setGroupsPage(totalGroupsPages);
+    };
+
     const openCreateGroupModal = () => {
         setEditingGroup(null);
         setGroupFormName('');
@@ -2149,12 +2157,28 @@ export default function ConnectionDetailPage() {
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_first)}
+                                                                onClick={handleGroupsFirstPage}
+                                                                disabled={groupsPage === 1 || !groupsHasPrev}
+                                                                title="Первая страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleLeft}/>
+                                                            </button>
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage - 1)} disabled={groupsPage === 1 || !groupsHasPrev} title="Предыдущая страница">
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
                                                             <span className={clsx(styles.pageInfo)}>Страница {groupsPage} из {totalGroupsPages}</span>
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage + 1)} disabled={groupsPage === totalGroupsPages || !groupsHasNext} title="Следующая страница">
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_last)}
+                                                                onClick={handleGroupsLastPage}
+                                                                disabled={groupsPage === totalGroupsPages || !groupsHasNext}
+                                                                title="Последняя страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
                                                         </div>
                                                     </div>
