@@ -41,6 +41,7 @@ import {useConnectionTables} from '../lib/useConnectionTables';
 import type {TablePrivilegeInfo, TableGroupPrivilege} from '../lib/useConnectionTables';
 import {useConnectionViews} from '../lib/useConnectionViews';
 import {useConnectionIndexes} from '../lib/useConnectionIndexes';
+import {useConnectionFunctions} from '../lib/useConnectionFunctions';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 
 interface Connection {
@@ -89,7 +90,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes';
+type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -163,6 +164,11 @@ export default function ConnectionDetailPage() {
     const [indexesPageSize, setIndexesPageSize] = useState(8);
     const [indexesSearchQuery, setIndexesSearchQuery] = useState('');
     const [indexesSearchTerm, setIndexesSearchTerm] = useState('');
+
+    const [functionsPage, setFunctionsPage] = useState(1);
+    const [functionsPageSize, setFunctionsPageSize] = useState(8);
+    const [functionsSearchQuery, setFunctionsSearchQuery] = useState('');
+    const [functionsSearchTerm, setFunctionsSearchTerm] = useState('');
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -279,6 +285,23 @@ export default function ConnectionDetailPage() {
         indexesPage,
         indexesPageSize,
         indexesSearchTerm || null,
+        0
+    );
+
+
+    const {
+        functions,
+        loading: loadingFunctions,
+        error: functionsError,
+        total: totalFunctions,
+        pages: totalFunctionsPages,
+        hasNext: functionsHasNext,
+        hasPrev: functionsHasPrev
+    } = useConnectionFunctions(
+        id ? parseInt(id) : 0,
+        functionsPage,
+        functionsPageSize,
+        functionsSearchTerm || null,
         0
     );
 
@@ -721,6 +744,42 @@ export default function ConnectionDetailPage() {
         const newSize = parseInt(e.target.value, 10);
         setIndexesPageSize(newSize);
         setIndexesPage(1);
+    };
+
+    const handleFunctionsSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFunctionsSearchQuery(e.target.value);
+    };
+
+    const handleFunctionsSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setFunctionsSearchTerm(functionsSearchQuery.trim());
+        setFunctionsPage(1);
+    };
+
+    const handleFunctionsSearchClear = () => {
+        setFunctionsSearchQuery('');
+        setFunctionsSearchTerm('');
+        setFunctionsPage(1);
+    };
+
+    const handleFunctionsPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalFunctionsPages) {
+            setFunctionsPage(newPage);
+        }
+    };
+
+    const handleFunctionsPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setFunctionsPageSize(newSize);
+        setFunctionsPage(1);
+    };
+
+    const handleFunctionsFirstPage = () => {
+        setFunctionsPage(1);
+    };
+
+    const handleFunctionsLastPage = () => {
+        setFunctionsPage(totalFunctionsPages);
     };
 
     const openTableEditModal = (table: TablePrivilegeInfo) => {
@@ -1230,6 +1289,21 @@ export default function ConnectionDetailPage() {
                             >
                                 <FontAwesomeIcon icon={faNetworkWired}/>
                                 Индексы
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'functions' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('functions');
+                                    setFunctionsSearchQuery('');
+                                    setFunctionsSearchTerm('');
+                                    setFunctionsPage(1);
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faCogs}/>
+                                Функции
                             </button>
                         </div>
                         <div className={clsx(styles.tabContent)}>
@@ -2159,6 +2233,108 @@ export default function ConnectionDetailPage() {
                                             <FontAwesomeIcon icon={faNetworkWired} size="3x"/>
                                             <p>Индексы не найдены</p>
                                             {indexesError && <p className={clsx(styles.errorMessage)}>{indexesError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {activeTab === 'functions' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <form onSubmit={handleFunctionsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchWrapper)}>
+                                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Поиск функций..."
+                                                    value={functionsSearchQuery}
+                                                    onChange={handleFunctionsSearchInputChange}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                />
+                                                {functionsSearchQuery && (
+                                                    <button type="button" onClick={handleFunctionsSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                        <FontAwesomeIcon icon={faTimes}/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                        </form>
+                                    </div>
+
+                                    {loadingFunctions ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка функций...</p>
+                                        </div>
+                                    ) : functions && functions.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {functions.map((dbFunction) => (
+                                                    <div key={`${dbFunction.schema_name}.${dbFunction.function_name}`} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <FontAwesomeIcon icon={faCogs} className={clsx(styles.userItemIcon)}/>
+                                                                <h3 className={clsx(styles.userItemTitle)}>{dbFunction.schema_name}.{dbFunction.function_name}</h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{dbFunction.description || '—'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalFunctions > 0 && (
+                                                <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+<span className={clsx(styles.paginationText)}>
+Показано <span className={clsx(styles.paginationHighlight)}>{((functionsPage - 1) * functionsPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(functionsPage * functionsPageSize, totalFunctions)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalFunctions}</span> функций
+</span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={functionsPageSize} onChange={handleFunctionsPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на странице</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_first)}
+                                                                onClick={handleFunctionsFirstPage}
+                                                                disabled={functionsPage === 1}
+                                                                title="Первая страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleLeft}/>
+                                                            </button>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleFunctionsPageChange(functionsPage - 1)} disabled={functionsPage === 1 || !functionsHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {functionsPage} из {totalFunctionsPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleFunctionsPageChange(functionsPage + 1)} disabled={functionsPage === totalFunctionsPages || !functionsHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_last)}
+                                                                onClick={handleFunctionsLastPage}
+                                                                disabled={functionsPage === totalFunctionsPages}
+                                                                title="Последняя страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faCogs} size="3x"/>
+                                            <p>Функции не найдены</p>
+                                            {functionsError && <p className={clsx(styles.errorMessage)}>{functionsError}</p>}
                                         </div>
                                     )}
                                 </div>
