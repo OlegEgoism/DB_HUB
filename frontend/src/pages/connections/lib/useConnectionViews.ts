@@ -10,19 +10,19 @@ export interface DBViewInfo {
 }
 
 interface ViewsResponse {
-  connection_id: number;
-  connection_name: string;
-  total_views: number;
-  total_filtered_views: number;
-  page: number;
-  size: number;
-  pages: number;
-  has_next: boolean;
-  has_prev: boolean;
-  views: DBViewInfo[];
+  total_filtered_views?: number;
+  views?: DBViewInfo[];
 }
 
-export function useConnectionViews(
+interface MaterializedViewsResponse {
+  total_filtered_materialized_views?: number;
+  materialized_views?: DBViewInfo[];
+}
+
+function useViewsBase(
+  endpoint: string,
+  dataKey: 'views' | 'materialized_views',
+  totalKey: 'total_filtered_views' | 'total_filtered_materialized_views',
   connectionId: number,
   page: number = 1,
   size: number = 20,
@@ -57,7 +57,7 @@ export function useConnectionViews(
         }
 
         const response = await fetch(
-          `${API_BASE_URL}/api/v1/db_connections/${connectionId}/views?${params.toString()}`,
+          `${API_BASE_URL}/api/v1/db_connections/${connectionId}/${endpoint}?${params.toString()}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -71,9 +71,9 @@ export function useConnectionViews(
           throw new Error(errData?.detail || `Ошибка: ${response.status}`);
         }
 
-        const data: ViewsResponse = await response.json();
-        setViews(data.views);
-        setTotal(data.total_filtered_views);
+        const data: (ViewsResponse & MaterializedViewsResponse & { pages: number; has_next: boolean; has_prev: boolean }) = await response.json();
+        setViews(Array.isArray(data[dataKey]) ? data[dataKey] ?? [] : []);
+        setTotal(typeof data[totalKey] === 'number' ? data[totalKey] ?? 0 : 0);
         setPages(data.pages);
         setHasNext(data.has_next);
         setHasPrev(data.has_prev);
@@ -86,7 +86,27 @@ export function useConnectionViews(
     };
 
     fetchViews();
-  }, [connectionId, page, size, search, reloadTrigger]);
+  }, [connectionId, endpoint, page, size, search, reloadTrigger, dataKey, totalKey]);
 
   return { views, loading, error, total, pages, hasNext, hasPrev };
+}
+
+export function useConnectionViews(
+  connectionId: number,
+  page: number = 1,
+  size: number = 20,
+  search: string | null = null,
+  reloadTrigger: number = 0,
+) {
+  return useViewsBase('views', 'views', 'total_filtered_views', connectionId, page, size, search, reloadTrigger);
+}
+
+export function useConnectionMaterializedViews(
+  connectionId: number,
+  page: number = 1,
+  size: number = 20,
+  search: string | null = null,
+  reloadTrigger: number = 0,
+) {
+  return useViewsBase('views/materialized', 'materialized_views', 'total_filtered_materialized_views', connectionId, page, size, search, reloadTrigger);
 }

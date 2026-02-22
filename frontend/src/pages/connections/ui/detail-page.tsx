@@ -39,7 +39,7 @@ import {useConnectionSchemas} from '../lib/useConnectionSchemas';
 import type {SchemaPrivilegeInfo, SchemaRolePrivilege} from '../lib/useConnectionSchemas';
 import {useConnectionTables} from '../lib/useConnectionTables';
 import type {TablePrivilegeInfo, TableGroupPrivilege} from '../lib/useConnectionTables';
-import {useConnectionViews} from '../lib/useConnectionViews';
+import {useConnectionMaterializedViews, useConnectionViews} from '../lib/useConnectionViews';
 import {useConnectionIndexes} from '../lib/useConnectionIndexes';
 import {useConnectionFunctions} from '../lib/useConnectionFunctions';
 import {useConnectionProcedures} from '../lib/useConnectionProcedures';
@@ -161,6 +161,11 @@ export default function ConnectionDetailPage() {
     const [viewsPageSize, setViewsPageSize] = useState(8);
     const [viewsSearchQuery, setViewsSearchQuery] = useState('');
     const [viewsSearchTerm, setViewsSearchTerm] = useState('');
+
+    const [materializedViewsPage, setMaterializedViewsPage] = useState(1);
+    const [materializedViewsPageSize, setMaterializedViewsPageSize] = useState(8);
+    const [materializedViewsSearchQuery, setMaterializedViewsSearchQuery] = useState('');
+    const [materializedViewsSearchTerm, setMaterializedViewsSearchTerm] = useState('');
 
     const [indexesPage, setIndexesPage] = useState(1);
     const [indexesPageSize, setIndexesPageSize] = useState(8);
@@ -296,6 +301,21 @@ export default function ConnectionDetailPage() {
         0
     );
 
+    const {
+        views: materializedViews,
+        loading: loadingMaterializedViews,
+        error: materializedViewsError,
+        total: totalMaterializedViews,
+        pages: totalMaterializedViewsPages,
+        hasNext: materializedViewsHasNext,
+        hasPrev: materializedViewsHasPrev
+    } = useConnectionMaterializedViews(
+        id ? parseInt(id) : 0,
+        materializedViewsPage,
+        materializedViewsPageSize,
+        materializedViewsSearchTerm || null,
+        0
+    );
 
     const {
         indexes,
@@ -809,6 +829,42 @@ export default function ConnectionDetailPage() {
 
     const handleViewsLastPage = () => {
         setViewsPage(totalViewsPages);
+    };
+
+    const handleMaterializedViewsSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setMaterializedViewsSearchQuery(e.target.value);
+    };
+
+    const handleMaterializedViewsSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setMaterializedViewsSearchTerm(materializedViewsSearchQuery.trim());
+        setMaterializedViewsPage(1);
+    };
+
+    const handleMaterializedViewsSearchClear = () => {
+        setMaterializedViewsSearchQuery('');
+        setMaterializedViewsSearchTerm('');
+        setMaterializedViewsPage(1);
+    };
+
+    const handleMaterializedViewsPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalMaterializedViewsPages) {
+            setMaterializedViewsPage(newPage);
+        }
+    };
+
+    const handleMaterializedViewsPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setMaterializedViewsPageSize(newSize);
+        setMaterializedViewsPage(1);
+    };
+
+    const handleMaterializedViewsFirstPage = () => {
+        setMaterializedViewsPage(1);
+    };
+
+    const handleMaterializedViewsLastPage = () => {
+        setMaterializedViewsPage(totalMaterializedViewsPages);
     };
 
     const handleIndexesSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2441,6 +2497,7 @@ export default function ConnectionDetailPage() {
                             {activeTab === 'views' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
+                                        <h3 className={clsx(styles.userItemTitle)}>Список представлений</h3>
                                         <form onSubmit={handleViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
@@ -2502,12 +2559,7 @@ export default function ConnectionDetailPage() {
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
-                                                            <button
-                                                                className={clsx(styles.paginationButton, styles.paginationButton_first)}
-                                                                onClick={handleViewsFirstPage}
-                                                                disabled={viewsPage === 1 || !viewsHasPrev}
-                                                                title="Первая страница"
-                                                            >
+                                                            <button className={clsx(styles.paginationButton, styles.paginationButton_first)} onClick={handleViewsFirstPage} disabled={viewsPage === 1 || !viewsHasPrev} title="Первая страница">
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage - 1)} disabled={viewsPage === 1 || !viewsHasPrev} title="Предыдущая страница">
@@ -2517,12 +2569,7 @@ export default function ConnectionDetailPage() {
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage + 1)} disabled={viewsPage === totalViewsPages || !viewsHasNext} title="Следующая страница">
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
-                                                            <button
-                                                                className={clsx(styles.paginationButton, styles.paginationButton_last)}
-                                                                onClick={handleViewsLastPage}
-                                                                disabled={viewsPage === totalViewsPages || !viewsHasNext}
-                                                                title="Последняя страница"
-                                                            >
+                                                            <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleViewsLastPage} disabled={viewsPage === totalViewsPages || !viewsHasNext} title="Последняя страница">
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
                                                         </div>
@@ -2537,9 +2584,99 @@ export default function ConnectionDetailPage() {
                                             {viewsError && <p className={clsx(styles.errorMessage)}>{viewsError}</p>}
                                         </div>
                                     )}
+
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <h3 className={clsx(styles.userItemTitle)}>Список материализованных представлений</h3>
+                                        <form onSubmit={handleMaterializedViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchWrapper)}>
+                                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Поиск материализованных представлений..."
+                                                    value={materializedViewsSearchQuery}
+                                                    onChange={handleMaterializedViewsSearchInputChange}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                />
+                                                {materializedViewsSearchQuery && (
+                                                    <button type="button" onClick={handleMaterializedViewsSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                        <FontAwesomeIcon icon={faTimes}/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                        </form>
+                                    </div>
+
+                                    {loadingMaterializedViews ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка материализованных представлений...</p>
+                                        </div>
+                                    ) : materializedViews && materializedViews.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {materializedViews.map((view) => (
+                                                    <div key={`mat-${view.schema_name}.${view.view_name}`} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <h3 className={clsx(styles.userItemTitle)}>{view.schema_name}.{view.view_name}</h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{view.description || '—'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalMaterializedViews > 0 && (
+                                                <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+<span className={clsx(styles.paginationText)}>
+Показано <span className={clsx(styles.paginationHighlight)}>{((materializedViewsPage - 1) * materializedViewsPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(materializedViewsPage * materializedViewsPageSize, totalMaterializedViews)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalMaterializedViews}</span> материализованных представлений
+</span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={materializedViewsPageSize} onChange={handleMaterializedViewsPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на странице</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button className={clsx(styles.paginationButton, styles.paginationButton_first)} onClick={handleMaterializedViewsFirstPage} disabled={materializedViewsPage === 1 || !materializedViewsHasPrev} title="Первая страница">
+                                                                <FontAwesomeIcon icon={faChevronCircleLeft}/>
+                                                            </button>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleMaterializedViewsPageChange(materializedViewsPage - 1)} disabled={materializedViewsPage === 1 || !materializedViewsHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {materializedViewsPage} из {totalMaterializedViewsPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleMaterializedViewsPageChange(materializedViewsPage + 1)} disabled={materializedViewsPage === totalMaterializedViewsPages || !materializedViewsHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                            <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleMaterializedViewsLastPage} disabled={materializedViewsPage === totalMaterializedViewsPages || !materializedViewsHasNext} title="Последняя страница">
+                                                                <FontAwesomeIcon icon={faChevronCircleRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faEye} size="3x"/>
+                                            <p>Материализованные представления не найдены</p>
+                                            {materializedViewsError && <p className={clsx(styles.errorMessage)}>{materializedViewsError}</p>}
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                            {activeTab === 'indexes' && (
+                            
+{activeTab === 'indexes' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleIndexesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
