@@ -192,6 +192,7 @@ export default function ConnectionDetailPage() {
     const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState('');
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
+    const [terminateWarningMessage, setTerminateWarningMessage] = useState<string | null>(null);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -944,6 +945,7 @@ export default function ConnectionDetailPage() {
 
         setTerminatingPid(pid);
         setError(null);
+        setTerminateWarningMessage(null);
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/active_connections`, {
                 method: 'DELETE',
@@ -962,7 +964,12 @@ export default function ConnectionDetailPage() {
             setActiveSqlReloadTrigger((prev) => prev + 1);
         } catch (err) {
             console.error('Ошибка завершения активного SQL-запроса:', err);
-            setError(err instanceof Error ? err.message : 'Не удалось завершить активный SQL-запрос');
+            const errorMessage = err instanceof Error ? err.message : 'Не удалось завершить активный SQL-запрос';
+            if (errorMessage.includes('не найден или уже завершён')) {
+                setTerminateWarningMessage(errorMessage);
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setTerminatingPid(null);
         }
@@ -2943,6 +2950,36 @@ export default function ConnectionDetailPage() {
                                         Удалить
                                     </>
                                 )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {terminateWarningMessage && (
+                <div className={clsx(styles.modalOverlay)} onClick={() => setTerminateWarningMessage(null)}>
+                    <div
+                        className={clsx(styles.modalContent)}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className={clsx(styles.modalHeader)}>
+                            <FontAwesomeIcon
+                                icon={faExclamationCircle}
+                                className={clsx(styles.modalIcon)}
+                            />
+                            <h2 className={clsx(styles.modalTitle)}>
+                                Предупреждение
+                            </h2>
+                        </div>
+                        <div className={clsx(styles.modalBody)}>
+                            <p className={clsx(styles.modalText)}>{terminateWarningMessage}</p>
+                        </div>
+                        <div className={clsx(styles.modalFooter)}>
+                            <button
+                                className={clsx(styles.modalCancelButton)}
+                                onClick={() => setTerminateWarningMessage(null)}
+                            >
+                                Понятно
                             </button>
                         </div>
                     </div>
