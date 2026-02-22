@@ -655,6 +655,14 @@ export default function ConnectionDetailPage() {
         setSchemasPage(1);
     };
 
+    const handleSchemasFirstPage = () => {
+        setSchemasPage(1);
+    };
+
+    const handleSchemasLastPage = () => {
+        setSchemasPage(totalSchemasPages);
+    };
+
     const openSchemaEditModal = (schema: SchemaPrivilegeInfo) => {
         setEditingSchema(schema);
         setSchemaRolesForm(schema.role_privileges.map((role) => ({...role})));
@@ -2267,12 +2275,28 @@ export default function ConnectionDetailPage() {
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_first)}
+                                                                onClick={handleSchemasFirstPage}
+                                                                disabled={schemasPage === 1 || !schemasHasPrev}
+                                                                title="Первая страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleLeft}/>
+                                                            </button>
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage - 1)} disabled={schemasPage === 1 || !schemasHasPrev} title="Предыдущая страница">
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
                                                             <span className={clsx(styles.pageInfo)}>Страница {schemasPage} из {totalSchemasPages}</span>
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage + 1)} disabled={schemasPage === totalSchemasPages || !schemasHasNext} title="Следующая страница">
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_last)}
+                                                                onClick={handleSchemasLastPage}
+                                                                disabled={schemasPage === totalSchemasPages || !schemasHasNext}
+                                                                title="Последняя страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
                                                         </div>
                                                     </div>
