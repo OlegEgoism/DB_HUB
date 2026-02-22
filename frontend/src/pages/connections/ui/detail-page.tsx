@@ -91,7 +91,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions' | 'procedures';
+type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions' | 'procedures' | 'sql_query';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -175,6 +175,14 @@ export default function ConnectionDetailPage() {
     const [proceduresPageSize, setProceduresPageSize] = useState(8);
     const [proceduresSearchQuery, setProceduresSearchQuery] = useState('');
     const [proceduresSearchTerm, setProceduresSearchTerm] = useState('');
+
+    const [sqlQueryText, setSqlQueryText] = useState('SELECT 1 AS test;');
+    const [sqlQueryLimit, setSqlQueryLimit] = useState(100);
+    const [sqlQueryLoading, setSqlQueryLoading] = useState(false);
+    const [sqlQueryError, setSqlQueryError] = useState<string | null>(null);
+    const [sqlQueryColumns, setSqlQueryColumns] = useState<string[]>([]);
+    const [sqlQueryRows, setSqlQueryRows] = useState<Record<string, unknown>[]>([]);
+    const [sqlQueryTruncated, setSqlQueryTruncated] = useState(false);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -841,6 +849,51 @@ export default function ConnectionDetailPage() {
         setProceduresPage(totalProceduresPages);
     };
 
+    const executeSqlQuery = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!id) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        setSqlQueryLoading(true);
+        setSqlQueryError(null);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/query`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: sqlQueryText,
+                    limit: sqlQueryLimit,
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось выполнить SQL-запрос');
+            }
+
+            const data = await response.json();
+            setSqlQueryColumns(Array.isArray(data.columns) ? data.columns : []);
+            setSqlQueryRows(Array.isArray(data.rows) ? data.rows : []);
+            setSqlQueryTruncated(Boolean(data.truncated));
+        } catch (err) {
+            console.error('Ошибка выполнения SQL-запроса:', err);
+            setSqlQueryError(err instanceof Error ? err.message : 'Не удалось выполнить SQL-запрос');
+            setSqlQueryColumns([]);
+            setSqlQueryRows([]);
+            setSqlQueryTruncated(false);
+        } finally {
+            setSqlQueryLoading(false);
+        }
+    };
+
     const openTableEditModal = (table: TablePrivilegeInfo) => {
         setEditingTable(table);
         setTableGroupsForm(table.group_privileges.map((group) => ({ ...group })));
@@ -1378,6 +1431,19 @@ export default function ConnectionDetailPage() {
                             >
                                 <FontAwesomeIcon icon={faCogs}/>
                                 Процедуры
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'sql_query' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('sql_query');
+                                    setSqlQueryError(null);
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faDatabase}/>
+                                SQL запрос
                             </button>
                         </div>
                         <div className={clsx(styles.tabContent)}>
@@ -2511,6 +2577,75 @@ export default function ConnectionDetailPage() {
                                             <FontAwesomeIcon icon={faCogs} size="3x"/>
                                             <p>Процедуры не найдены</p>
                                             {proceduresError && <p className={clsx(styles.errorMessage)}>{proceduresError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {activeTab === 'sql_query' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <form onSubmit={executeSqlQuery} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.modalFormGroup)} style={{ width: '100%' }}>
+                                                <textarea
+                                                    value={sqlQueryText}
+                                                    onChange={(e) => setSqlQueryText(e.target.value)}
+                                                    rows={6}
+                                                    className={clsx(styles.modalTextarea)}
+                                                    placeholder="Введите SELECT-запрос"
+                                                    disabled={sqlQueryLoading}
+                                                />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center' }}>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={1000}
+                                                    value={sqlQueryLimit}
+                                                    onChange={(e) => setSqlQueryLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                    disabled={sqlQueryLoading}
+                                                />
+                                                <button type="submit" className={clsx(styles.usersSearchButton)} disabled={sqlQueryLoading}>
+                                                    {sqlQueryLoading ? 'Выполнение...' : 'Выполнить'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    {sqlQueryError && <p className={clsx(styles.errorMessage)}>{sqlQueryError}</p>}
+                                    {sqlQueryTruncated && <p className={clsx(styles.errorMessage)}>Результат ограничен выбранным лимитом.</p>}
+
+                                    {sqlQueryRows.length > 0 ? (
+                                        <div className={clsx(styles.usersList)}>
+                                            <div className={clsx(styles.userItem)}>
+                                                <div className={clsx(styles.userItemHeader)}>
+                                                    <div style={{ width: '100%', overflowX: 'auto' }}>
+                                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                            <thead>
+                                                                <tr>
+                                                                    {sqlQueryColumns.map((col) => (
+                                                                        <th key={col} style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #e5e7eb' }}>{col}</th>
+                                                                    ))}
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {sqlQueryRows.map((row, i) => (
+                                                                    <tr key={i}>
+                                                                        {sqlQueryColumns.map((col) => (
+                                                                            <td key={`${i}-${col}`} style={{ padding: '8px', borderBottom: '1px solid #f3f4f6' }}>{String(row[col] ?? '—')}</td>
+                                                                        ))}
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faDatabase} size="3x"/>
+                                            <p>Введите SELECT-запрос и нажмите «Выполнить»</p>
                                         </div>
                                     )}
                                 </div>
