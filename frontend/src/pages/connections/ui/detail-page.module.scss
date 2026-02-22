@@ -1289,3 +1289,114 @@
     height: 16px;
   }
 }
+
+.sqlQueryPanel {
+  background: white;
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.sqlQueryPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.sqlQueryPanelTitle {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-text-main);
+}
+
+.sqlQueryTemplates {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sqlTemplateButton,
+.sqlSecondaryButton {
+  border: 1px solid $clr-gray-300;
+  background: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.sqlQueryForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sqlQueryTextarea {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid $clr-gray-300;
+  border-radius: 10px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.1);
+  }
+}
+
+.sqlQueryActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sqlQueryLimitLabel {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.sqlQueryLimitInput {
+  width: 120px;
+  padding: 10px 12px;
+  border: 1px solid $clr-gray-300;
+  border-radius: 8px;
+}
+
+.sqlResultCard {
+  background: white;
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.sqlResultTableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.sqlResultTable {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 1px solid $clr-gray-200;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  th {
+    font-weight: 700;
+  }
+}

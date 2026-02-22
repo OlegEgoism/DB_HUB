@@ -849,6 +849,11 @@ export default function ConnectionDetailPage() {
         setProceduresPage(totalProceduresPages);
     };
 
+    const applySqlTemplate = (template: string) => {
+        setSqlQueryText(template);
+        setSqlQueryError(null);
+    };
+
     const executeSqlQuery = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!id) return;
@@ -2567,28 +2572,38 @@ export default function ConnectionDetailPage() {
                             )}
                             {activeTab === 'sql_query' && (
                                 <div className={clsx(styles.usersContent)}>
-                                    <div className={clsx(styles.usersHeader)}>
-                                        <form onSubmit={executeSqlQuery} className={clsx(styles.usersSearchContainer)}>
-                                            <div className={clsx(styles.modalFormGroup)} style={{ width: '100%' }}>
-                                                <textarea
-                                                    value={sqlQueryText}
-                                                    onChange={(e) => setSqlQueryText(e.target.value)}
-                                                    rows={6}
-                                                    className={clsx(styles.modalTextarea)}
-                                                    placeholder="Введите SELECT-запрос"
-                                                    disabled={sqlQueryLoading}
-                                                />
+                                    <div className={clsx(styles.sqlQueryPanel)}>
+                                        <div className={clsx(styles.sqlQueryPanelHeader)}>
+                                            <h3 className={clsx(styles.sqlQueryPanelTitle)}>SQL запрос (только SELECT)</h3>
+                                            <div className={clsx(styles.sqlQueryTemplates)}>
+                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT 1 AS test;')} disabled={sqlQueryLoading}>Тест</button>
+                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM information_schema.tables LIMIT 50;')} disabled={sqlQueryLoading}>Таблицы</button>
+                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM pg_catalog.pg_stat_activity LIMIT 50;')} disabled={sqlQueryLoading}>Сессии</button>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center' }}>
+                                        </div>
+
+                                        <form onSubmit={executeSqlQuery} className={clsx(styles.sqlQueryForm)}>
+                                            <textarea
+                                                value={sqlQueryText}
+                                                onChange={(e) => setSqlQueryText(e.target.value)}
+                                                rows={10}
+                                                className={clsx(styles.sqlQueryTextarea)}
+                                                placeholder="Введите SELECT-запрос"
+                                                disabled={sqlQueryLoading}
+                                            />
+                                            <div className={clsx(styles.sqlQueryActions)}>
+                                                <label className={clsx(styles.sqlQueryLimitLabel)} htmlFor="sqlQueryLimit">Лимит строк</label>
                                                 <input
+                                                    id="sqlQueryLimit"
                                                     type="number"
                                                     min={1}
                                                     max={1000}
                                                     value={sqlQueryLimit}
                                                     onChange={(e) => setSqlQueryLimit(Math.max(1, Math.min(1000, Number(e.target.value) || 1)))}
-                                                    className={clsx(styles.usersSearchInput)}
+                                                    className={clsx(styles.sqlQueryLimitInput)}
                                                     disabled={sqlQueryLoading}
                                                 />
+                                                <button type="button" className={clsx(styles.sqlSecondaryButton)} onClick={() => setSqlQueryText('')} disabled={sqlQueryLoading}>Очистить</button>
                                                 <button type="submit" className={clsx(styles.usersSearchButton)} disabled={sqlQueryLoading}>
                                                     {sqlQueryLoading ? 'Выполнение...' : 'Выполнить'}
                                                 </button>
@@ -2600,30 +2615,26 @@ export default function ConnectionDetailPage() {
                                     {sqlQueryTruncated && <p className={clsx(styles.errorMessage)}>Результат ограничен выбранным лимитом.</p>}
 
                                     {sqlQueryRows.length > 0 ? (
-                                        <div className={clsx(styles.usersList)}>
-                                            <div className={clsx(styles.userItem)}>
-                                                <div className={clsx(styles.userItemHeader)}>
-                                                    <div style={{ width: '100%', overflowX: 'auto' }}>
-                                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                                            <thead>
-                                                                <tr>
-                                                                    {sqlQueryColumns.map((col) => (
-                                                                        <th key={col} style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #e5e7eb' }}>{col}</th>
-                                                                    ))}
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {sqlQueryRows.map((row, i) => (
-                                                                    <tr key={i}>
-                                                                        {sqlQueryColumns.map((col) => (
-                                                                            <td key={`${i}-${col}`} style={{ padding: '8px', borderBottom: '1px solid #f3f4f6' }}>{String(row[col] ?? '—')}</td>
-                                                                        ))}
-                                                                    </tr>
+                                        <div className={clsx(styles.sqlResultCard)}>
+                                            <div className={clsx(styles.sqlResultTableWrapper)}>
+                                                <table className={clsx(styles.sqlResultTable)}>
+                                                    <thead>
+                                                        <tr>
+                                                            {sqlQueryColumns.map((col) => (
+                                                                <th key={col}>{col}</th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {sqlQueryRows.map((row, i) => (
+                                                            <tr key={i}>
+                                                                {sqlQueryColumns.map((col) => (
+                                                                    <td key={`${i}-${col}`}>{String(row[col] ?? '—')}</td>
                                                                 ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     ) : (
