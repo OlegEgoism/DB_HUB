@@ -1400,3 +1400,19 @@
     font-weight: 700;
   }
 }
+
+.activeSqlDurationInput {
+  width: min(200px, 100%);
+  padding: 12px 14px;
+  border: 1px solid $clr-gray-300;
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--color-text-main);
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.1);
+  }
+}
