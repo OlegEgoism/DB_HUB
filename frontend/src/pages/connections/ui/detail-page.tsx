@@ -43,6 +43,7 @@ import {useConnectionViews} from '../lib/useConnectionViews';
 import {useConnectionIndexes} from '../lib/useConnectionIndexes';
 import {useConnectionFunctions} from '../lib/useConnectionFunctions';
 import {useConnectionProcedures} from '../lib/useConnectionProcedures';
+import {useConnectionActiveQueries} from '../lib/useConnectionActiveQueries';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 
 interface Connection {
@@ -91,7 +92,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions' | 'procedures' | 'sql_query';
+type TabType = 'metrics' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions' | 'procedures' | 'sql_query' | 'active_sql';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -183,6 +184,15 @@ export default function ConnectionDetailPage() {
     const [sqlQueryColumns, setSqlQueryColumns] = useState<string[]>([]);
     const [sqlQueryRows, setSqlQueryRows] = useState<Record<string, unknown>[]>([]);
     const [sqlQueryTruncated, setSqlQueryTruncated] = useState(false);
+
+    const [activeSqlPage, setActiveSqlPage] = useState(1);
+    const [activeSqlPageSize, setActiveSqlPageSize] = useState(8);
+    const [activeSqlUsernameQuery, setActiveSqlUsernameQuery] = useState('');
+    const [activeSqlUsername, setActiveSqlUsername] = useState('');
+    const [activeSqlMinDuration, setActiveSqlMinDuration] = useState('');
+    const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState('');
+    const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
+    const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -334,6 +344,25 @@ export default function ConnectionDetailPage() {
         proceduresPageSize,
         proceduresSearchTerm || null,
         0
+    );
+
+
+    const {
+        activeQueries,
+        loading: loadingActiveQueries,
+        error: activeQueriesError,
+        total: totalActiveQueries,
+        pages: totalActiveQueriesPages,
+        hasNext: activeQueriesHasNext,
+        hasPrev: activeQueriesHasPrev,
+    } = useConnectionActiveQueries(
+        id ? parseInt(id) : 0,
+        activeSqlPage,
+        activeSqlPageSize,
+        activeSqlUsername || null,
+        activeSqlMinDuration.trim() ? Number(activeSqlMinDuration) : null,
+        activeSqlMaxDuration.trim() ? Number(activeSqlMaxDuration) : null,
+        activeSqlReloadTrigger,
     );
 
     const loadConnection = async () => {
@@ -877,6 +906,67 @@ export default function ConnectionDetailPage() {
             if (typeof candidate === 'string' && candidate.trim()) return candidate;
         }
         return 'Не удалось выполнить SQL-запрос';
+    };
+
+    const handleActiveSqlFilterSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setActiveSqlUsername(activeSqlUsernameQuery.trim());
+        setActiveSqlPage(1);
+    };
+
+    const handleActiveSqlFilterClear = () => {
+        setActiveSqlUsernameQuery('');
+        setActiveSqlUsername('');
+        setActiveSqlMinDuration('');
+        setActiveSqlMaxDuration('');
+        setActiveSqlPage(1);
+    };
+
+    const handleActiveSqlPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalActiveQueriesPages) {
+            setActiveSqlPage(newPage);
+        }
+    };
+
+    const handleActiveSqlPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setActiveSqlPageSize(newSize);
+        setActiveSqlPage(1);
+    };
+
+    const terminateActiveSqlQuery = async (pid: number) => {
+        if (!id) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        setTerminatingPid(pid);
+        setError(null);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/active_connections`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ pid }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось завершить активный SQL-запрос');
+            }
+
+            setActiveSqlReloadTrigger((prev) => prev + 1);
+        } catch (err) {
+            console.error('Ошибка завершения активного SQL-запроса:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось завершить активный SQL-запрос');
+        } finally {
+            setTerminatingPid(null);
+        }
     };
 
     const executeSqlQuery = async (e: React.FormEvent) => {
@@ -1473,6 +1563,19 @@ export default function ConnectionDetailPage() {
                             >
                                 <FontAwesomeIcon icon={faDatabase}/>
                                 SQL запрос
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'active_sql' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('active_sql');
+                                    setActiveSqlPage(1);
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faDatabase}/>
+                                Активные SQL запросы
                             </button>
                         </div>
                         <div className={clsx(styles.tabContent)}>
@@ -2675,6 +2778,117 @@ export default function ConnectionDetailPage() {
                                         <div className={clsx(styles.usersEmpty)}>
                                             <FontAwesomeIcon icon={faDatabase} size="3x"/>
                                             <p>Введите SELECT-запрос и нажмите «Выполнить»</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {activeTab === 'active_sql' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <form onSubmit={handleActiveSqlFilterSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchWrapper)}>
+                                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Фильтр по пользователю..."
+                                                    value={activeSqlUsernameQuery}
+                                                    onChange={(e) => setActiveSqlUsernameQuery(e.target.value)}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                />
+                                            </div>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                placeholder="Мин. длительность, мс"
+                                                value={activeSqlMinDuration}
+                                                onChange={(e) => setActiveSqlMinDuration(e.target.value)}
+                                                className={clsx(styles.paginationSelect)}
+                                            />
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                placeholder="Макс. длительность, мс"
+                                                value={activeSqlMaxDuration}
+                                                onChange={(e) => setActiveSqlMaxDuration(e.target.value)}
+                                                className={clsx(styles.paginationSelect)}
+                                            />
+                                            <button type="submit" className={clsx(styles.usersSearchButton)}>Применить</button>
+                                            <button type="button" className={clsx(styles.sqlSecondaryButton)} onClick={handleActiveSqlFilterClear}>Сброс</button>
+                                        </form>
+                                    </div>
+
+                                    {loadingActiveQueries ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка активных SQL-запросов...</p>
+                                        </div>
+                                    ) : activeQueries.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {activeQueries.map((item) => (
+                                                    <div key={item.pid} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <FontAwesomeIcon icon={faDatabase} className={clsx(styles.userItemIcon)}/>
+                                                                <h3 className={clsx(styles.userItemTitle)}>PID {item.pid} — {item.username || '—'}</h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Длительность:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{item.duration_ms ?? '—'} мс</span>
+                                                                </div>
+                                                                <div className={clsx(styles.userActions)}>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton, styles.userActionButton_delete)}
+                                                                        onClick={() => terminateActiveSqlQuery(item.pid)}
+                                                                        disabled={terminatingPid === item.pid}
+                                                                        title="Завершить запрос"
+                                                                    >
+                                                                        {terminatingPid === item.pid ? <FontAwesomeIcon icon={faSpinner} spin/> : <FontAwesomeIcon icon={faTrashAlt}/>}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className={clsx(styles.userItemContent)}>
+                                                            <code>{item.query || '—'}</code>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalActiveQueries > 0 && (
+                                                <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+                                                        <span className={clsx(styles.paginationText)}>
+                                                            Показано <span className={clsx(styles.paginationHighlight)}>{((activeSqlPage - 1) * activeSqlPageSize) + 1}</span>–
+                                                            <span className={clsx(styles.paginationHighlight)}>{Math.min(activeSqlPage * activeSqlPageSize, totalActiveQueries)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalActiveQueries}</span> активных запросов
+                                                        </span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={activeSqlPageSize} onChange={handleActiveSqlPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на странице</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleActiveSqlPageChange(activeSqlPage - 1)} disabled={activeSqlPage === 1 || !activeQueriesHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {activeSqlPage} из {totalActiveQueriesPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleActiveSqlPageChange(activeSqlPage + 1)} disabled={activeSqlPage === totalActiveQueriesPages || !activeQueriesHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faDatabase} size="3x"/>
+                                            <p>Активные SQL запросы не найдены</p>
+                                            {(activeQueriesError || error) && <p className={clsx(styles.errorMessage)}>{activeQueriesError || error}</p>}
                                         </div>
                                     )}
                                 </div>
