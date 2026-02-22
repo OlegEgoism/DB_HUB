@@ -42,6 +42,7 @@ import type {TablePrivilegeInfo, TableGroupPrivilege} from '../lib/useConnection
 import {useConnectionViews} from '../lib/useConnectionViews';
 import {useConnectionIndexes} from '../lib/useConnectionIndexes';
 import {useConnectionFunctions} from '../lib/useConnectionFunctions';
+import {useConnectionProcedures} from '../lib/useConnectionProcedures';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 
 interface Connection {
@@ -90,7 +91,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions';
+type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions' | 'procedures';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -169,6 +170,11 @@ export default function ConnectionDetailPage() {
     const [functionsPageSize, setFunctionsPageSize] = useState(8);
     const [functionsSearchQuery, setFunctionsSearchQuery] = useState('');
     const [functionsSearchTerm, setFunctionsSearchTerm] = useState('');
+
+    const [proceduresPage, setProceduresPage] = useState(1);
+    const [proceduresPageSize, setProceduresPageSize] = useState(8);
+    const [proceduresSearchQuery, setProceduresSearchQuery] = useState('');
+    const [proceduresSearchTerm, setProceduresSearchTerm] = useState('');
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -302,6 +308,23 @@ export default function ConnectionDetailPage() {
         functionsPage,
         functionsPageSize,
         functionsSearchTerm || null,
+        0
+    );
+
+
+    const {
+        procedures,
+        loading: loadingProcedures,
+        error: proceduresError,
+        total: totalProcedures,
+        pages: totalProceduresPages,
+        hasNext: proceduresHasNext,
+        hasPrev: proceduresHasPrev
+    } = useConnectionProcedures(
+        id ? parseInt(id) : 0,
+        proceduresPage,
+        proceduresPageSize,
+        proceduresSearchTerm || null,
         0
     );
 
@@ -780,6 +803,42 @@ export default function ConnectionDetailPage() {
 
     const handleFunctionsLastPage = () => {
         setFunctionsPage(totalFunctionsPages);
+    };
+
+    const handleProceduresSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setProceduresSearchQuery(e.target.value);
+    };
+
+    const handleProceduresSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setProceduresSearchTerm(proceduresSearchQuery.trim());
+        setProceduresPage(1);
+    };
+
+    const handleProceduresSearchClear = () => {
+        setProceduresSearchQuery('');
+        setProceduresSearchTerm('');
+        setProceduresPage(1);
+    };
+
+    const handleProceduresPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalProceduresPages) {
+            setProceduresPage(newPage);
+        }
+    };
+
+    const handleProceduresPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setProceduresPageSize(newSize);
+        setProceduresPage(1);
+    };
+
+    const handleProceduresFirstPage = () => {
+        setProceduresPage(1);
+    };
+
+    const handleProceduresLastPage = () => {
+        setProceduresPage(totalProceduresPages);
     };
 
     const openTableEditModal = (table: TablePrivilegeInfo) => {
@@ -1304,6 +1363,21 @@ export default function ConnectionDetailPage() {
                             >
                                 <FontAwesomeIcon icon={faCogs}/>
                                 Функции
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'procedures' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('procedures');
+                                    setProceduresSearchQuery('');
+                                    setProceduresSearchTerm('');
+                                    setProceduresPage(1);
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faCogs}/>
+                                Процедуры
                             </button>
                         </div>
                         <div className={clsx(styles.tabContent)}>
@@ -2335,6 +2409,108 @@ export default function ConnectionDetailPage() {
                                             <FontAwesomeIcon icon={faCogs} size="3x"/>
                                             <p>Функции не найдены</p>
                                             {functionsError && <p className={clsx(styles.errorMessage)}>{functionsError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {activeTab === 'procedures' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <form onSubmit={handleProceduresSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchWrapper)}>
+                                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Поиск процедур..."
+                                                    value={proceduresSearchQuery}
+                                                    onChange={handleProceduresSearchInputChange}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                />
+                                                {proceduresSearchQuery && (
+                                                    <button type="button" onClick={handleProceduresSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                        <FontAwesomeIcon icon={faTimes}/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                        </form>
+                                    </div>
+
+                                    {loadingProcedures ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка процедур...</p>
+                                        </div>
+                                    ) : procedures && procedures.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {procedures.map((procedure) => (
+                                                    <div key={`${procedure.schema_name}.${procedure.procedure_name}`} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <FontAwesomeIcon icon={faCogs} className={clsx(styles.userItemIcon)}/>
+                                                                <h3 className={clsx(styles.userItemTitle)}>{procedure.schema_name}.{procedure.procedure_name}</h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{procedure.description || '—'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalProcedures > 0 && (
+                                                <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+<span className={clsx(styles.paginationText)}>
+Показано <span className={clsx(styles.paginationHighlight)}>{((proceduresPage - 1) * proceduresPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(proceduresPage * proceduresPageSize, totalProcedures)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalProcedures}</span> процедур
+</span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={proceduresPageSize} onChange={handleProceduresPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на странице</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_first)}
+                                                                onClick={handleProceduresFirstPage}
+                                                                disabled={proceduresPage === 1}
+                                                                title="Первая страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleLeft}/>
+                                                            </button>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleProceduresPageChange(proceduresPage - 1)} disabled={proceduresPage === 1 || !proceduresHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {proceduresPage} из {totalProceduresPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleProceduresPageChange(proceduresPage + 1)} disabled={proceduresPage === totalProceduresPages || !proceduresHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_last)}
+                                                                onClick={handleProceduresLastPage}
+                                                                disabled={proceduresPage === totalProceduresPages}
+                                                                title="Последняя страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faCogs} size="3x"/>
+                                            <p>Процедуры не найдены</p>
+                                            {proceduresError && <p className={clsx(styles.errorMessage)}>{proceduresError}</p>}
                                         </div>
                                     )}
                                 </div>
