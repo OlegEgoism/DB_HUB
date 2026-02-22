@@ -854,9 +854,43 @@ export default function ConnectionDetailPage() {
         setSqlQueryError(null);
     };
 
+    const parseApiErrorDetail = (detail: unknown): string => {
+        if (typeof detail === 'string' && detail.trim()) return detail;
+        if (Array.isArray(detail)) {
+            const messages = detail
+                .map((item) => {
+                    if (typeof item === 'string') return item;
+                    if (item && typeof item === 'object') {
+                        const obj = item as { msg?: unknown; loc?: unknown };
+                        const msg = typeof obj.msg === 'string' ? obj.msg : '';
+                        const loc = Array.isArray(obj.loc) ? obj.loc.join(' -> ') : '';
+                        return [loc, msg].filter(Boolean).join(': ');
+                    }
+                    return '';
+                })
+                .filter(Boolean);
+            if (messages.length > 0) return messages.join('; ');
+        }
+        if (detail && typeof detail === 'object') {
+            const candidate = (detail as { detail?: unknown; message?: unknown }).detail
+                ?? (detail as { detail?: unknown; message?: unknown }).message;
+            if (typeof candidate === 'string' && candidate.trim()) return candidate;
+        }
+        return 'Не удалось выполнить SQL-запрос';
+    };
+
     const executeSqlQuery = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!id) return;
+
+        const queryToExecute = sqlQueryText.trim();
+        if (!queryToExecute) {
+            setSqlQueryError('Введите SQL-запрос перед выполнением.');
+            setSqlQueryColumns([]);
+            setSqlQueryRows([]);
+            setSqlQueryTruncated(false);
+            return;
+        }
 
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -874,14 +908,14 @@ export default function ConnectionDetailPage() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    query: sqlQueryText,
+                    query: queryToExecute,
                     limit: sqlQueryLimit,
                 }),
             });
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                throw new Error(errData?.detail || 'Не удалось выполнить SQL-запрос');
+                throw new Error(parseApiErrorDetail((errData as { detail?: unknown }).detail ?? errData));
             }
 
             const data = await response.json();
