@@ -91,7 +91,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions' | 'procedures' | 'sql_query';
+type TabType = 'metrics' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions' | 'procedures' | 'sql_query';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -1304,16 +1304,6 @@ export default function ConnectionDetailPage() {
                             <button
                                 className={clsx(
                                     styles.tabButton,
-                                    activeTab === 'extensions' && styles.tabButton_active
-                                )}
-                                onClick={() => setActiveTab('extensions')}
-                            >
-                                <FontAwesomeIcon icon={faCogs}/>
-                                Расширения
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
                                     activeTab === 'users' && styles.tabButton_active
                                 )}
                                 onClick={() => {
@@ -1626,6 +1616,28 @@ export default function ConnectionDetailPage() {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <div className={clsx(styles.metricsCard)}>
+                                                    <div className={clsx(styles.metricsCardHeader)}>
+                                                        <FontAwesomeIcon icon={faCogs} className={clsx(styles.metricsCardIcon)}/>
+                                                        <h3 className={clsx(styles.metricsCardTitle)}>Расширения</h3>
+                                                    </div>
+                                                    <div className={clsx(styles.metricsCardContent)}>
+                                                        {metrics.extensions.length > 0 ? (
+                                                            metrics.extensions.map((ext, index) => (
+                                                                <div key={`${ext.name}-${index}`} className={clsx(styles.metricsCardRow)}>
+                                                                    <div className={clsx(styles.metricsCardLabel)}>{ext.name}</div>
+                                                                    <div className={clsx(styles.metricsCardValue)}>{ext.version}</div>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className={clsx(styles.metricsCardRow)}>
+                                                                <div className={clsx(styles.metricsCardLabel)}>Расширения</div>
+                                                                <div className={clsx(styles.metricsCardValue)}>Не найдены</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
                                                 {/* Кластеризация и репликация */}
                                                 <div className={clsx(styles.metricsCard)}>
                                                     <div className={clsx(styles.metricsCardHeader)}>
@@ -1673,34 +1685,6 @@ export default function ConnectionDetailPage() {
                                             <FontAwesomeIcon icon={faInfoCircle} size="3x"/>
                                             <p>Информация недоступна</p>
                                             {error && <p className={clsx(styles.errorMessage)}>{error}</p>}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            {activeTab === 'extensions' && (
-                                <div className={clsx(styles.extensionsContent)}>
-                                    {metrics && metrics.extensions.length > 0 ? (
-                                        <div className={clsx(styles.extensionsGrid)}>
-                                            {metrics.extensions.map((ext, index) => (
-                                                <div key={index} className={clsx(styles.extensionCard)}>
-                                                    <div className={clsx(styles.extensionHeader)}>
-                                                        <div className={clsx(styles.extensionIcon)}>
-                                                            <FontAwesomeIcon icon={faCogs}/>
-                                                        </div>
-                                                        <div className={clsx(styles.extensionName)}>
-                                                            {ext.name}
-                                                        </div>
-                                                    </div>
-                                                    <div className={clsx(styles.extensionVersion)}>
-                                                        Версия: <span>{ext.version}</span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className={clsx(styles.extensionsEmpty)}>
-                                            <FontAwesomeIcon icon={faCogs} size="3x"/>
-                                            <p>Расширения не найдены</p>
                                         </div>
                                     )}
                                 </div>
