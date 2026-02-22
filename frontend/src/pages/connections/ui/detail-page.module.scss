@@ -851,11 +851,14 @@
   padding: 16px 16px;
   background: white;
   border-bottom: 1px solid var(--border-glass);
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start; // Выравнивание по верхнему краю
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) auto;
+  align-items: start;
   gap: 16px;
-  flex-wrap: wrap;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .userItemHeaderLeft {
@@ -867,12 +870,16 @@
 }
 
 .userItemHeaderRight {
-  display: flex;
-  align-items: center;
-  gap: 24px; // Отступ между полями
-  max-width: 60%;
-  text-align: right;
-  flex-wrap: wrap; // Для адаптивности на маленьких экранах
+  display: grid;
+  grid-template-columns: minmax(360px, 420px) auto;
+  align-items: start;
+  gap: 16px;
+  justify-content: end;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
 }
 
 .userItemInfo {
@@ -1425,13 +1432,10 @@
 
 .usersMetaGrid {
   display: grid;
-  grid-template-columns: minmax(90px, auto) minmax(220px, 1fr);
+  grid-template-columns: 100px minmax(0, 1fr);
   gap: 8px 12px;
   align-items: center;
-
-  @media (max-width: 768px) {
-    grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
-  }
+  width: min(420px, 100%);
 }
 
 .usersMetaTableLabel {
@@ -1439,7 +1443,7 @@
 }
 
 .usersMetaTableValue {
-  max-width: none;
+  max-width: 100%;
   min-width: 0;
   text-align: left;
 }
