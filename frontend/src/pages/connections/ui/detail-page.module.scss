@@ -169,6 +169,11 @@
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
 }
 
 .cardEnv {

@@ -10,7 +10,6 @@ import {
     faSpinner,
     faExclamationCircle,
     faTrashAlt,
-    faChartBar,
     faInfoCircle,
     faCogs,
     faTable,
@@ -575,7 +574,7 @@ export default function ConnectionDetailPage() {
     };
 
     const openGroupDeleteConfirm = (group: { oid: number; name: string }) => {
-        setGroupDeleteTarget({ oid: group.oid, name: group.name });
+        setGroupDeleteTarget({oid: group.oid, name: group.name});
     };
 
     const closeGroupDeleteConfirm = () => {
@@ -648,7 +647,7 @@ export default function ConnectionDetailPage() {
 
     const openSchemaEditModal = (schema: SchemaPrivilegeInfo) => {
         setEditingSchema(schema);
-        setSchemaRolesForm(schema.role_privileges.map((role) => ({ ...role })));
+        setSchemaRolesForm(schema.role_privileges.map((role) => ({...role})));
     };
 
     const closeSchemaEditModal = () => {
@@ -659,14 +658,14 @@ export default function ConnectionDetailPage() {
 
     const toggleSchemaRolePrivilege = (roleName: string, field: 'create' | 'usage') => {
         setSchemaRolesForm((prev) => prev.map((role) => (
-            role.role === roleName ? { ...role, [field]: !role[field] } : role
+            role.role === roleName ? {...role, [field]: !role[field]} : role
         )));
     };
 
     const setSchemaPrivilegeForAllRoles = (field: 'create' | 'usage') => {
         setSchemaRolesForm((prev) => {
             const allSelected = prev.length > 0 && prev.every((role) => role[field]);
-            return prev.map((role) => ({ ...role, [field]: !allSelected }));
+            return prev.map((role) => ({...role, [field]: !allSelected}));
         });
     };
 
@@ -952,7 +951,7 @@ export default function ConnectionDetailPage() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ pid }),
+                body: JSON.stringify({pid}),
             });
 
             if (!response.ok) {
@@ -1025,7 +1024,7 @@ export default function ConnectionDetailPage() {
 
     const openTableEditModal = (table: TablePrivilegeInfo) => {
         setEditingTable(table);
-        setTableGroupsForm(table.group_privileges.map((group) => ({ ...group })));
+        setTableGroupsForm(table.group_privileges.map((group) => ({...group})));
     };
 
     const closeTableEditModal = () => {
@@ -1039,7 +1038,7 @@ export default function ConnectionDetailPage() {
         field: 'select' | 'insert' | 'update' | 'delete' | 'truncate',
     ) => {
         setTableGroupsForm((prev) => prev.map((group) => (
-            group.group === groupName ? { ...group, [field]: !group[field] } : group
+            group.group === groupName ? {...group, [field]: !group[field]} : group
         )));
     };
 
@@ -1048,7 +1047,7 @@ export default function ConnectionDetailPage() {
     ) => {
         setTableGroupsForm((prev) => {
             const allSelected = prev.length > 0 && prev.every((group) => group[field]);
-            return prev.map((group) => ({ ...group, [field]: !allSelected }));
+            return prev.map((group) => ({...group, [field]: !allSelected}));
         });
     };
 
@@ -1396,13 +1395,9 @@ export default function ConnectionDetailPage() {
                                 ></div>
                             </div>
                             <div className={clsx(styles.cardHeaderContent)}>
-                                <div className={clsx(styles.cardTitleRow)}>
-                                    <div className={clsx(styles.cardTitle)}>
-                                        {connection.database_type.toUpperCase()}
-                                    </div>
-                                    <div className={clsx(styles.cardEnv)}>
-                                        {getEnvironmentBadge(connection.environment)}
-                                    </div>
+                                <div className={clsx(styles.cardTitle)}>
+                                    {connection.database_type.toUpperCase()}
+                                    {getEnvironmentBadge(connection.environment)}
                                 </div>
                                 <div className={clsx(styles.cardName)}>
                                     {connection.name || 'Без имени'}
@@ -1427,7 +1422,7 @@ export default function ConnectionDetailPage() {
                                 )}
                                 onClick={() => setActiveTab('metrics')}
                             >
-                                <FontAwesomeIcon icon={faChartBar}/>
+                                {/*<FontAwesomeIcon icon={faChartBar}/>*/}
                                 Информация
                             </button>
                             <button
@@ -1443,7 +1438,7 @@ export default function ConnectionDetailPage() {
                                     setUsersPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faUser}/>
+                                {/*<FontAwesomeIcon icon={faUser}/>*/}
                                 Пользователи
                             </button>
                             <button
@@ -1458,7 +1453,7 @@ export default function ConnectionDetailPage() {
                                     setGroupsPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faLayerGroup}/>
+                                {/*<FontAwesomeIcon icon={faLayerGroup}/>*/}
                                 Группы
                             </button>
                             <button
@@ -1473,7 +1468,7 @@ export default function ConnectionDetailPage() {
                                     setSchemasPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faSitemap}/>
+                                {/*<FontAwesomeIcon icon={faSitemap}/>*/}
                                 Схемы
                             </button>
                             <button
@@ -1488,7 +1483,7 @@ export default function ConnectionDetailPage() {
                                     setTablesPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faTableList}/>
+                                {/*<FontAwesomeIcon icon={faTableList}/>*/}
                                 Таблицы
                             </button>
                             <button
@@ -1503,7 +1498,7 @@ export default function ConnectionDetailPage() {
                                     setViewsPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faEye}/>
+                                {/*<FontAwesomeIcon icon={faEye}/>*/}
                                 Представления
                             </button>
                             <button
@@ -1518,7 +1513,7 @@ export default function ConnectionDetailPage() {
                                     setIndexesPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faNetworkWired}/>
+                                {/*<FontAwesomeIcon icon={faNetworkWired}/>*/}
                                 Индексы
                             </button>
                             <button
@@ -1533,7 +1528,7 @@ export default function ConnectionDetailPage() {
                                     setFunctionsPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faCogs}/>
+                                {/*<FontAwesomeIcon icon={faCogs}/>*/}
                                 Функции
                             </button>
                             <button
@@ -1548,21 +1543,8 @@ export default function ConnectionDetailPage() {
                                     setProceduresPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faCogs}/>
+                                {/*<FontAwesomeIcon icon={faCogs}/>*/}
                                 Процедуры
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'sql_query' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('sql_query');
-                                    setSqlQueryError(null);
-                                }}
-                            >
-                                <FontAwesomeIcon icon={faDatabase}/>
-                                SQL запрос
                             </button>
                             <button
                                 className={clsx(
@@ -1574,9 +1556,22 @@ export default function ConnectionDetailPage() {
                                     setActiveSqlPage(1);
                                 }}
                             >
-                                <FontAwesomeIcon icon={faDatabase}/>
-                                Активные SQL запросы
+                                {/*<FontAwesomeIcon icon={faDatabase}/>*/}
+                                Транзакции
                             </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'sql_query' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('sql_query');
+                                    setSqlQueryError(null);
+                                }}
+                            >
+                                SQL
+                            </button>
+
                         </div>
                         <div className={clsx(styles.tabContent)}>
                             {activeTab === 'metrics' && (
@@ -2066,7 +2061,6 @@ export default function ConnectionDetailPage() {
                                                     <div key={group.oid} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faLayerGroup} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>{group.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
@@ -2181,7 +2175,6 @@ export default function ConnectionDetailPage() {
                                                     <div key={schema.schema_name} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faSitemap} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>{schema.schema_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
@@ -2276,7 +2269,6 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${table.schema_name}.${table.table_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faTableList} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>{table.schema_name}.{table.table_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
@@ -2371,7 +2363,6 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${view.schema_name}.${view.view_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faEye} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>{view.schema_name}.{view.view_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
@@ -2457,7 +2448,6 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${index.schema_name}.${index.index_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faNetworkWired} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>{index.schema_name}.{index.index_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
@@ -2547,7 +2537,6 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${dbFunction.schema_name}.${dbFunction.function_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faCogs} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>{dbFunction.schema_name}.{dbFunction.function_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
@@ -2649,7 +2638,6 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${procedure.schema_name}.${procedure.procedure_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faCogs} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>{procedure.schema_name}.{procedure.procedure_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
@@ -2718,11 +2706,11 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.sqlQueryPanel)}>
                                         <div className={clsx(styles.sqlQueryPanelHeader)}>
-                                            <h3 className={clsx(styles.sqlQueryPanelTitle)}>SQL запрос (только SELECT)</h3>
+                                            <h3 className={clsx(styles.sqlQueryPanelTitle)}>SQL запрос (только SELECT, максимальный LIMIT 1000)</h3>
                                             <div className={clsx(styles.sqlQueryTemplates)}>
                                                 <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT 1 AS test;')} disabled={sqlQueryLoading}>Тест</button>
-                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM information_schema.tables LIMIT 50;')} disabled={sqlQueryLoading}>Таблицы</button>
-                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM pg_catalog.pg_stat_activity LIMIT 50;')} disabled={sqlQueryLoading}>Сессии</button>
+                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM information_schema.tables;')} disabled={sqlQueryLoading}>Таблицы</button>
+                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM pg_catalog.pg_stat_activity;')} disabled={sqlQueryLoading}>Сессии</button>
                                             </div>
                                         </div>
 
@@ -2763,20 +2751,20 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.sqlResultTableWrapper)}>
                                                 <table className={clsx(styles.sqlResultTable)}>
                                                     <thead>
-                                                        <tr>
-                                                            {sqlQueryColumns.map((col) => (
-                                                                <th key={col}>{col}</th>
-                                                            ))}
-                                                        </tr>
+                                                    <tr>
+                                                        {sqlQueryColumns.map((col) => (
+                                                            <th key={col}>{col}</th>
+                                                        ))}
+                                                    </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {sqlQueryRows.map((row, i) => (
-                                                            <tr key={i}>
-                                                                {sqlQueryColumns.map((col) => (
-                                                                    <td key={`${i}-${col}`}>{String(row[col] ?? '—')}</td>
-                                                                ))}
-                                                            </tr>
-                                                        ))}
+                                                    {sqlQueryRows.map((row, i) => (
+                                                        <tr key={i}>
+                                                            {sqlQueryColumns.map((col) => (
+                                                                <td key={`${i}-${col}`}>{String(row[col] ?? '—')}</td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -2806,7 +2794,7 @@ export default function ConnectionDetailPage() {
                                             <input
                                                 type="number"
                                                 min={0}
-                                                placeholder="Мин. длительность, мс"
+                                                placeholder="Мин. длительность"
                                                 value={activeSqlMinDuration}
                                                 onChange={(e) => setActiveSqlMinDuration(e.target.value)}
                                                 className={clsx(styles.activeSqlDurationInput)}
@@ -2814,7 +2802,7 @@ export default function ConnectionDetailPage() {
                                             <input
                                                 type="number"
                                                 min={0}
-                                                placeholder="Макс. длительность, мс"
+                                                placeholder="Макс. длительность"
                                                 value={activeSqlMaxDuration}
                                                 onChange={(e) => setActiveSqlMaxDuration(e.target.value)}
                                                 className={clsx(styles.activeSqlDurationInput)}
@@ -2838,7 +2826,6 @@ export default function ConnectionDetailPage() {
                                                     <div key={item.pid} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faDatabase} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>PID {item.pid} — {item.username || '—'}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
