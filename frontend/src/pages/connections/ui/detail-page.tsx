@@ -803,6 +803,14 @@ export default function ConnectionDetailPage() {
         setViewsPage(1);
     };
 
+    const handleViewsFirstPage = () => {
+        setViewsPage(1);
+    };
+
+    const handleViewsLastPage = () => {
+        setViewsPage(totalViewsPages);
+    };
+
     const handleIndexesSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setIndexesSearchQuery(e.target.value);
     };
@@ -2494,12 +2502,28 @@ export default function ConnectionDetailPage() {
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_first)}
+                                                                onClick={handleViewsFirstPage}
+                                                                disabled={viewsPage === 1 || !viewsHasPrev}
+                                                                title="Первая страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleLeft}/>
+                                                            </button>
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage - 1)} disabled={viewsPage === 1 || !viewsHasPrev} title="Предыдущая страница">
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
                                                             <span className={clsx(styles.pageInfo)}>Страница {viewsPage} из {totalViewsPages}</span>
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage + 1)} disabled={viewsPage === totalViewsPages || !viewsHasNext} title="Следующая страница">
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_last)}
+                                                                onClick={handleViewsLastPage}
+                                                                disabled={viewsPage === totalViewsPages || !viewsHasNext}
+                                                                title="Последняя страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
                                                         </div>
                                                     </div>
