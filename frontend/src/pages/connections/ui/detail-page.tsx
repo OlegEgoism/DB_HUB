@@ -29,6 +29,7 @@ import {
     faSitemap,
     faTableList,
     faEye,
+    faRotateRight,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
@@ -192,7 +193,7 @@ export default function ConnectionDetailPage() {
     const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState('');
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
-    const [terminateWarningMessage, setTerminateWarningMessage] = useState<string | null>(null);
+    const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -883,7 +884,7 @@ export default function ConnectionDetailPage() {
         setSqlQueryError(null);
     };
 
-    const parseApiErrorDetail = (detail: unknown): string => {
+    const parseApiErrorDetail = (detail: unknown, fallback = 'Не удалось выполнить SQL-запрос'): string => {
         if (typeof detail === 'string' && detail.trim()) return detail;
         if (Array.isArray(detail)) {
             const messages = detail
@@ -905,7 +906,35 @@ export default function ConnectionDetailPage() {
                 ?? (detail as { detail?: unknown; message?: unknown }).message;
             if (typeof candidate === 'string' && candidate.trim()) return candidate;
         }
-        return 'Не удалось выполнить SQL-запрос';
+        return fallback;
+    };
+
+    const normalizeTerminateProcessError = (message: string, pid: number): { title: string; message: string } => {
+        const normalized = message.toLowerCase();
+        if (normalized.includes('не найден') || normalized.includes('уже заверш')) {
+            return {
+                title: 'Предупреждение',
+                message: `Процесс с PID ${pid} не найден или уже завершён. Обновите список транзакций.`,
+            };
+        }
+
+        if (normalized.includes('connection is closed') || normalized.includes('соединение') && normalized.includes('закрыт')) {
+            return {
+                title: 'Ошибка завершения процесса',
+                message: 'Соединение с базой данных закрыто. Нажмите «Обновить» и повторите попытку.',
+            };
+        }
+
+        return {
+            title: 'Ошибка завершения процесса',
+            message,
+        };
+    };
+
+    const refreshActiveTransactions = () => {
+        setError(null);
+        setTerminateProcessModal(null);
+        setActiveSqlReloadTrigger((prev) => prev + 1);
     };
 
     const handleActiveSqlFilterSubmit = (e: React.FormEvent) => {
@@ -945,7 +974,7 @@ export default function ConnectionDetailPage() {
 
         setTerminatingPid(pid);
         setError(null);
-        setTerminateWarningMessage(null);
+        setTerminateProcessModal(null);
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/active_connections`, {
                 method: 'DELETE',
@@ -958,18 +987,14 @@ export default function ConnectionDetailPage() {
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                throw new Error(errData?.detail || 'Не удалось завершить активный SQL-запрос');
+                throw new Error(parseApiErrorDetail((errData as { detail?: unknown }).detail ?? errData, 'Не удалось завершить активный SQL-запрос'));
             }
 
             setActiveSqlReloadTrigger((prev) => prev + 1);
         } catch (err) {
             console.error('Ошибка завершения активного SQL-запроса:', err);
             const errorMessage = err instanceof Error ? err.message : 'Не удалось завершить активный SQL-запрос';
-            if (errorMessage.includes('не найден или уже завершён')) {
-                setTerminateWarningMessage(errorMessage);
-            } else {
-                setError(errorMessage);
-            }
+            setTerminateProcessModal(normalizeTerminateProcessError(errorMessage, pid));
         } finally {
             setTerminatingPid(null);
         }
@@ -2816,6 +2841,9 @@ export default function ConnectionDetailPage() {
                                             />
                                             <button type="submit" className={clsx(styles.usersSearchButton)}>Применить</button>
                                             <button type="button" className={clsx(styles.usersSearchButton)} onClick={handleActiveSqlFilterClear}>Сброс</button>
+                                            <button type="button" className={clsx(styles.usersSearchButton)} onClick={refreshActiveTransactions} disabled={loadingActiveQueries}>
+                                                <FontAwesomeIcon icon={faRotateRight}/> Обновить
+                                            </button>
                                         </form>
                                     </div>
 
@@ -2956,8 +2984,8 @@ export default function ConnectionDetailPage() {
                 </div>
             )}
 
-            {terminateWarningMessage && (
-                <div className={clsx(styles.modalOverlay)} onClick={() => setTerminateWarningMessage(null)}>
+            {terminateProcessModal && (
+                <div className={clsx(styles.modalOverlay)} onClick={() => setTerminateProcessModal(null)}>
                     <div
                         className={clsx(styles.modalContent)}
                         onClick={(e) => e.stopPropagation()}
@@ -2968,16 +2996,16 @@ export default function ConnectionDetailPage() {
                                 className={clsx(styles.modalIcon)}
                             />
                             <h2 className={clsx(styles.modalTitle)}>
-                                Предупреждение
+                                {terminateProcessModal.title}
                             </h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
-                            <p className={clsx(styles.modalText)}>{terminateWarningMessage}</p>
+                            <p className={clsx(styles.modalText)}>{terminateProcessModal.message}</p>
                         </div>
                         <div className={clsx(styles.modalFooter)}>
                             <button
                                 className={clsx(styles.modalCancelButton)}
-                                onClick={() => setTerminateWarningMessage(null)}
+                                onClick={() => setTerminateProcessModal(null)}
                             >
                                 Понятно
                             </button>
