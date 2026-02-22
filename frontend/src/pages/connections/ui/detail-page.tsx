@@ -2525,25 +2525,33 @@ export default function ConnectionDetailPage() {
                                             </div>
                                             <p>Загрузка представлений...</p>
                                         </div>
-                                    ) : views && views.length > 0 ? (
+                                    ) : (
                                         <>
-                                            <div className={clsx(styles.usersList)}>
-                                                {views.map((view) => (
-                                                    <div key={`${view.schema_name}.${view.view_name}`} className={clsx(styles.userItem)}>
-                                                        <div className={clsx(styles.userItemHeader)}>
-                                                            <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)}>{view.schema_name}.{view.view_name}</h3>
-                                                            </div>
-                                                            <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{view.description || '—'}</span>
+                                            {views && views.length > 0 ? (
+                                                <div className={clsx(styles.usersList)}>
+                                                    {views.map((view) => (
+                                                        <div key={`${view.schema_name}.${view.view_name}`} className={clsx(styles.userItem)}>
+                                                            <div className={clsx(styles.userItemHeader)}>
+                                                                <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                    <h3 className={clsx(styles.userItemTitle)}>{view.schema_name}.{view.view_name}</h3>
+                                                                </div>
+                                                                <div className={clsx(styles.userItemHeaderRight)}>
+                                                                    <div className={clsx(styles.userItemInfo)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
+                                                                        <span className={clsx(styles.userItemInfoValue)}>{view.description || '—'}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className={clsx(styles.usersEmpty)}>
+                                                    <FontAwesomeIcon icon={faEye} size="3x"/>
+                                                    <p>Представления не найдены</p>
+                                                    {viewsError && <p className={clsx(styles.errorMessage)}>{viewsError}</p>}
+                                                </div>
+                                            )}
                                             {totalViews > 0 && (
                                                 <div className={clsx(styles.usersPagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
@@ -2597,12 +2605,6 @@ export default function ConnectionDetailPage() {
                                                 </div>
                                             )}
                                         </>
-                                    ) : (
-                                        <div className={clsx(styles.usersEmpty)}>
-                                            <FontAwesomeIcon icon={faEye} size="3x"/>
-                                            <p>Представления не найдены</p>
-                                            {viewsError && <p className={clsx(styles.errorMessage)}>{viewsError}</p>}
-                                        </div>
                                     )}
 
                                     <div className={clsx(styles.usersHeader)}>
@@ -2634,8 +2636,9 @@ export default function ConnectionDetailPage() {
                                             </div>
                                             <p>Загрузка материализованных представлений...</p>
                                         </div>
-                                    ) : materializedViews && materializedViews.length > 0 ? (
+                                    ) : (
                                         <>
+                                            {materializedViews && materializedViews.length > 0 ? (
                                             <div className={clsx(styles.usersList)}>
                                                 {materializedViews.map((view) => (
                                                     <div key={`mat-${view.schema_name}.${view.view_name}`} className={clsx(styles.userItem)}>
@@ -2653,6 +2656,13 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 ))}
                                             </div>
+                                            ) : (
+                                                <div className={clsx(styles.usersEmpty)}>
+                                                    <FontAwesomeIcon icon={faEye} size="3x"/>
+                                                    <p>Материализованные представления не найдены</p>
+                                                    {materializedViewsError && <p className={clsx(styles.errorMessage)}>{materializedViewsError}</p>}
+                                                </div>
+                                            )}
                                             {totalMaterializedViews > 0 && (
                                                 <div className={clsx(styles.usersPagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
@@ -2706,12 +2716,6 @@ export default function ConnectionDetailPage() {
                                                 </div>
                                             )}
                                         </>
-                                    ) : (
-                                        <div className={clsx(styles.usersEmpty)}>
-                                            <FontAwesomeIcon icon={faEye} size="3x"/>
-                                            <p>Материализованные представления не найдены</p>
-                                            {materializedViewsError && <p className={clsx(styles.errorMessage)}>{materializedViewsError}</p>}
-                                        </div>
                                     )}
                                 </div>
                             )}
