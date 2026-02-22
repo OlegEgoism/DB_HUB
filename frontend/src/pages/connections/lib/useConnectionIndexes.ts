@@ -1,33 +1,36 @@
-// frontend/src/pages/connections/lib/useConnectionUsers.ts
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-export interface DBUser {
-  oid: number;
-  name: string;
+export interface DBIndexInfo {
+  schema_name: string;
+  index_name: string;
+  table_name: string;
   description: string | null;
-  email: string | null;
+  definition: string;
 }
 
-export interface UsersResponse {
-  items: DBUser[];
-  total: number;
+interface IndexesResponse {
+  connection_id: number;
+  connection_name: string;
+  total_indexes: number;
+  total_filtered_indexes: number;
   page: number;
   size: number;
   pages: number;
   has_next: boolean;
   has_prev: boolean;
+  indexes: DBIndexInfo[];
 }
 
-export function useConnectionUsers(
+export function useConnectionIndexes(
   connectionId: number,
   page: number = 1,
   size: number = 20,
   search: string | null = null,
-  reloadTrigger: number = 0
+  reloadTrigger: number = 0,
 ) {
-  const [users, setUsers] = useState<DBUser[]>([]);
+  const [indexes, setIndexes] = useState<DBIndexInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
@@ -36,10 +39,11 @@ export function useConnectionUsers(
   const [hasPrev, setHasPrev] = useState(false);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchIndexes = async () => {
       try {
         setLoading(true);
         setError(null);
+
         const token = localStorage.getItem('access_token');
         if (!token) {
           setError('Пользователь не авторизован');
@@ -54,13 +58,13 @@ export function useConnectionUsers(
         }
 
         const response = await fetch(
-          `${API_BASE_URL}/api/v1/db_connections/${connectionId}/users?${params.toString()}`,
+          `${API_BASE_URL}/api/v1/db_connections/${connectionId}/indexes?${params.toString()}`,
           {
             headers: {
-              'Authorization': `Bearer ${token}`,
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
-          }
+          },
         );
 
         if (!response.ok) {
@@ -68,22 +72,22 @@ export function useConnectionUsers(
           throw new Error(errData?.detail || `Ошибка: ${response.status}`);
         }
 
-        const data: UsersResponse = await response.json();
-        setUsers(data.items);
-        setTotal(data.total);
+        const data: IndexesResponse = await response.json();
+        setIndexes(data.indexes);
+        setTotal(data.total_filtered_indexes);
         setPages(data.pages);
         setHasNext(data.has_next);
         setHasPrev(data.has_prev);
       } catch (err) {
-        console.error('Ошибка загрузки пользователей:', err);
-        setError(err instanceof Error ? err.message : 'Не удалось загрузить пользователей');
+        console.error('Ошибка загрузки индексов:', err);
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить индексы');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers();
+    fetchIndexes();
   }, [connectionId, page, size, search, reloadTrigger]);
 
-  return { users, loading, error, total, pages, hasNext, hasPrev };
+  return { indexes, loading, error, total, pages, hasNext, hasPrev };
 }

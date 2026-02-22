@@ -729,6 +729,8 @@
   gap: 12px;
   flex: 1;
   min-width: 350px;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .usersSearchWrapper {
@@ -849,11 +851,14 @@
   padding: 16px 16px;
   background: white;
   border-bottom: 1px solid var(--border-glass);
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start; // Выравнивание по верхнему краю
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) auto;
+  align-items: start;
   gap: 16px;
-  flex-wrap: wrap;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .userItemHeaderLeft {
@@ -865,12 +870,16 @@
 }
 
 .userItemHeaderRight {
-  display: flex;
-  align-items: center;
-  gap: 24px; // Отступ между полями
-  max-width: 60%;
-  text-align: right;
-  flex-wrap: wrap; // Для адаптивности на маленьких экранах
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) auto;
+  align-items: start;
+  gap: 64px;
+  justify-content: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
 }
 
 .userItemInfo {
@@ -909,6 +918,53 @@
 
     svg {
       font-size: 14px;
+    }
+  }
+}
+
+
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+
+  @media (max-width: 1024px) {
+    padding-right: 0;
+  }
+}
+
+.userActionButton {
+  background: white;
+  border: 1px solid $clr-gray-300;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &_delete {
+    &:hover:not(:disabled) {
+      background: $clr-red-500;
+      border-color: $clr-red-500;
+      color: white;
     }
   }
 }
@@ -1122,4 +1178,293 @@
   svg {
     font-size: 16px;
   }
+}
+
+.schemasPrivilegesList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.schemaBulkPrivilegeHeaderRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.schemasPrivilegeRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(110px, 1fr));
+  gap: 8px;
+  align-items: center;
+  border: 1px solid $clr-gray-300;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+}
+
+.schemasPrivilegeRole {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  overflow-wrap: anywhere;
+}
+
+.schemasPrivilegeCell {
+  display: flex;
+  justify-content: center;
+}
+
+.schemasPrivilegeCheckbox {
+  width: 16px;
+  height: 16px;
+}
+
+.bulkPrivilegeHeaderRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(5, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.bulkPrivilegeHeaderSpacer {
+  min-height: 1px;
+}
+
+.bulkPrivilegeButton {
+  border: 1px solid $clr-gray-300;
+  background: white;
+  color: var(--color-text-main);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &_all {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+  }
+
+  &_partial {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: white;
+  }
+}
+
+
+.tablePrivilegeRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(5, minmax(110px, 1fr));
+  gap: 8px;
+  align-items: center;
+  border: 1px solid $clr-gray-300;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+}
+
+.tablePrivilegeRole {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  overflow-wrap: anywhere;
+}
+
+.tablePrivilegeCell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  input {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.sqlQueryPanel {
+  background: white;
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.sqlQueryPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.sqlQueryPanelTitle {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-text-main);
+}
+
+.sqlQueryTemplates {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sqlTemplateButton,
+.sqlSecondaryButton {
+  border: 1px solid $clr-gray-300;
+  background: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.sqlQueryForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sqlQueryTextarea {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid $clr-gray-300;
+  border-radius: 10px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.1);
+  }
+}
+
+.sqlQueryActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sqlQueryLimitLabel {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.sqlQueryLimitInput {
+  width: 120px;
+  padding: 10px 12px;
+  border: 1px solid $clr-gray-300;
+  border-radius: 8px;
+}
+
+.sqlResultCard {
+  background: white;
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.sqlResultTableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.sqlResultTable {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 8px;
+    border-bottom: 1px solid $clr-gray-200;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  th {
+    font-weight: 700;
+  }
+}
+
+.activeSqlDurationInput {
+  width: min(200px, 100%);
+  padding: 12px 14px;
+  border: 1px solid $clr-gray-300;
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--color-text-main);
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.1);
+  }
+}
+
+.userItemInfoLabel_aligned {
+  display: inline-block;
+  min-width: 90px;
+  text-align: right;
+}
+
+.usersMetaGrid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
+  gap: 12px 16px;
+  align-items: center;
+  width: min(420px, 100%);
+
+  @media (max-width: 1200px) {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(420px, 100%);
+  }
+}
+
+.usersMetaCell {
+  min-width: 0;
+}
+
+.usersMetaTableLabel {
+  text-align: right;
+}
+
+.usersMetaTableValue {
+  max-width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+.usersMetaDescriptionValue,
+.usersMetaEmailValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
