@@ -40,6 +40,7 @@ import type {SchemaPrivilegeInfo, SchemaRolePrivilege} from '../lib/useConnectio
 import {useConnectionTables} from '../lib/useConnectionTables';
 import type {TablePrivilegeInfo, TableGroupPrivilege} from '../lib/useConnectionTables';
 import {useConnectionViews} from '../lib/useConnectionViews';
+import {useConnectionIndexes} from '../lib/useConnectionIndexes';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 
 interface Connection {
@@ -88,7 +89,7 @@ interface DatabaseMetrics {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views';
+type TabType = 'metrics' | 'extensions' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
 
 export default function ConnectionDetailPage() {
@@ -158,6 +159,10 @@ export default function ConnectionDetailPage() {
     const [viewsSearchQuery, setViewsSearchQuery] = useState('');
     const [viewsSearchTerm, setViewsSearchTerm] = useState('');
 
+    const [indexesPage, setIndexesPage] = useState(1);
+    const [indexesPageSize, setIndexesPageSize] = useState(8);
+    const [indexesSearchQuery, setIndexesSearchQuery] = useState('');
+    const [indexesSearchTerm, setIndexesSearchTerm] = useState('');
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -257,6 +262,23 @@ export default function ConnectionDetailPage() {
         viewsPage,
         viewsPageSize,
         viewsSearchTerm || null,
+        0
+    );
+
+
+    const {
+        indexes,
+        loading: loadingIndexes,
+        error: indexesError,
+        total: totalIndexes,
+        pages: totalIndexesPages,
+        hasNext: indexesHasNext,
+        hasPrev: indexesHasPrev
+    } = useConnectionIndexes(
+        id ? parseInt(id) : 0,
+        indexesPage,
+        indexesPageSize,
+        indexesSearchTerm || null,
         0
     );
 
@@ -671,6 +693,34 @@ export default function ConnectionDetailPage() {
         const newSize = parseInt(e.target.value, 10);
         setViewsPageSize(newSize);
         setViewsPage(1);
+    };
+
+    const handleIndexesSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setIndexesSearchQuery(e.target.value);
+    };
+
+    const handleIndexesSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setIndexesSearchTerm(indexesSearchQuery.trim());
+        setIndexesPage(1);
+    };
+
+    const handleIndexesSearchClear = () => {
+        setIndexesSearchQuery('');
+        setIndexesSearchTerm('');
+        setIndexesPage(1);
+    };
+
+    const handleIndexesPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalIndexesPages) {
+            setIndexesPage(newPage);
+        }
+    };
+
+    const handleIndexesPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setIndexesPageSize(newSize);
+        setIndexesPage(1);
     };
 
     const openTableEditModal = (table: TablePrivilegeInfo) => {
@@ -1165,6 +1215,21 @@ export default function ConnectionDetailPage() {
                             >
                                 <FontAwesomeIcon icon={faEye}/>
                                 Представления
+                            </button>
+                            <button
+                                className={clsx(
+                                    styles.tabButton,
+                                    activeTab === 'indexes' && styles.tabButton_active
+                                )}
+                                onClick={() => {
+                                    setActiveTab('indexes');
+                                    setIndexesSearchQuery('');
+                                    setIndexesSearchTerm('');
+                                    setIndexesPage(1);
+                                }}
+                            >
+                                <FontAwesomeIcon icon={faNetworkWired}/>
+                                Индексы
                             </button>
                         </div>
                         <div className={clsx(styles.tabContent)}>
@@ -2004,6 +2069,96 @@ export default function ConnectionDetailPage() {
                                             <FontAwesomeIcon icon={faEye} size="3x"/>
                                             <p>Представления не найдены</p>
                                             {viewsError && <p className={clsx(styles.errorMessage)}>{viewsError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {activeTab === 'indexes' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <form onSubmit={handleIndexesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchWrapper)}>
+                                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Поиск индексов..."
+                                                    value={indexesSearchQuery}
+                                                    onChange={handleIndexesSearchInputChange}
+                                                    className={clsx(styles.usersSearchInput)}
+                                                />
+                                                {indexesSearchQuery && (
+                                                    <button type="button" onClick={handleIndexesSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                        <FontAwesomeIcon icon={faTimes}/>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                        </form>
+                                    </div>
+
+                                    {loadingIndexes ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка индексов...</p>
+                                        </div>
+                                    ) : indexes && indexes.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {indexes.map((index) => (
+                                                    <div key={`${index.schema_name}.${index.index_name}`} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <FontAwesomeIcon icon={faNetworkWired} className={clsx(styles.userItemIcon)}/>
+                                                                <h3 className={clsx(styles.userItemTitle)}>{index.schema_name}.{index.index_name}</h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Таблица:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{index.table_name}</span>
+                                                                </div>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{index.description || '—'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalIndexes > 0 && (
+                                                <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+<span className={clsx(styles.paginationText)}>
+Показано <span className={clsx(styles.paginationHighlight)}>{((indexesPage - 1) * indexesPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(indexesPage * indexesPageSize, totalIndexes)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalIndexes}</span> индексов
+</span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={indexesPageSize} onChange={handleIndexesPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на странице</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleIndexesPageChange(indexesPage - 1)} disabled={indexesPage === 1 || !indexesHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {indexesPage} из {totalIndexesPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleIndexesPageChange(indexesPage + 1)} disabled={indexesPage === totalIndexesPages || !indexesHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faNetworkWired} size="3x"/>
+                                            <p>Индексы не найдены</p>
+                                            {indexesError && <p className={clsx(styles.errorMessage)}>{indexesError}</p>}
                                         </div>
                                     )}
                                 </div>
