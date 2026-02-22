@@ -1893,10 +1893,19 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.usersMetaGrid)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Описание:</span>
-                                                                    <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{user.description || '—'}</span>
-                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Email:</span>
-                                                                    <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{user.email || '—'}</span>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Описание:</span>
+                                                                        <span
+                                                                            className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)}
+                                                                            title={user.description || '—'}
+                                                                        >
+                                                                            {user.description || '—'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Email:</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{user.email || '—'}</span>
+                                                                    </div>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
                                                                     <button
