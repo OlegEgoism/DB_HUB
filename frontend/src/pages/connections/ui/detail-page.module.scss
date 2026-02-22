@@ -1416,3 +1416,9 @@
     box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.1);
   }
 }
+
+.userItemInfoLabel_aligned {
+  display: inline-block;
+  min-width: 90px;
+  text-align: right;
+}

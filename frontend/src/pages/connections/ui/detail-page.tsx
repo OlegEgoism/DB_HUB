@@ -1889,19 +1889,18 @@ export default function ConnectionDetailPage() {
                                                     <div key={user.oid} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <FontAwesomeIcon icon={faUser} className={clsx(styles.userItemIcon)}/>
                                                                 <h3 className={clsx(styles.userItemTitle)}>{user.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 {user.description && (
                                                                     <div className={clsx(styles.userItemInfo)}>
-                                                                        <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
                                                                         <span className={clsx(styles.userItemInfoValue)}>{user.description}</span>
                                                                     </div>
                                                                 )}
                                                                 {user.email && (
                                                                     <div className={clsx(styles.userItemInfo)}>
-                                                                        <span className={clsx(styles.userItemInfoLabel)}>Email:</span>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Email:</span>
                                                                         <span className={clsx(styles.userItemInfoValue)}>{user.email}</span>
                                                                     </div>
                                                                 )}
@@ -2069,7 +2068,7 @@ export default function ConnectionDetailPage() {
                                                                 </div>
                                                                 {group.description && (
                                                                     <div className={clsx(styles.userItemInfo)}>
-                                                                        <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
                                                                         <span className={clsx(styles.userItemInfoValue)}>{group.description}</span>
                                                                     </div>
                                                                 )}
@@ -2369,7 +2368,7 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{view.description || '—'}</span>
                                                                 </div>
                                                             </div>
@@ -2459,7 +2458,7 @@ export default function ConnectionDetailPage() {
                                                                     <span className={clsx(styles.userItemInfoValue)}>{index.table_name}</span>
                                                                 </div>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{index.description || '—'}</span>
                                                                 </div>
                                                             </div>
@@ -2545,7 +2544,7 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{dbFunction.description || '—'}</span>
                                                                 </div>
                                                             </div>
@@ -2647,7 +2646,7 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Описание:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{procedure.description || '—'}</span>
                                                                 </div>
                                                             </div>
