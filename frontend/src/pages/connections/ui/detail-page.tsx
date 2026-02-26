@@ -24,6 +24,7 @@ import {
     faChevronCircleRight,
     faPencilAlt,
     faUserMinus,
+    faUserPlus,
     faLayerGroup,
     faSitemap,
     faTableList,
@@ -71,6 +72,11 @@ interface Metric {
 interface Extension {
     name: string;
     version: string;
+}
+
+interface GroupUser {
+    oid: number;
+    name: string;
 }
 
 interface DatabaseMetrics {
@@ -137,6 +143,12 @@ export default function ConnectionDetailPage() {
     const [groupFormLoading, setGroupFormLoading] = useState(false);
     const [groupDeleteTarget, setGroupDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
     const [deletingGroupOid, setDeletingGroupOid] = useState<number | null>(null);
+    const [groupUsersModal, setGroupUsersModal] = useState<{ oid: number; name: string } | null>(null);
+    const [groupUsers, setGroupUsers] = useState<GroupUser[]>([]);
+    const [allUsersForGroup, setAllUsersForGroup] = useState<GroupUser[]>([]);
+    const [selectedUserOid, setSelectedUserOid] = useState('');
+    const [groupUsersLoading, setGroupUsersLoading] = useState(false);
+    const [groupUsersSaving, setGroupUsersSaving] = useState(false);
 
 
     const [schemasPage, setSchemasPage] = useState(1);
@@ -648,6 +660,141 @@ export default function ConnectionDetailPage() {
             setDeletingGroupOid(null);
         }
     };
+
+    const loadGroupUsers = async (groupOid: number) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        setGroupUsersLoading(true);
+        try {
+            const [groupResponse, usersResponse] = await Promise.all([
+                fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups/${groupOid}/get_users`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                }),
+                fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/users?page=1&size=200`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                }),
+            ]);
+
+            if (!groupResponse.ok) {
+                const errData = await groupResponse.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось получить список пользователей группы');
+            }
+            if (!usersResponse.ok) {
+                const errData = await usersResponse.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось получить список пользователей');
+            }
+
+            const groupData = await groupResponse.json();
+            const usersData = await usersResponse.json();
+
+            setGroupUsers(groupData.users || []);
+            setAllUsersForGroup(usersData.items || []);
+        } catch (err) {
+            console.error('Ошибка при загрузке пользователей группы:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось загрузить пользователей группы');
+        } finally {
+            setGroupUsersLoading(false);
+        }
+    };
+
+    const openGroupUsersModal = async (group: { oid: number; name: string }) => {
+        setGroupUsersModal(group);
+        setSelectedUserOid('');
+        setGroupUsers([]);
+        setAllUsersForGroup([]);
+        await loadGroupUsers(group.oid);
+    };
+
+    const closeGroupUsersModal = () => {
+        if (groupUsersSaving) return;
+        setGroupUsersModal(null);
+        setGroupUsers([]);
+        setAllUsersForGroup([]);
+        setSelectedUserOid('');
+    };
+
+    const addUserToGroup = async () => {
+        if (!groupUsersModal || !selectedUserOid) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        setGroupUsersSaving(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups/${groupUsersModal.oid}/add_user`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_oid: Number(selectedUserOid) }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось добавить пользователя в группу');
+            }
+
+            setSelectedUserOid('');
+            await loadGroupUsers(groupUsersModal.oid);
+            setGroupsReloadTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error('Ошибка при добавлении пользователя в группу:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось добавить пользователя в группу');
+        } finally {
+            setGroupUsersSaving(false);
+        }
+    };
+
+    const removeUserFromGroup = async (userOid: number) => {
+        if (!groupUsersModal) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        setGroupUsersSaving(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups/${groupUsersModal.oid}/remove_user`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ user_oid: userOid }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось удалить пользователя из группы');
+            }
+
+            await loadGroupUsers(groupUsersModal.oid);
+            setGroupsReloadTrigger(prev => prev + 1);
+        } catch (err) {
+            console.error('Ошибка при удалении пользователя из группы:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось удалить пользователя из группы');
+        } finally {
+            setGroupUsersSaving(false);
+        }
+    };
+
+    const availableUsersForAdd = allUsersForGroup.filter((user) => !groupUsers.some((groupUser) => groupUser.oid === user.oid));
 
     const handleSchemasSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSchemasSearchQuery(e.target.value);
@@ -2206,6 +2353,16 @@ export default function ConnectionDetailPage() {
                                                                         className={clsx(styles.userActionButton)}
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
+                                                                            openGroupUsersModal(group);
+                                                                        }}
+                                                                        title={`Управление пользователями ${group.name}`}
+                                                                    >
+                                                                        <FontAwesomeIcon icon={faUserPlus}/>
+                                                                    </button>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton)}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
                                                                             openEditGroupModal(group);
                                                                         }}
                                                                         title={`Редактировать ${group.name}`}
@@ -3425,6 +3582,88 @@ export default function ConnectionDetailPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+                        {groupUsersModal !== null && (
+                <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeGroupUsersModal}>
+                    <div className={clsx(groupModalStyles.modal__content, groupModalStyles.modal__content_wide)} onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className={clsx(groupModalStyles.modal__closeButton)}
+                            onClick={closeGroupUsersModal}
+                            disabled={groupUsersSaving}
+                            aria-label="Закрыть окно управления пользователями"
+                        >
+                            <FontAwesomeIcon icon={faTimes}/>
+                        </button>
+                        <div className={clsx(groupModalStyles.modal__header)}>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>Управление пользователями группы</h2>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>{groupUsersModal.name}</p>
+                        </div>
+                        <div className={clsx(groupModalStyles.modal__form)}>
+                            <div className={clsx(groupModalStyles.modal__formGroup)}>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupUserSelect">Добавить пользователя</label>
+                                <div className={clsx(styles.paginationControls)}>
+                                    <select
+                                        id="groupUserSelect"
+                                        className={clsx(styles.paginationSelect)}
+                                        value={selectedUserOid}
+                                        onChange={(e) => setSelectedUserOid(e.target.value)}
+                                        disabled={groupUsersLoading || groupUsersSaving || availableUsersForAdd.length === 0}
+                                    >
+                                        <option value="">Выберите пользователя</option>
+                                        {availableUsersForAdd.map((user) => (
+                                            <option key={user.oid} value={user.oid}>{user.name}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        className={clsx(styles.createUserButton)}
+                                        onClick={addUserToGroup}
+                                        disabled={!selectedUserOid || groupUsersSaving || groupUsersLoading}
+                                    >
+                                        Добавить в группу
+                                    </button>
+                                </div>
+                            </div>
+
+                            {groupUsersLoading ? (
+                                <div className={clsx(styles.usersLoading)}>
+                                    <div className={clsx(styles.spinner)}>
+                                        <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                    </div>
+                                    <p>Загрузка пользователей группы...</p>
+                                </div>
+                            ) : (
+                                <div className={clsx(styles.usersList)}>
+                                    {groupUsers.length > 0 ? groupUsers.map((user) => (
+                                        <div key={user.oid} className={clsx(styles.userItem)}>
+                                            <div className={clsx(styles.userItemHeader)}>
+                                                <div className={clsx(styles.userItemHeaderLeft)}>
+                                                    <h3 className={clsx(styles.userItemTitle)}>{user.name}</h3>
+                                                </div>
+                                                <div className={clsx(styles.userActions)}>
+                                                    <button
+                                                        type="button"
+                                                        className={clsx(styles.userActionButton, styles.userActionButton_delete)}
+                                                        onClick={() => removeUserFromGroup(user.oid)}
+                                                        disabled={groupUsersSaving}
+                                                        title={`Удалить ${user.name} из группы`}
+                                                    >
+                                                        <FontAwesomeIcon icon={faUserMinus}/>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faUsers} size="2x"/>
+                                            <p>В группе пока нет пользователей</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
