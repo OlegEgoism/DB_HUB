@@ -147,6 +147,7 @@ export default function ConnectionDetailPage() {
     const [groupUsers, setGroupUsers] = useState<GroupUser[]>([]);
     const [allUsersForGroup, setAllUsersForGroup] = useState<GroupUser[]>([]);
     const [selectedUserOid, setSelectedUserOid] = useState('');
+    const [groupUserSearchQuery, setGroupUserSearchQuery] = useState('');
     const [groupUsersLoading, setGroupUsersLoading] = useState(false);
     const [groupUsersSaving, setGroupUsersSaving] = useState(false);
 
@@ -710,6 +711,7 @@ export default function ConnectionDetailPage() {
     const openGroupUsersModal = async (group: { oid: number; name: string }) => {
         setGroupUsersModal(group);
         setSelectedUserOid('');
+        setGroupUserSearchQuery('');
         setGroupUsers([]);
         setAllUsersForGroup([]);
         await loadGroupUsers(group.oid);
@@ -721,6 +723,7 @@ export default function ConnectionDetailPage() {
         setGroupUsers([]);
         setAllUsersForGroup([]);
         setSelectedUserOid('');
+        setGroupUserSearchQuery('');
     };
 
     const addUserToGroup = async () => {
@@ -795,6 +798,7 @@ export default function ConnectionDetailPage() {
     };
 
     const availableUsersForAdd = allUsersForGroup.filter((user) => !groupUsers.some((groupUser) => groupUser.oid === user.oid));
+    const filteredAvailableUsersForAdd = availableUsersForAdd.filter((user) => user.name.toLowerCase().includes(groupUserSearchQuery.trim().toLowerCase()));
 
     const handleSchemasSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSchemasSearchQuery(e.target.value);
@@ -3602,17 +3606,39 @@ export default function ConnectionDetailPage() {
                         </div>
                         <div className={clsx(groupModalStyles.modal__form)}>
                             <div className={clsx(groupModalStyles.modal__formGroup)}>
-                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupUserSelect">Добавить пользователя</label>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupUserSearch">Добавить пользователя</label>
+                                <div className={clsx(styles.usersSearchWrapper)}>
+                                    <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                    <input
+                                        id="groupUserSearch"
+                                        type="text"
+                                        placeholder="Поиск пользователя..."
+                                        value={groupUserSearchQuery}
+                                        onChange={(e) => setGroupUserSearchQuery(e.target.value)}
+                                        className={clsx(styles.usersSearchInput)}
+                                        disabled={groupUsersLoading || groupUsersSaving || availableUsersForAdd.length === 0}
+                                    />
+                                    {groupUserSearchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setGroupUserSearchQuery('')}
+                                            className={clsx(styles.usersSearchClear)}
+                                            title="Очистить поиск"
+                                        >
+                                            <FontAwesomeIcon icon={faTimes}/>
+                                        </button>
+                                    )}
+                                </div>
                                 <div className={clsx(styles.paginationControls)}>
                                     <select
                                         id="groupUserSelect"
                                         className={clsx(styles.paginationSelect)}
                                         value={selectedUserOid}
                                         onChange={(e) => setSelectedUserOid(e.target.value)}
-                                        disabled={groupUsersLoading || groupUsersSaving || availableUsersForAdd.length === 0}
+                                        disabled={groupUsersLoading || groupUsersSaving || filteredAvailableUsersForAdd.length === 0}
                                     >
                                         <option value="">Выберите пользователя</option>
-                                        {availableUsersForAdd.map((user) => (
+                                        {filteredAvailableUsersForAdd.map((user) => (
                                             <option key={user.oid} value={user.oid}>{user.name}</option>
                                         ))}
                                     </select>
