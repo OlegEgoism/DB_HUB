@@ -22,7 +22,6 @@ import {
     faChevronRight,
     faChevronCircleLeft,
     faChevronCircleRight,
-    faUser,
     faPencilAlt,
     faUserMinus,
     faLayerGroup,
