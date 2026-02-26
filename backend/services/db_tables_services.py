@@ -1,6 +1,6 @@
 # backend/services/db_tables_services.py
 
-from typing import Any
+from typing import Any, Literal
 
 from asyncpg.utils import _quote_ident
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -449,6 +449,7 @@ class DBTablesService:
         page: int = 1,
         size: int = 20,
         search: str | None = None,
+        table_kind: Literal["regular", "temporary", "all"] = "regular",
     ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
 
@@ -458,7 +459,21 @@ class DBTablesService:
             oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
             all_groupnames = sorted(oid_to_rolname.values())
 
-            table_rows = await conn.fetch("""
+            schema_filter = """
+                  AND n.nspname NOT LIKE 'pg_%'
+                  AND n.nspname != 'information_schema'
+            """
+
+            if table_kind == "temporary":
+                schema_filter = """
+                  AND n.nspname LIKE 'pg_temp_%'
+                """
+            elif table_kind == "all":
+                schema_filter = """
+                  AND n.nspname != 'information_schema'
+                """
+
+            table_rows = await conn.fetch(f"""
                 SELECT
                     n.nspname AS schema_name,
                     c.relname AS table_name,
@@ -467,8 +482,7 @@ class DBTablesService:
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE c.relkind = 'r'
-                  AND n.nspname NOT LIKE 'pg_%'
-                  AND n.nspname != 'information_schema'
+                  {schema_filter}
                 ORDER BY n.nspname, c.relname;
             """)
 
@@ -491,7 +505,7 @@ class DBTablesService:
                 for row in table_rows
             }
 
-            acl_rows = await conn.fetch("""
+            acl_rows = await conn.fetch(f"""
                 SELECT
                     c.oid AS table_oid,
                     (aclexplode(c.relacl)).grantee AS grantee_oid,
@@ -499,8 +513,7 @@ class DBTablesService:
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE c.relkind = 'r'
-                  AND n.nspname NOT LIKE 'pg_%'
-                  AND n.nspname != 'information_schema'
+                  {schema_filter}
                   AND c.relacl IS NOT NULL;
             """)
 

@@ -37,6 +37,7 @@ export function useConnectionTables(
   page: number = 1,
   size: number = 20,
   search: string | null = null,
+  tableKind: 'regular' | 'temporary' | 'all' = 'regular',
   reloadTrigger: number = 0,
 ) {
   const [tables, setTables] = useState<TablePrivilegeInfo[]>([]);
@@ -62,6 +63,7 @@ export function useConnectionTables(
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('size', size.toString());
+        params.append('table_kind', tableKind);
         if (search && search.trim()) {
           params.append('search', search.trim());
         }
@@ -96,7 +98,7 @@ export function useConnectionTables(
     };
 
     fetchTables();
-  }, [connectionId, page, size, search, reloadTrigger]);
+  }, [connectionId, page, size, search, tableKind, reloadTrigger]);
 
   return { tables, loading, error, total, pages, hasNext, hasPrev };
 }

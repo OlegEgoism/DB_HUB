@@ -1,5 +1,7 @@
 # backend/api/v1/db_tables.py
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -146,6 +148,10 @@ async def get_tables_privileges_for_groups(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
     size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
+    table_kind: Literal["regular", "temporary", "all"] = Query(
+        "regular",
+        description="Тип таблиц: regular (обычные), temporary (временные), all (все)",
+    ),
     search: str = Query(
         None,
         description="Поиск по имени/описанию схемы, имени/описанию таблицы и имени группы",
@@ -154,7 +160,13 @@ async def get_tables_privileges_for_groups(
     """Получить права групп к таблицам"""
     try:
         service = DBTablesService(db)
-        result = await service.get_tables_privileges_for_groups(connection_id=connection_id, page=page, size=size, search=search)
+        result = await service.get_tables_privileges_for_groups(
+            connection_id=connection_id,
+            page=page,
+            size=size,
+            search=search,
+            table_kind=table_kind,
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e

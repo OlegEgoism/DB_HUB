@@ -93,6 +93,7 @@ interface DatabaseMetrics {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 type TabType = 'metrics' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions' | 'procedures' | 'sql_query' | 'active_sql';
 const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
+type TablesFilterType = 'regular' | 'temporary' | 'all';
 
 export default function ConnectionDetailPage() {
     const {id} = useParams<{ id: string }>();
@@ -151,6 +152,7 @@ export default function ConnectionDetailPage() {
     const [tablesPageSize, setTablesPageSize] = useState(8);
     const [tablesSearchQuery, setTablesSearchQuery] = useState('');
     const [tablesSearchTerm, setTablesSearchTerm] = useState('');
+    const [tablesFilterType, setTablesFilterType] = useState<TablesFilterType>('regular');
     const [tablesReloadTrigger, setTablesReloadTrigger] = useState(0);
     const [editingTable, setEditingTable] = useState<TablePrivilegeInfo | null>(null);
     const [tableGroupsForm, setTableGroupsForm] = useState<TableGroupPrivilege[]>([]);
@@ -280,6 +282,7 @@ export default function ConnectionDetailPage() {
         tablesPage,
         tablesPageSize,
         tablesSearchTerm || null,
+        tablesFilterType,
         tablesReloadTrigger
     );
 
@@ -771,6 +774,11 @@ export default function ConnectionDetailPage() {
     const handleTablesSearchClear = () => {
         setTablesSearchQuery('');
         setTablesSearchTerm('');
+        setTablesPage(1);
+    };
+
+    const handleTablesFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setTablesFilterType(e.target.value as TablesFilterType);
         setTablesPage(1);
     };
 
@@ -2387,6 +2395,11 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleTablesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <select value={tablesFilterType} onChange={handleTablesFilterTypeChange} className={clsx(styles.paginationSelect)}>
+                                                <option value="regular">Обычные таблицы</option>
+                                                <option value="temporary">Временные таблицы</option>
+                                                <option value="all">Все таблицы</option>
+                                            </select>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
