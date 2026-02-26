@@ -1530,6 +1530,46 @@ export default function ConnectionDetailPage() {
         }
     };
 
+    const downloadConnectionSettings = async () => {
+        if (!id || !connection) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/settings`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.detail || 'Не удалось получить настройки базы данных');
+            }
+
+            const data = await response.json();
+            const fileContent = JSON.stringify(data, null, 2);
+            const blob = new Blob([fileContent], { type: 'application/json;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const safeName = (connection.name || `connection_${id}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+            link.href = url;
+            link.download = `${safeName}_settings.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Ошибка скачивания настроек:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось скачать настройки');
+        }
+    };
+
     const closeEditModal = () => {
         setIsEditModalOpen(false);
         setEditingConnection(null);
@@ -2075,6 +2115,14 @@ export default function ConnectionDetailPage() {
                                             {activeTab === 'metrics' && (
                                                 <div className={clsx(styles.cardFooter)}>
                                                     <div className={clsx(styles.cardFooterRight)}>
+                                                        <button
+                                                            className={clsx(styles.actionButton)}
+                                                            onClick={downloadConnectionSettings}
+                                                            title="Скачать настройки"
+                                                            disabled={deletingId === connection.id}
+                                                        >
+                                                            Скачать настройки
+                                                        </button>
                                                         <button
                                                             className={clsx(styles.actionButton, styles.actionButton_edit)}
                                                             onClick={openEditModal}
