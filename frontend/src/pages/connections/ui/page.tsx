@@ -22,6 +22,7 @@ import {
     faHdd,
     faChevronCircleRight,
     faChevronCircleLeft,
+    faRotateRight, faRefresh, // ✅ Добавлен импорт иконки обновления
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {CreateConnectionModal} from './CreateConnectionModal';
@@ -76,6 +77,7 @@ export default function ConnectionsPage() {
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [confirmDeleteName, setConfirmDeleteName] = useState<string>('');
+    const [refreshing, setRefreshing] = useState(false); // ✅ Состояние для индикатора обновления
 
     // Состояния для редактирования
     const [editingConnection, setEditingConnection] = useState<Connection | null>(null);
@@ -144,12 +146,19 @@ export default function ConnectionsPage() {
             setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
     useEffect(() => {
         loadConnections();
     }, [currentPage, pageSize, searchTerm, activeTab]);
+
+    // ✅ Обработчик обновления страницы
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await loadConnections();
+    };
 
     // Обработчики
     const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,7 +257,7 @@ export default function ConnectionsPage() {
         }
     };
 
-    // ✅ Переключение избранного с оптимистичным обновлением UI
+    // Переключение избранного с оптимистичным обновлением UI
     const toggleFavorite = async (connectionId: number, isFavorite: boolean) => {
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -459,12 +468,27 @@ export default function ConnectionsPage() {
                                     Поиск
                                 </button>
                             </form>
+
                             <button
                                 className={clsx(styles.addButton)}
                                 onClick={openCreateModal}
                                 aria-label="Создать новое подключение к базе данных"
                             >
                                 Создать подключение
+                            </button>
+
+                            {/* ✅ Кнопка обновления */}
+                            <button
+                                className={clsx(styles.refreshButton, refreshing && styles.refreshButton_loading)}
+                                onClick={handleRefresh}
+                                disabled={refreshing || loading}
+                                aria-label="Обновить список подключений"
+                                title="Обновить список подключений"
+                            >
+                                <FontAwesomeIcon
+                                    icon={faRefresh}
+                                    spin={refreshing}
+                                />
                             </button>
                         </div>
                     </div>
