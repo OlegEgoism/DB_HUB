@@ -2376,7 +2376,7 @@ export default function ConnectionDetailPage() {
                                                                         aria-label={`Удалить пользователя ${user.name}`}
                                                                         disabled={deletingUserOid === user.oid}
                                                                     >
-                                                                        <FontAwesomeIcon icon={faUserMinus}/>
+                                                                        <FontAwesomeIcon icon={faTrashAlt}/>
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -2561,7 +2561,7 @@ export default function ConnectionDetailPage() {
                                                                         title={`Удалить ${group.name}`}
                                                                         disabled={deletingGroupOid === group.oid}
                                                                     >
-                                                                        <FontAwesomeIcon icon={faUserMinus}/>
+                                                                        <FontAwesomeIcon icon={faTrashAlt}/>
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -3788,7 +3788,8 @@ export default function ConnectionDetailPage() {
                         <div className={clsx(styles.modalFooter)}>
                             <button className={clsx(styles.modalCancelButton)} onClick={closeGroupDeleteConfirm} disabled={deletingGroupOid !== null}>Отмена</button>
                             <button className={clsx(styles.modalDeleteButton)} onClick={deleteGroup} disabled={deletingGroupOid !== null}>
-                                {deletingGroupOid !== null ? <><FontAwesomeIcon icon={faSpinner} spin/> Удаление...</> : <><FontAwesomeIcon icon={faTrashAlt}/> Удалить</>}
+                                {deletingGroupOid !== null ? <>
+                                    <FontAwesomeIcon icon={faSpinner} spin/> Удаление...</> : <><FontAwesomeIcon icon={faTrashAlt}/> Удалить</>}
                             </button>
                         </div>
                     </div>
