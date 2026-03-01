@@ -3498,7 +3498,7 @@ export default function ConnectionDetailPage() {
                                                 className={clsx(styles.activeSqlDurationInput)}
                                             />
                                             <button type="submit" className={clsx(styles.usersSearchButton)}>Применить</button>
-                                            <button type="button" className={clsx(styles.usersSearchButton)} onClick={handleActiveSqlFilterClear}>Сброс</button>
+                                            <button type="button" className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)} onClick={handleActiveSqlFilterClear}>Сброс</button>
                                             <button
                                                 type="button"
                                                 className={clsx(styles.refreshButton)}

@@ -211,8 +211,21 @@
 // Вкладки
 .tabsContainer {
   display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-bottom: 1px solid var(--border-glass);
   background: white;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba($clr-indigo-500, 0.3);
+    border-radius: 999px;
+  }
 }
 
 .tabButton {
@@ -229,6 +242,8 @@
   gap: 8px;
   border-bottom: 3px solid transparent;
   position: relative;
+  flex: 0 0 auto;
+  white-space: nowrap;
 
   &:hover {
     color: var(--color-text-main);
@@ -723,24 +738,30 @@
   margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 16px;
 }
 
 .usersSearchContainer {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  min-width: 350px;
-  margin-left: auto;
-  justify-content: flex-end;
+  flex: 1;
+  min-width: min(420px, 100%);
+  margin-left: 0;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+
+  @media (max-width: 1024px) {
+    min-width: 100%;
+  }
 }
 
 .usersSearchWrapper {
   position: relative;
-  flex: 1;
-  max-width: 450px;
+  flex: 1 1 360px;
+  width: min(100%, 450px);
 }
 
 .usersSearchIcon {
@@ -810,6 +831,7 @@
   align-items: center;
   justify-content: center;
   min-width: 44px;
+  flex-shrink: 0;
 
   &:hover:not(:disabled) {
     background: rgba($clr-indigo-500, 0.1);
@@ -836,6 +858,7 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   min-width: 100px;
+  flex-shrink: 0;
 
   &:hover {
     background: var(--color-primary);
@@ -845,6 +868,17 @@
   &:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.2);
+  }
+
+  &_secondary {
+    background: white;
+    color: var(--color-text-main);
+    border: 1px solid $clr-gray-300;
+
+    &:hover {
+      background: rgba($clr-gray-500, 0.08);
+      transform: translateY(-2px);
+    }
   }
 }
 
@@ -1199,6 +1233,11 @@
   gap: 8px;
   white-space: nowrap;
   flex-shrink: 0;
+
+  @media (max-width: 1024px) {
+    width: 100%;
+    justify-content: center;
+  }
   &:hover {
     background: var(--color-primary-dark);
     transform: translateY(-2px);
@@ -1402,6 +1441,16 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+
+  .usersSearchButton {
+    margin-left: auto;
+  }
+
+  @media (max-width: 768px) {
+    .usersSearchButton {
+      margin-left: 0;
+    }
+  }
 }
 
 .sqlQueryLimitLabel {
