@@ -2264,6 +2264,13 @@ export default function ConnectionDetailPage() {
                                             </button>
                                         </form>
                                         <button
+                                            className={clsx(styles.createUserButton)}
+                                            onClick={openCreateUserModal}
+                                            aria-label="Создать нового пользователя"
+                                        >
+                                            Создать пользователя
+                                        </button>
+                                        <button
                                             type="button"
                                             className={clsx(styles.refreshButton)}
                                             onClick={refreshUsers}
@@ -2272,13 +2279,6 @@ export default function ConnectionDetailPage() {
                                             title="Обновить список пользователей"
                                         >
                                             <FontAwesomeIcon icon={faArrowsRotate} spin={loadingUsers}/>
-                                        </button>
-                                        <button
-                                            className={clsx(styles.createUserButton)}
-                                            onClick={openCreateUserModal}
-                                            aria-label="Создать нового пользователя"
-                                        >
-                                            Создать пользователя
                                         </button>
                                     </div>
                                     {loadingUsers ? (
@@ -2450,6 +2450,13 @@ export default function ConnectionDetailPage() {
                                             </button>
                                         </form>
                                         <button
+                                            className={clsx(styles.createUserButton)}
+                                            onClick={openCreateGroupModal}
+                                            aria-label="Создать новую группу"
+                                        >
+                                            Создать группу
+                                        </button>
+                                        <button
                                             type="button"
                                             className={clsx(styles.refreshButton)}
                                             onClick={refreshGroups}
@@ -2458,13 +2465,6 @@ export default function ConnectionDetailPage() {
                                             title="Обновить список групп"
                                         >
                                             <FontAwesomeIcon icon={faArrowsRotate} spin={loadingGroups}/>
-                                        </button>
-                                        <button
-                                            className={clsx(styles.createUserButton)}
-                                            onClick={openCreateGroupModal}
-                                            aria-label="Создать новую группу"
-                                        >
-                                            Создать группу
                                         </button>
                                     </div>
 

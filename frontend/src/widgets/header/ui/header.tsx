@@ -100,9 +100,6 @@ export function Header() {
                                     Подключения
                                 </NavLink>
                                 <NavLink to={ROUTES.PROFILE} className={clsx(styles.header__profileButton)}>
-                                    Настройки
-                                </NavLink>
-                                <NavLink to={ROUTES.PROFILE} className={clsx(styles.header__profileButton)}>
                                     Профиль
                                 </NavLink>
                                 <div className={clsx(styles.header__userMenu)}>
