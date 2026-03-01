@@ -915,45 +915,47 @@
 }
 
 .userItemHeader {
-  padding: 16px 16px;
+  padding: 16px;
   background: white;
   border-bottom: 1px solid var(--border-glass);
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) auto;
-  align-items: start;
+  grid-template-columns: minmax(220px, 1fr) minmax(340px, auto);
+  align-items: center;
   gap: 16px;
 
-  @media (max-width: 1024px) {
+  @media (max-width: 1200px) {
     grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
   }
 }
 
 .userItemHeaderLeft {
-  //display: flex;
+  display: flex;
   align-items: center;
-  //gap: 12px;
-  flex: 1;
   min-width: 0; // Для корректного обрезания длинных имен
 }
 
 .userItemHeaderRight {
-  display: grid;
-  grid-template-columns: minmax(320px, 420px) auto;
-  align-items: start;
-  gap: 64px;
-  justify-content: start;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  min-width: 0;
 
-  @media (max-width: 1024px) {
-    grid-template-columns: minmax(0, 1fr);
-    justify-content: stretch;
+  @media (max-width: 1200px) {
+    justify-content: space-between;
+    flex-wrap: wrap;
   }
 }
 
 .userItemInfo {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
+  min-height: 40px;
   font-size: 14px;
+  line-height: 1.4;
   color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -993,28 +995,31 @@
 .userActions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
-  padding-right: 12px;
-
-  @media (max-width: 1024px) {
-    padding-right: 0;
-  }
+  padding-right: 0;
+  min-height: 40px;
 }
 
 .userActionButton {
   background: white;
   border: 1px solid $clr-gray-300;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 0;
+  border-radius: 8px;
   font-size: 16px;
   color: var(--color-text-main);
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
+  line-height: 1;
+
+  svg {
+    font-size: 14px;
+  }
 
   &:hover:not(:disabled) {
     background: var(--color-primary);
@@ -1037,14 +1042,17 @@
 }
 
 .userItemInfoRow {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
   font-size: 14px;
+  line-height: 1.4;
   color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   justify-content: flex-end;
 }
 
@@ -1066,6 +1074,7 @@
   font-weight: 600;
   color: var(--color-text-main);
   margin: 0;
+  line-height: 1.4;
   flex: 1;
 }
 
