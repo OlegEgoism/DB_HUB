@@ -1069,6 +1069,14 @@ export default function ConnectionDetailPage() {
         setIndexesPage(1);
     };
 
+    const handleIndexesFirstPage = () => {
+        setIndexesPage(1);
+    };
+
+    const handleIndexesLastPage = () => {
+        setIndexesPage(totalIndexesPages);
+    };
+
     const handleFunctionsSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFunctionsSearchQuery(e.target.value);
     };
@@ -2994,12 +3002,38 @@ export default function ConnectionDetailPage() {
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleIndexesPageChange(indexesPage - 1)} disabled={indexesPage === 1 || !indexesHasPrev} title="Предыдущая страница">
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_first)}
+                                                                onClick={handleIndexesFirstPage}
+                                                                disabled={indexesPage === 1 || !indexesHasPrev}
+                                                                title="Первая страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleLeft}/>
+                                                            </button>
+                                                            <button
+                                                                className={clsx(styles.paginationButton)}
+                                                                onClick={() => handleIndexesPageChange(indexesPage - 1)}
+                                                                disabled={indexesPage === 1 || !indexesHasPrev}
+                                                                title="Предыдущая страница"
+                                                            >
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
                                                             <span className={clsx(styles.pageInfo)}>Страница {indexesPage} из {totalIndexesPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleIndexesPageChange(indexesPage + 1)} disabled={indexesPage === totalIndexesPages || !indexesHasNext} title="Следующая страница">
+                                                            <button
+                                                                className={clsx(styles.paginationButton)}
+                                                                onClick={() => handleIndexesPageChange(indexesPage + 1)}
+                                                                disabled={indexesPage === totalIndexesPages || !indexesHasNext}
+                                                                title="Следующая страница"
+                                                            >
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                            <button
+                                                                className={clsx(styles.paginationButton, styles.paginationButton_last)}
+                                                                onClick={handleIndexesLastPage}
+                                                                disabled={indexesPage === totalIndexesPages || !indexesHasNext}
+                                                                title="Последняя страница"
+                                                            >
+                                                                <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
                                                         </div>
                                                     </div>
