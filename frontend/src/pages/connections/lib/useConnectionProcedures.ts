@@ -10,15 +10,16 @@ export interface DBProcedureInfo {
 }
 
 interface ProceduresResponse {
+  total?: number;
   connection_id: number;
   connection_name: string;
-  total_procedures: number;
-  total_filtered_procedures: number;
+  total_procedures?: number;
+  total_filtered_procedures?: number;
   page: number;
   size: number;
-  pages: number;
-  has_next: boolean;
-  has_prev: boolean;
+  pages?: number;
+  has_next?: boolean;
+  has_prev?: boolean;
   procedures: DBProcedureInfo[];
 }
 
@@ -72,11 +73,23 @@ export function useConnectionProcedures(
         }
 
         const data: ProceduresResponse = await response.json();
-        setProcedures(data.procedures);
-        setTotal(data.total_filtered_procedures);
-        setPages(data.pages);
-        setHasNext(data.has_next);
-        setHasPrev(data.has_prev);
+        const resolvedProcedures = Array.isArray(data.procedures) ? data.procedures : [];
+        const resolvedTotal = typeof data.total_filtered_procedures === 'number'
+          ? data.total_filtered_procedures
+          : typeof data.total_procedures === 'number'
+            ? data.total_procedures
+            : typeof data.total === 'number'
+              ? data.total
+              : resolvedProcedures.length;
+        const resolvedPages = typeof data.pages === 'number' && data.pages > 0
+          ? data.pages
+          : Math.max(1, Math.ceil(resolvedTotal / size));
+
+        setProcedures(resolvedProcedures);
+        setTotal(resolvedTotal);
+        setPages(resolvedPages);
+        setHasNext(typeof data.has_next === 'boolean' ? data.has_next : page < resolvedPages);
+        setHasPrev(typeof data.has_prev === 'boolean' ? data.has_prev : page > 1);
       } catch (err) {
         console.error('Ошибка загрузки процедур:', err);
         setError(err instanceof Error ? err.message : 'Не удалось загрузить процедуры');

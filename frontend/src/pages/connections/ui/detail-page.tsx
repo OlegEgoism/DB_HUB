@@ -396,6 +396,9 @@ export default function ConnectionDetailPage() {
         0
     );
 
+    const resolvedProceduresTotal = totalProcedures > 0 ? totalProcedures : procedures.length;
+    const resolvedProceduresPages = totalProceduresPages > 0 ? totalProceduresPages : 1;
+
 
     const {
         activeQueries,
@@ -1141,7 +1144,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleProceduresPageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalProceduresPages) {
+        if (newPage >= 1 && newPage <= resolvedProceduresPages) {
             setProceduresPage(newPage);
         }
     };
@@ -1157,7 +1160,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleProceduresLastPage = () => {
-        setProceduresPage(totalProceduresPages);
+        setProceduresPage(resolvedProceduresPages);
     };
 
     const applySqlTemplate = (template: string) => {
@@ -3210,12 +3213,12 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 ))}
                                             </div>
-                                            {totalProcedures > 0 && (
+                                            {resolvedProceduresTotal > 0 && (
                                                 <div className={clsx(styles.usersPagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((proceduresPage - 1) * proceduresPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(proceduresPage * proceduresPageSize, totalProcedures)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalProcedures}</span> процедур
+<span className={clsx(styles.paginationHighlight)}>{Math.min(proceduresPage * proceduresPageSize, resolvedProceduresTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedProceduresTotal}</span> процедур
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
@@ -3228,7 +3231,7 @@ export default function ConnectionDetailPage() {
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleProceduresFirstPage}
-                                                                disabled={proceduresPage === 1}
+                                                                disabled={proceduresPage === 1 || !proceduresHasPrev}
                                                                 title="Первая страница"
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
@@ -3236,14 +3239,14 @@ export default function ConnectionDetailPage() {
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleProceduresPageChange(proceduresPage - 1)} disabled={proceduresPage === 1 || !proceduresHasPrev} title="Предыдущая страница">
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {proceduresPage} из {totalProceduresPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleProceduresPageChange(proceduresPage + 1)} disabled={proceduresPage === totalProceduresPages || !proceduresHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>Страница {proceduresPage} из {resolvedProceduresPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleProceduresPageChange(proceduresPage + 1)} disabled={proceduresPage === resolvedProceduresPages || !proceduresHasNext} title="Следующая страница">
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleProceduresLastPage}
-                                                                disabled={proceduresPage === totalProceduresPages}
+                                                                disabled={proceduresPage === resolvedProceduresPages || !proceduresHasNext}
                                                                 title="Последняя страница"
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
