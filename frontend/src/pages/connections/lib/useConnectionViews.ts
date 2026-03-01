@@ -10,11 +10,15 @@ export interface DBViewInfo {
 }
 
 interface ViewsResponse {
+  total?: number;
+  total_views?: number;
   total_filtered_views?: number;
   views?: DBViewInfo[];
 }
 
 interface MaterializedViewsResponse {
+  total?: number;
+  total_materialized_views?: number;
   total_filtered_materialized_views?: number;
   materialized_views?: DBViewInfo[];
 }
@@ -71,12 +75,32 @@ function useViewsBase(
           throw new Error(errData?.detail || `Ошибка: ${response.status}`);
         }
 
-        const data: (ViewsResponse & MaterializedViewsResponse & { pages: number; has_next: boolean; has_prev: boolean }) = await response.json();
-        setViews(Array.isArray(data[dataKey]) ? data[dataKey] ?? [] : []);
-        setTotal(typeof data[totalKey] === 'number' ? data[totalKey] ?? 0 : 0);
-        setPages(data.pages);
-        setHasNext(data.has_next);
-        setHasPrev(data.has_prev);
+        const data: (ViewsResponse & MaterializedViewsResponse & { pages?: number; has_next?: boolean; has_prev?: boolean }) = await response.json();
+        const resolvedViews = Array.isArray(data[dataKey]) ? data[dataKey] ?? [] : [];
+
+        const resolvedTotal = typeof data[totalKey] === 'number'
+          ? data[totalKey]
+          : dataKey === 'views'
+            ? typeof data.total_views === 'number'
+              ? data.total_views
+              : typeof data.total === 'number'
+                ? data.total
+                : resolvedViews.length
+            : typeof data.total_materialized_views === 'number'
+              ? data.total_materialized_views
+              : typeof data.total === 'number'
+                ? data.total
+                : resolvedViews.length;
+
+        const resolvedPages = typeof data.pages === 'number' && data.pages > 0
+          ? data.pages
+          : Math.max(1, Math.ceil(resolvedTotal / size));
+
+        setViews(resolvedViews);
+        setTotal(resolvedTotal);
+        setPages(resolvedPages);
+        setHasNext(typeof data.has_next === 'boolean' ? data.has_next : page < resolvedPages);
+        setHasPrev(typeof data.has_prev === 'boolean' ? data.has_prev : page > 1);
       } catch (err) {
         console.error('Ошибка загрузки представлений:', err);
         setError(err instanceof Error ? err.message : 'Не удалось загрузить представления');

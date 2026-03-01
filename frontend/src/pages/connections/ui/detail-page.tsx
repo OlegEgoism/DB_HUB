@@ -335,6 +335,11 @@ export default function ConnectionDetailPage() {
         0
     );
 
+    const resolvedViewsTotal = totalViews > 0 ? totalViews : views.length;
+    const resolvedViewsPages = totalViewsPages > 0 ? totalViewsPages : 1;
+    const resolvedMaterializedViewsTotal = totalMaterializedViews > 0 ? totalMaterializedViews : materializedViews.length;
+    const resolvedMaterializedViewsPages = totalMaterializedViewsPages > 0 ? totalMaterializedViewsPages : 1;
+
     const {
         indexes,
         loading: loadingIndexes,
@@ -989,7 +994,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleViewsPageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalViewsPages) {
+        if (newPage >= 1 && newPage <= resolvedViewsPages) {
             setViewsPage(newPage);
         }
     };
@@ -1005,7 +1010,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleViewsLastPage = () => {
-        setViewsPage(totalViewsPages);
+        setViewsPage(resolvedViewsPages);
     };
 
     const handleMaterializedViewsSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1025,7 +1030,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleMaterializedViewsPageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalMaterializedViewsPages) {
+        if (newPage >= 1 && newPage <= resolvedMaterializedViewsPages) {
             setMaterializedViewsPage(newPage);
         }
     };
@@ -1041,7 +1046,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleMaterializedViewsLastPage = () => {
-        setMaterializedViewsPage(totalMaterializedViewsPages);
+        setMaterializedViewsPage(resolvedMaterializedViewsPages);
     };
 
     const handleIndexesSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2830,12 +2835,12 @@ export default function ConnectionDetailPage() {
                                                         {viewsError && <p className={clsx(styles.errorMessage)}>{viewsError}</p>}
                                                     </div>
                                                 )}
-                                                {totalViews > 0 && (
+                                                {resolvedViewsTotal > 0 && (
                                                     <div className={clsx(styles.usersPagination)}>
                                                         <div className={clsx(styles.paginationInfo)}>
                                                             <span className={clsx(styles.paginationText)}>
                                                                 Показано <span className={clsx(styles.paginationHighlight)}>{((viewsPage - 1) * viewsPageSize) + 1}</span>–
-                                                                <span className={clsx(styles.paginationHighlight)}>{Math.min(viewsPage * viewsPageSize, totalViews)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalViews}</span> представлений
+                                                                <span className={clsx(styles.paginationHighlight)}>{Math.min(viewsPage * viewsPageSize, resolvedViewsTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedViewsTotal}</span> представлений
                                                             </span>
                                                         </div>
                                                         <div className={clsx(styles.paginationControls)}>
@@ -2851,11 +2856,11 @@ export default function ConnectionDetailPage() {
                                                                 <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage - 1)} disabled={viewsPage === 1 || !viewsHasPrev} title="Предыдущая страница">
                                                                     <FontAwesomeIcon icon={faChevronLeft}/>
                                                                 </button>
-                                                                <span className={clsx(styles.pageInfo)}>Страница {viewsPage} из {totalViewsPages}</span>
-                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage + 1)} disabled={viewsPage === totalViewsPages || !viewsHasNext} title="Следующая страница">
+                                                                <span className={clsx(styles.pageInfo)}>Страница {viewsPage} из {resolvedViewsPages}</span>
+                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage + 1)} disabled={viewsPage === resolvedViewsPages || !viewsHasNext} title="Следующая страница">
                                                                     <FontAwesomeIcon icon={faChevronRight}/>
                                                                 </button>
-                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleViewsLastPage} disabled={viewsPage === totalViewsPages || !viewsHasNext} title="Последняя страница">
+                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleViewsLastPage} disabled={viewsPage === resolvedViewsPages || !viewsHasNext} title="Последняя страница">
                                                                     <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                                 </button>
                                                             </div>
@@ -2899,12 +2904,12 @@ export default function ConnectionDetailPage() {
                                                         {materializedViewsError && <p className={clsx(styles.errorMessage)}>{materializedViewsError}</p>}
                                                     </div>
                                                 )}
-                                                {totalMaterializedViews > 0 && (
+                                                {resolvedMaterializedViewsTotal > 0 && (
                                                     <div className={clsx(styles.usersPagination)}>
                                                         <div className={clsx(styles.paginationInfo)}>
                                                             <span className={clsx(styles.paginationText)}>
                                                                 Показано <span className={clsx(styles.paginationHighlight)}>{((materializedViewsPage - 1) * materializedViewsPageSize) + 1}</span>–
-                                                                <span className={clsx(styles.paginationHighlight)}>{Math.min(materializedViewsPage * materializedViewsPageSize, totalMaterializedViews)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalMaterializedViews}</span> материализованных представлений
+                                                                <span className={clsx(styles.paginationHighlight)}>{Math.min(materializedViewsPage * materializedViewsPageSize, resolvedMaterializedViewsTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedMaterializedViewsTotal}</span> материализованных представлений
                                                             </span>
                                                         </div>
                                                         <div className={clsx(styles.paginationControls)}>
@@ -2920,11 +2925,11 @@ export default function ConnectionDetailPage() {
                                                                 <button className={clsx(styles.paginationButton)} onClick={() => handleMaterializedViewsPageChange(materializedViewsPage - 1)} disabled={materializedViewsPage === 1 || !materializedViewsHasPrev} title="Предыдущая страница">
                                                                     <FontAwesomeIcon icon={faChevronLeft}/>
                                                                 </button>
-                                                                <span className={clsx(styles.pageInfo)}>Страница {materializedViewsPage} из {totalMaterializedViewsPages}</span>
-                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleMaterializedViewsPageChange(materializedViewsPage + 1)} disabled={materializedViewsPage === totalMaterializedViewsPages || !materializedViewsHasNext} title="Следующая страница">
+                                                                <span className={clsx(styles.pageInfo)}>Страница {materializedViewsPage} из {resolvedMaterializedViewsPages}</span>
+                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleMaterializedViewsPageChange(materializedViewsPage + 1)} disabled={materializedViewsPage === resolvedMaterializedViewsPages || !materializedViewsHasNext} title="Следующая страница">
                                                                     <FontAwesomeIcon icon={faChevronRight}/>
                                                                 </button>
-                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleMaterializedViewsLastPage} disabled={materializedViewsPage === totalMaterializedViewsPages || !materializedViewsHasNext} title="Последняя страница">
+                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleMaterializedViewsLastPage} disabled={materializedViewsPage === resolvedMaterializedViewsPages || !materializedViewsHasNext} title="Последняя страница">
                                                                     <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                                 </button>
                                                             </div>
