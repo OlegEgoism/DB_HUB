@@ -29,7 +29,7 @@ import {
     faSitemap,
     faTableList,
     faEye,
-    faRotateRight,
+    faRotateRight, faRefresh,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
@@ -762,7 +762,7 @@ export default function ConnectionDetailPage() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ user_oid: Number(selectedUserOid) }),
+                body: JSON.stringify({user_oid: Number(selectedUserOid)}),
             });
 
             if (!response.ok) {
@@ -798,7 +798,7 @@ export default function ConnectionDetailPage() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ user_oid: userOid }),
+                body: JSON.stringify({user_oid: userOid}),
             });
 
             if (!response.ok) {
@@ -1592,7 +1592,7 @@ export default function ConnectionDetailPage() {
 
             const data = await response.json();
             const fileContent = JSON.stringify(data, null, 2);
-            const blob = new Blob([fileContent], { type: 'application/json;charset=utf-8' });
+            const blob = new Blob([fileContent], {type: 'application/json;charset=utf-8'});
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             const safeName = (connection.name || `connection_${id}`).replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -2202,7 +2202,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск пользователей..."
+                                                    placeholder="Поиск пользователей"
                                                     value={usersSearchQuery}
                                                     onChange={handleUsersSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -2382,7 +2382,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск групп..."
+                                                    placeholder="Поиск групп"
                                                     value={groupsSearchQuery}
                                                     onChange={handleGroupsSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -2536,7 +2536,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск схем..."
+                                                    placeholder="Поиск схем"
                                                     value={schemasSearchQuery}
                                                     onChange={handleSchemasSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -2651,7 +2651,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск таблиц..."
+                                                    placeholder="Поиск таблиц"
                                                     value={tablesSearchQuery}
                                                     onChange={handleTablesSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -2771,7 +2771,7 @@ export default function ConnectionDetailPage() {
                                                     <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                     <input
                                                         type="text"
-                                                        placeholder="Поиск представлений..."
+                                                        placeholder="Поиск представлений"
                                                         value={viewsSearchQuery}
                                                         onChange={handleViewsSearchInputChange}
                                                         className={clsx(styles.usersSearchInput)}
@@ -2947,8 +2947,8 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            
-{activeTab === 'indexes' && (
+
+                            {activeTab === 'indexes' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleIndexesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
@@ -2956,7 +2956,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск индексов..."
+                                                    placeholder="Поиск индексов"
                                                     value={indexesSearchQuery}
                                                     onChange={handleIndexesSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -3071,7 +3071,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск функций..."
+                                                    placeholder="Поиск функций"
                                                     value={functionsSearchQuery}
                                                     onChange={handleFunctionsSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -3172,7 +3172,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск процедур..."
+                                                    placeholder="Поиск процедур"
                                                     value={proceduresSearchQuery}
                                                     onChange={handleProceduresSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -3372,8 +3372,12 @@ export default function ConnectionDetailPage() {
                                             />
                                             <button type="submit" className={clsx(styles.usersSearchButton)}>Применить</button>
                                             <button type="button" className={clsx(styles.usersSearchButton)} onClick={handleActiveSqlFilterClear}>Сброс</button>
-                                            <button type="button" className={clsx(styles.usersSearchButton)} onClick={refreshActiveTransactions} disabled={loadingActiveQueries}>
-                                                <FontAwesomeIcon icon={faRotateRight}/> Обновить
+                                            <button type="button" className={clsx(styles.usersSearchButton)}
+                                                    onClick={refreshActiveTransactions} disabled={loadingActiveQueries}
+                                                    aria-label="Обновить список транзакций"
+                                                    title="Обновить список транзакций"
+                                            >
+                                                <FontAwesomeIcon icon={faRefresh}/>
                                             </button>
                                         </form>
                                     </div>
@@ -3690,7 +3694,7 @@ export default function ConnectionDetailPage() {
                     </div>
                 </div>
             )}
-                        {groupUsersModal !== null && (
+            {groupUsersModal !== null && (
                 <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeGroupUsersModal}>
                     <div className={clsx(groupModalStyles.modal__content, groupModalStyles.modal__content_wide)} onClick={(e) => e.stopPropagation()}>
                         <button

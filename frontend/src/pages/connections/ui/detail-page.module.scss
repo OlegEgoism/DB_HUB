@@ -732,7 +732,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
   min-width: 350px;
   margin-left: auto;
   justify-content: flex-end;
@@ -1092,10 +1091,10 @@
 }
 
 .paginationSelect {
-  padding: 8px 12px;
+  padding: 12px 12px;
   border: 1px solid $clr-gray-300;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 16px;
   color: var(--color-text-main);
   background: white;
   cursor: pointer;
@@ -1341,9 +1340,9 @@
   border: 1px solid $clr-gray-300;
   background: white;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 12px 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .sqlQueryForm {
