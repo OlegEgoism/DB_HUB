@@ -959,7 +959,14 @@ export default function ConnectionDetailPage() {
     };
 
     const handleViewsFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setViewsFilterType(e.target.value as ViewsFilterType);
+        const nextFilter = e.target.value as ViewsFilterType;
+        setViewsFilterType(nextFilter);
+
+        if (nextFilter === 'views') {
+            setViewsPage(1);
+        } else {
+            setMaterializedViewsPage(1);
+        }
     };
 
     const handleViewsSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
