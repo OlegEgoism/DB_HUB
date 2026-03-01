@@ -11,10 +11,11 @@ export interface DBIndexInfo {
 }
 
 interface IndexesResponse {
+  total?: number;
   connection_id: number;
   connection_name: string;
-  total_indexes: number;
-  total_filtered_indexes: number;
+  total_indexes?: number;
+  total_filtered_indexes?: number;
   page: number;
   size: number;
   pages: number;
@@ -74,10 +75,22 @@ export function useConnectionIndexes(
 
         const data: IndexesResponse = await response.json();
         setIndexes(data.indexes);
-        setTotal(data.total_filtered_indexes);
-        setPages(data.pages);
-        setHasNext(data.has_next);
-        setHasPrev(data.has_prev);
+        const resolvedTotal = typeof data.total_filtered_indexes === 'number'
+          ? data.total_filtered_indexes
+          : typeof data.total_indexes === 'number'
+            ? data.total_indexes
+            : typeof data.total === 'number'
+              ? data.total
+              : data.indexes.length;
+
+        const resolvedPages = typeof data.pages === 'number' && data.pages > 0
+          ? data.pages
+          : Math.max(1, Math.ceil(resolvedTotal / size));
+
+        setTotal(resolvedTotal);
+        setPages(resolvedPages);
+        setHasNext(typeof data.has_next === 'boolean' ? data.has_next : page < resolvedPages);
+        setHasPrev(typeof data.has_prev === 'boolean' ? data.has_prev : page > 1);
       } catch (err) {
         console.error('Ошибка загрузки индексов:', err);
         setError(err instanceof Error ? err.message : 'Не удалось загрузить индексы');

@@ -351,6 +351,9 @@ export default function ConnectionDetailPage() {
         0
     );
 
+    const resolvedIndexesTotal = totalIndexes > 0 ? totalIndexes : indexes.length;
+    const resolvedIndexesPages = totalIndexesPages > 0 ? totalIndexesPages : 1;
+
 
     const {
         functions,
@@ -1058,7 +1061,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleIndexesPageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalIndexesPages) {
+        if (newPage >= 1 && newPage <= resolvedIndexesPages) {
             setIndexesPage(newPage);
         }
     };
@@ -1074,7 +1077,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleIndexesLastPage = () => {
-        setIndexesPage(totalIndexesPages);
+        setIndexesPage(resolvedIndexesPages);
     };
 
     const handleFunctionsSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2987,12 +2990,12 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 ))}
                                             </div>
-                                            {totalIndexes > 0 && (
+                                            {resolvedIndexesTotal > 0 && (
                                                 <div className={clsx(styles.usersPagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((indexesPage - 1) * indexesPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(indexesPage * indexesPageSize, totalIndexes)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalIndexes}</span> индексов
+<span className={clsx(styles.paginationHighlight)}>{Math.min(indexesPage * indexesPageSize, resolvedIndexesTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedIndexesTotal}</span> индексов
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
@@ -3018,11 +3021,11 @@ export default function ConnectionDetailPage() {
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {indexesPage} из {totalIndexesPages}</span>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {indexesPage} из {resolvedIndexesPages}</span>
                                                             <button
                                                                 className={clsx(styles.paginationButton)}
                                                                 onClick={() => handleIndexesPageChange(indexesPage + 1)}
-                                                                disabled={indexesPage === totalIndexesPages || !indexesHasNext}
+                                                                disabled={indexesPage === resolvedIndexesPages || !indexesHasNext}
                                                                 title="Следующая страница"
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
@@ -3030,7 +3033,7 @@ export default function ConnectionDetailPage() {
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleIndexesLastPage}
-                                                                disabled={indexesPage === totalIndexesPages || !indexesHasNext}
+                                                                disabled={indexesPage === resolvedIndexesPages || !indexesHasNext}
                                                                 title="Последняя страница"
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
