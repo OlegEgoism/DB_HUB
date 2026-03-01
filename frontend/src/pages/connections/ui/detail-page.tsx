@@ -29,7 +29,7 @@ import {
     faSitemap,
     faTableList,
     faEye,
-    faRotateRight, faRefresh,
+    faArrowsRotate,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
@@ -183,21 +183,25 @@ export default function ConnectionDetailPage() {
     const [materializedViewsSearchQuery, setMaterializedViewsSearchQuery] = useState('');
     const [materializedViewsSearchTerm, setMaterializedViewsSearchTerm] = useState('');
     const [viewsFilterType, setViewsFilterType] = useState<ViewsFilterType>('views');
+    const [viewsReloadTrigger, setViewsReloadTrigger] = useState(0);
 
     const [indexesPage, setIndexesPage] = useState(1);
     const [indexesPageSize, setIndexesPageSize] = useState(8);
     const [indexesSearchQuery, setIndexesSearchQuery] = useState('');
     const [indexesSearchTerm, setIndexesSearchTerm] = useState('');
+    const [indexesReloadTrigger, setIndexesReloadTrigger] = useState(0);
 
     const [functionsPage, setFunctionsPage] = useState(1);
     const [functionsPageSize, setFunctionsPageSize] = useState(8);
     const [functionsSearchQuery, setFunctionsSearchQuery] = useState('');
     const [functionsSearchTerm, setFunctionsSearchTerm] = useState('');
+    const [functionsReloadTrigger, setFunctionsReloadTrigger] = useState(0);
 
     const [proceduresPage, setProceduresPage] = useState(1);
     const [proceduresPageSize, setProceduresPageSize] = useState(8);
     const [proceduresSearchQuery, setProceduresSearchQuery] = useState('');
     const [proceduresSearchTerm, setProceduresSearchTerm] = useState('');
+    const [proceduresReloadTrigger, setProceduresReloadTrigger] = useState(0);
 
     const [sqlQueryText, setSqlQueryText] = useState('SELECT 1 AS test;');
     const [sqlQueryLimit, setSqlQueryLimit] = useState(100);
@@ -316,7 +320,7 @@ export default function ConnectionDetailPage() {
         viewsPage,
         viewsPageSize,
         viewsSearchTerm || null,
-        0
+        viewsReloadTrigger
     );
 
     const {
@@ -332,7 +336,7 @@ export default function ConnectionDetailPage() {
         materializedViewsPage,
         materializedViewsPageSize,
         materializedViewsSearchTerm || null,
-        0
+        viewsReloadTrigger
     );
 
     const resolvedViewsTotal = totalViews > 0 ? totalViews : views.length;
@@ -353,7 +357,7 @@ export default function ConnectionDetailPage() {
         indexesPage,
         indexesPageSize,
         indexesSearchTerm || null,
-        0
+        indexesReloadTrigger
     );
 
     const resolvedIndexesTotal = totalIndexes > 0 ? totalIndexes : indexes.length;
@@ -373,7 +377,7 @@ export default function ConnectionDetailPage() {
         functionsPage,
         functionsPageSize,
         functionsSearchTerm || null,
-        0
+        functionsReloadTrigger
     );
 
     const resolvedFunctionsTotal = totalFunctions > 0 ? totalFunctions : functions.length;
@@ -393,7 +397,7 @@ export default function ConnectionDetailPage() {
         proceduresPage,
         proceduresPageSize,
         proceduresSearchTerm || null,
-        0
+        proceduresReloadTrigger
     );
 
     const resolvedProceduresTotal = totalProcedures > 0 ? totalProcedures : procedures.length;
@@ -490,6 +494,39 @@ export default function ConnectionDetailPage() {
     }, [activeTab]);
 
 // Обработчики для поиска и пагинации пользователей
+
+    const refreshUsers = () => {
+        setUsersReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshGroups = () => {
+        setGroupsReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshSchemas = () => {
+        setSchemasReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshTables = () => {
+        setTablesReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshViews = () => {
+        setViewsReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshIndexes = () => {
+        setIndexesReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshFunctions = () => {
+        setFunctionsReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshProcedures = () => {
+        setProceduresReloadTrigger((prev) => prev + 1);
+    };
+
     const handleUsersSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setUsersSearchQuery(e.target.value);
     };
@@ -2227,6 +2264,16 @@ export default function ConnectionDetailPage() {
                                             </button>
                                         </form>
                                         <button
+                                            type="button"
+                                            className={clsx(styles.refreshButton)}
+                                            onClick={refreshUsers}
+                                            disabled={loadingUsers}
+                                            aria-label="Обновить список пользователей"
+                                            title="Обновить список пользователей"
+                                        >
+                                            <FontAwesomeIcon icon={faArrowsRotate} spin={loadingUsers}/>
+                                        </button>
+                                        <button
                                             className={clsx(styles.createUserButton)}
                                             onClick={openCreateUserModal}
                                             aria-label="Создать нового пользователя"
@@ -2403,6 +2450,16 @@ export default function ConnectionDetailPage() {
                                             </button>
                                         </form>
                                         <button
+                                            type="button"
+                                            className={clsx(styles.refreshButton)}
+                                            onClick={refreshGroups}
+                                            disabled={loadingGroups}
+                                            aria-label="Обновить список групп"
+                                            title="Обновить список групп"
+                                        >
+                                            <FontAwesomeIcon icon={faArrowsRotate} spin={loadingGroups}/>
+                                        </button>
+                                        <button
                                             className={clsx(styles.createUserButton)}
                                             onClick={openCreateGroupModal}
                                             aria-label="Создать новую группу"
@@ -2548,6 +2605,16 @@ export default function ConnectionDetailPage() {
                                                 )}
                                             </div>
                                             <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.refreshButton)}
+                                                onClick={refreshSchemas}
+                                                disabled={loadingSchemas}
+                                                aria-label="Обновить список схем"
+                                                title="Обновить список схем"
+                                            >
+                                                <FontAwesomeIcon icon={faArrowsRotate} spin={loadingSchemas}/>
+                                            </button>
                                         </form>
                                     </div>
 
@@ -2663,6 +2730,16 @@ export default function ConnectionDetailPage() {
                                                 )}
                                             </div>
                                             <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.refreshButton)}
+                                                onClick={refreshTables}
+                                                disabled={loadingTables}
+                                                aria-label="Обновить список таблиц"
+                                                title="Обновить список таблиц"
+                                            >
+                                                <FontAwesomeIcon icon={faArrowsRotate} spin={loadingTables}/>
+                                            </button>
                                         </form>
                                     </div>
 
@@ -2783,6 +2860,16 @@ export default function ConnectionDetailPage() {
                                                     )}
                                                 </div>
                                                 <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                                <button
+                                                    type="button"
+                                                    className={clsx(styles.refreshButton)}
+                                                    onClick={refreshViews}
+                                                    disabled={loadingViews || loadingMaterializedViews}
+                                                    aria-label="Обновить список представлений"
+                                                    title="Обновить список представлений"
+                                                >
+                                                    <FontAwesomeIcon icon={faArrowsRotate} spin={loadingViews || loadingMaterializedViews}/>
+                                                </button>
                                             </form>
                                         ) : (
                                             <form onSubmit={handleMaterializedViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
@@ -2802,6 +2889,16 @@ export default function ConnectionDetailPage() {
                                                     )}
                                                 </div>
                                                 <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                                <button
+                                                    type="button"
+                                                    className={clsx(styles.refreshButton)}
+                                                    onClick={refreshViews}
+                                                    disabled={loadingViews || loadingMaterializedViews}
+                                                    aria-label="Обновить список представлений"
+                                                    title="Обновить список представлений"
+                                                >
+                                                    <FontAwesomeIcon icon={faArrowsRotate} spin={loadingViews || loadingMaterializedViews}/>
+                                                </button>
                                             </form>
                                         )}
                                     </div>
@@ -2968,6 +3065,16 @@ export default function ConnectionDetailPage() {
                                                 )}
                                             </div>
                                             <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.refreshButton)}
+                                                onClick={refreshIndexes}
+                                                disabled={loadingIndexes}
+                                                aria-label="Обновить список индексов"
+                                                title="Обновить список индексов"
+                                            >
+                                                <FontAwesomeIcon icon={faArrowsRotate} spin={loadingIndexes}/>
+                                            </button>
                                         </form>
                                     </div>
 
@@ -3083,6 +3190,16 @@ export default function ConnectionDetailPage() {
                                                 )}
                                             </div>
                                             <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.refreshButton)}
+                                                onClick={refreshFunctions}
+                                                disabled={loadingFunctions}
+                                                aria-label="Обновить список функций"
+                                                title="Обновить список функций"
+                                            >
+                                                <FontAwesomeIcon icon={faArrowsRotate} spin={loadingFunctions}/>
+                                            </button>
                                         </form>
                                     </div>
 
@@ -3184,6 +3301,16 @@ export default function ConnectionDetailPage() {
                                                 )}
                                             </div>
                                             <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.refreshButton)}
+                                                onClick={refreshProcedures}
+                                                disabled={loadingProcedures}
+                                                aria-label="Обновить список процедур"
+                                                title="Обновить список процедур"
+                                            >
+                                                <FontAwesomeIcon icon={faArrowsRotate} spin={loadingProcedures}/>
+                                            </button>
                                         </form>
                                     </div>
 
@@ -3372,12 +3499,15 @@ export default function ConnectionDetailPage() {
                                             />
                                             <button type="submit" className={clsx(styles.usersSearchButton)}>Применить</button>
                                             <button type="button" className={clsx(styles.usersSearchButton)} onClick={handleActiveSqlFilterClear}>Сброс</button>
-                                            <button type="button" className={clsx(styles.usersSearchButton)}
-                                                    onClick={refreshActiveTransactions} disabled={loadingActiveQueries}
-                                                    aria-label="Обновить список транзакций"
-                                                    title="Обновить список транзакций"
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.refreshButton)}
+                                                onClick={refreshActiveTransactions}
+                                                disabled={loadingActiveQueries}
+                                                aria-label="Обновить список транзакций"
+                                                title="Обновить список транзакций"
                                             >
-                                                <FontAwesomeIcon icon={faRefresh}/>
+                                                <FontAwesomeIcon icon={faArrowsRotate} spin={loadingActiveQueries}/>
                                             </button>
                                         </form>
                                     </div>
