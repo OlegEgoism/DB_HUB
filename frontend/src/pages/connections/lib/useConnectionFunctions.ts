@@ -10,15 +10,16 @@ export interface DBFunctionInfo {
 }
 
 interface FunctionsResponse {
+  total?: number;
   connection_id: number;
   connection_name: string;
-  total_functions: number;
-  total_filtered_functions: number;
+  total_functions?: number;
+  total_filtered_functions?: number;
   page: number;
   size: number;
-  pages: number;
-  has_next: boolean;
-  has_prev: boolean;
+  pages?: number;
+  has_next?: boolean;
+  has_prev?: boolean;
   functions: DBFunctionInfo[];
 }
 
@@ -72,11 +73,23 @@ export function useConnectionFunctions(
         }
 
         const data: FunctionsResponse = await response.json();
-        setFunctions(data.functions);
-        setTotal(data.total_filtered_functions);
-        setPages(data.pages);
-        setHasNext(data.has_next);
-        setHasPrev(data.has_prev);
+        const resolvedFunctions = Array.isArray(data.functions) ? data.functions : [];
+        const resolvedTotal = typeof data.total_filtered_functions === 'number'
+          ? data.total_filtered_functions
+          : typeof data.total_functions === 'number'
+            ? data.total_functions
+            : typeof data.total === 'number'
+              ? data.total
+              : resolvedFunctions.length;
+        const resolvedPages = typeof data.pages === 'number' && data.pages > 0
+          ? data.pages
+          : Math.max(1, Math.ceil(resolvedTotal / size));
+
+        setFunctions(resolvedFunctions);
+        setTotal(resolvedTotal);
+        setPages(resolvedPages);
+        setHasNext(typeof data.has_next === 'boolean' ? data.has_next : page < resolvedPages);
+        setHasPrev(typeof data.has_prev === 'boolean' ? data.has_prev : page > 1);
       } catch (err) {
         console.error('Ошибка загрузки функций:', err);
         setError(err instanceof Error ? err.message : 'Не удалось загрузить функции');

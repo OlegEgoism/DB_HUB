@@ -376,6 +376,9 @@ export default function ConnectionDetailPage() {
         0
     );
 
+    const resolvedFunctionsTotal = totalFunctions > 0 ? totalFunctions : functions.length;
+    const resolvedFunctionsPages = totalFunctionsPages > 0 ? totalFunctionsPages : 1;
+
 
     const {
         procedures,
@@ -1102,7 +1105,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleFunctionsPageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalFunctionsPages) {
+        if (newPage >= 1 && newPage <= resolvedFunctionsPages) {
             setFunctionsPage(newPage);
         }
     };
@@ -1118,7 +1121,7 @@ export default function ConnectionDetailPage() {
     };
 
     const handleFunctionsLastPage = () => {
-        setFunctionsPage(totalFunctionsPages);
+        setFunctionsPage(resolvedFunctionsPages);
     };
 
     const handleProceduresSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -3106,12 +3109,12 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 ))}
                                             </div>
-                                            {totalFunctions > 0 && (
+                                            {resolvedFunctionsTotal > 0 && (
                                                 <div className={clsx(styles.usersPagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((functionsPage - 1) * functionsPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(functionsPage * functionsPageSize, totalFunctions)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalFunctions}</span> функций
+<span className={clsx(styles.paginationHighlight)}>{Math.min(functionsPage * functionsPageSize, resolvedFunctionsTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedFunctionsTotal}</span> функций
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
@@ -3124,7 +3127,7 @@ export default function ConnectionDetailPage() {
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleFunctionsFirstPage}
-                                                                disabled={functionsPage === 1}
+                                                                disabled={functionsPage === 1 || !functionsHasPrev}
                                                                 title="Первая страница"
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
@@ -3132,14 +3135,14 @@ export default function ConnectionDetailPage() {
                                                             <button className={clsx(styles.paginationButton)} onClick={() => handleFunctionsPageChange(functionsPage - 1)} disabled={functionsPage === 1 || !functionsHasPrev} title="Предыдущая страница">
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {functionsPage} из {totalFunctionsPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleFunctionsPageChange(functionsPage + 1)} disabled={functionsPage === totalFunctionsPages || !functionsHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>Страница {functionsPage} из {resolvedFunctionsPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleFunctionsPageChange(functionsPage + 1)} disabled={functionsPage === resolvedFunctionsPages || !functionsHasNext} title="Следующая страница">
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleFunctionsLastPage}
-                                                                disabled={functionsPage === totalFunctionsPages}
+                                                                disabled={functionsPage === resolvedFunctionsPages || !functionsHasNext}
                                                                 title="Последняя страница"
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
