@@ -143,6 +143,7 @@ export default function ConnectionDetailPage() {
     const [groupFormLoading, setGroupFormLoading] = useState(false);
     const [groupDeleteTarget, setGroupDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
     const [deletingGroupOid, setDeletingGroupOid] = useState<number | null>(null);
+    const [groupDeleteErrorModal, setGroupDeleteErrorModal] = useState<string | null>(null);
     const [groupUsersModal, setGroupUsersModal] = useState<{ oid: number; name: string } | null>(null);
     const [groupUsers, setGroupUsers] = useState<GroupUser[]>([]);
     const [allUsersForGroup, setAllUsersForGroup] = useState<GroupUser[]>([]);
@@ -619,6 +620,7 @@ export default function ConnectionDetailPage() {
     };
 
     const openGroupDeleteConfirm = (group: { oid: number; name: string }) => {
+        setGroupDeleteErrorModal(null);
         setGroupDeleteTarget({oid: group.oid, name: group.name});
     };
 
@@ -656,7 +658,8 @@ export default function ConnectionDetailPage() {
             setGroupsReloadTrigger(prev => prev + 1);
         } catch (err) {
             console.error('Ошибка при удалении группы:', err);
-            setError(err instanceof Error ? err.message : 'Не удалось удалить группу');
+            const message = err instanceof Error ? err.message : 'Не удалось удалить группу';
+            setGroupDeleteErrorModal(message);
         } finally {
             setDeletingGroupOid(null);
         }
@@ -3583,6 +3586,26 @@ export default function ConnectionDetailPage() {
                             <button className={clsx(styles.modalCancelButton)} onClick={closeGroupDeleteConfirm} disabled={deletingGroupOid !== null}>Отмена</button>
                             <button className={clsx(styles.modalDeleteButton)} onClick={deleteGroup} disabled={deletingGroupOid !== null}>
                                 {deletingGroupOid !== null ? <><FontAwesomeIcon icon={faSpinner} spin/> Удаление...</> : <><FontAwesomeIcon icon={faTrashAlt}/> Удалить</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {groupDeleteErrorModal !== null && (
+                <div className={clsx(styles.modalOverlay)} onClick={() => setGroupDeleteErrorModal(null)}>
+                    <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
+                        <div className={clsx(styles.modalHeader)}>
+                            <FontAwesomeIcon icon={faExclamationCircle} className={clsx(styles.modalIcon)}/>
+                            <h2 className={clsx(styles.modalTitle)}>Ошибка удаления группы</h2>
+                        </div>
+                        <div className={clsx(styles.modalBody)}>
+                            <p className={clsx(styles.modalText)} style={{whiteSpace: 'pre-line'}}>
+                                {groupDeleteErrorModal}
+                            </p>
+                        </div>
+                        <div className={clsx(styles.modalFooter)}>
+                            <button className={clsx(styles.modalCancelButton)} onClick={() => setGroupDeleteErrorModal(null)}>
+                                Закрыть
                             </button>
                         </div>
                     </div>
