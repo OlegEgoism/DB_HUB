@@ -641,6 +641,20 @@
   }
 }
 
+
+.modalErrorBox {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba($clr-red-500, 0.35);
+  background: rgba($clr-red-500, 0.08);
+  color: $clr-red-500;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .modalFooter {
   padding: 24px;
   border-top: 1px solid var(--border-glass);

@@ -129,6 +129,7 @@ export default function ConnectionDetailPage() {
     const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
     const [userDeleteTarget, setUserDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
     const [deletingUserOid, setDeletingUserOid] = useState<number | null>(null);
+    const [userDeleteError, setUserDeleteError] = useState<string | null>(null);
     const [usersReloadTrigger, setUsersReloadTrigger] = useState(0);
 
 
@@ -1677,13 +1678,47 @@ export default function ConnectionDetailPage() {
     };
 
 
+    const formatDeleteUserError = (detail: unknown): string => {
+        if (typeof detail === 'string' && detail.trim().length > 0) {
+            return detail.trim();
+        }
+
+        if (Array.isArray(detail)) {
+            const parts = detail
+                .map((item) => {
+                    if (typeof item === 'string') return item.trim();
+                    if (item && typeof item === 'object' && 'msg' in item) {
+                        const msg = (item as { msg?: unknown }).msg;
+                        return typeof msg === 'string' ? msg.trim() : '';
+                    }
+                    return '';
+                })
+                .filter(Boolean);
+
+            if (parts.length > 0) {
+                return parts.join('\n');
+            }
+        }
+
+        if (detail && typeof detail === 'object') {
+            const maybeDetail = (detail as { detail?: unknown }).detail;
+            if (maybeDetail !== undefined) {
+                return formatDeleteUserError(maybeDetail);
+            }
+        }
+
+        return 'Не удалось удалить пользователя';
+    };
+
     const openUserDeleteConfirm = (user: { oid: number; name: string }) => {
         setUserDeleteTarget({oid: user.oid, name: user.name});
+        setUserDeleteError(null);
     };
 
     const closeUserDeleteConfirm = () => {
         if (deletingUserOid !== null) return;
         setUserDeleteTarget(null);
+        setUserDeleteError(null);
     };
 
     const deleteUser = async () => {
@@ -1708,9 +1743,10 @@ export default function ConnectionDetailPage() {
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                throw new Error(errData?.detail || 'Не удалось удалить пользователя');
+                throw new Error(formatDeleteUserError(errData));
             }
 
+            setUserDeleteError(null);
             setUserDeleteTarget(null);
             setUsersReloadTrigger(prev => prev + 1);
             if (editingUser?.oid === userDeleteTarget.oid) {
@@ -1718,7 +1754,7 @@ export default function ConnectionDetailPage() {
             }
         } catch (err) {
             console.error('Ошибка при удалении пользователя:', err);
-            setError(err instanceof Error ? err.message : 'Не удалось удалить пользователя');
+            setUserDeleteError(err instanceof Error ? err.message : 'Не удалось удалить пользователя');
         } finally {
             setDeletingUserOid(null);
         }
@@ -3701,6 +3737,9 @@ export default function ConnectionDetailPage() {
                                 <FontAwesomeIcon icon={faExclamationCircle}/>
                                 Пользователь будет удален безвозвратно.
                             </p>
+                            {userDeleteError && (
+                                <pre className={clsx(styles.modalErrorBox)}>{userDeleteError}</pre>
+                            )}
                         </div>
                         <div className={clsx(styles.modalFooter)}>
                             <button
