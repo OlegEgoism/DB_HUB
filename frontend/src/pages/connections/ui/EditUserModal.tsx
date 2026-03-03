@@ -1,5 +1,5 @@
 // frontend/src/pages/connections/ui/EditUserModal.tsx
-import {useState, useEffect} from 'react';
+import {useState} from 'react';
 import {useUpdateUser} from '../lib/useUpdateUser';
 import clsx from 'clsx';
 import styles from './edit-user-modal.module.scss';
@@ -37,22 +37,11 @@ export function EditUserModal({
     });
 
     const [showPassword, setShowPassword] = useState(false);
-    const [initialData, setInitialData] = useState({...formData});
+    const [initialData] = useState({ ...formData });
 
     const {updateUser, loading, error, success} = useUpdateUser(connectionId, user.oid);
 
-    useEffect(() => {
-        setFormData({
-            email: user.email || '',
-            description: user.description || '',
-            password: '',
-        });
-        setInitialData({
-            email: user.email || '',
-            description: user.description || '',
-            password: '',
-        });
-    }, [user]);
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -68,7 +57,7 @@ export function EditUserModal({
         }
 
         try {
-            const updateData: any = {};
+            const updateData: Record<string, string | null> = {};
 
             if (formData.email !== initialData.email) {
                 updateData.email = formData.email.trim() === '' ? null : formData.email;
@@ -84,7 +73,7 @@ export function EditUserModal({
 
             await updateUser(updateData);
             onSuccess();
-        } catch (err) {
+        } catch {
             // Ошибка уже обработана в хуке
         }
     };

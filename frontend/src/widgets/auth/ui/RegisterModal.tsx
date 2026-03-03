@@ -52,7 +52,8 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
         password: formData.password,
       };
       await register(userData);
-    } catch (err) {
+    } catch {
+      // Ошибка уже обработана в хуке
     }
   };
 

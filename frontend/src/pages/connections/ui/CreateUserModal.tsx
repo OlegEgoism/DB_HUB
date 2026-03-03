@@ -67,7 +67,7 @@ export function CreateUserModal({
             };
             await createUser(createData);
             onSuccess();
-        } catch (err) {
+        } catch {
 // Ошибка уже обработана в хуке
         }
     };

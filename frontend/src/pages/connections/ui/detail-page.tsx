@@ -92,8 +92,8 @@ interface DatabaseMetrics {
     status: string;
     basic_metrics: Metric[];
     extensions: Extension[];
-    cluster_replication: any[];
-    segment_details: any[];
+    cluster_replication: Array<{ replication_lag?: string | number | null }>;
+    segment_details: unknown[];
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -117,7 +117,7 @@ export default function ConnectionDetailPage() {
     const [editingConnection, setEditingConnection] = useState<Connection | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 // Состояния для редактирования пользователя
-    const [editingUser, setEditingUser] = useState<any>(null);
+    const [editingUser, setEditingUser] = useState<{ oid: number; name: string; email: string | null; description: string | null } | null>(null);
     const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
 
 // Состояния для пагинации пользователей
@@ -1516,8 +1516,8 @@ export default function ConnectionDetailPage() {
                 const [hoursStr, minutes, seconds] = timePart.split(':');
                 const totalHours = days * 24 + (parseInt(hoursStr, 10) || 0);
                 return `${totalHours.toString().padStart(2, '0')}:${minutes}:${seconds}`;
-            } catch (e) {
-                console.error('Ошибка форматирования времени работы:', e);
+            } catch (err) {
+                console.error('Ошибка форматирования времени работы:', err);
                 return uptimeStr;
             }
         }
@@ -1536,8 +1536,8 @@ export default function ConnectionDetailPage() {
             if (!datePart || !timePart) return startTimeStr;
             const [year, month, day] = datePart.split('-');
             return `${day}.${month}.${year} ${timePart}`;
-        } catch (e) {
-            console.error('Ошибка форматирования времени начала работы:', e);
+        } catch (err) {
+            console.error('Ошибка форматирования времени начала работы:', err);
             return startTimeStr;
         }
     };
@@ -1553,7 +1553,7 @@ export default function ConnectionDetailPage() {
                 minute: '2-digit',
                 second: '2-digit',
             });
-        } catch (e) {
+        } catch {
             return dateString;
         }
     };
@@ -1657,7 +1657,7 @@ export default function ConnectionDetailPage() {
     };
 
 // Открытие модального окна редактирования пользователя
-    const openEditUserModal = (user: any) => {
+    const openEditUserModal = (user: { oid: number; name: string; email: string | null; description: string | null }) => {
         setEditingUser(user);
         setIsEditUserModalOpen(true);
     };

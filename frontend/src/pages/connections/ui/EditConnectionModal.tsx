@@ -1,5 +1,5 @@
 // frontend/src/pages/connections/ui/EditConnectionModal.tsx
-import {useState, useEffect} from 'react';
+import {useState} from 'react';
 import {useEditConnection} from '../lib/useEditConnection';
 import clsx from 'clsx';
 import styles from './edit-connection-modal.module.scss';
@@ -50,35 +50,10 @@ export function EditConnectionModal({
     });
 
     const [showPassword, setShowPassword] = useState(false);
-    const [initialData, setInitialData] = useState({...formData});
+    const [initialData] = useState({ ...formData });
     const {updateConnection, loading, error, success} = useEditConnection(connection.id);
 
-    useEffect(() => {
-        setFormData({
-            name: connection.name,
-            description: connection.description || '',
-            database_type: connection.database_type,
-            environment: connection.environment,
-            is_favorite: connection.is_favorite,
-            host: connection.host,
-            port: connection.port,
-            database_name: connection.database_name,
-            username: connection.username,
-            password: '',
-        });
-        setInitialData({
-            name: connection.name,
-            description: connection.description || '',
-            database_type: connection.database_type,
-            environment: connection.environment,
-            is_favorite: connection.is_favorite,
-            host: connection.host,
-            port: connection.port,
-            database_name: connection.database_name,
-            username: connection.username,
-            password: '',
-        });
-    }, [connection]);
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -92,7 +67,7 @@ export function EditConnectionModal({
             return;
         }
         try {
-            const updateData: any = {};
+            const updateData: Partial<Connection> = {};
             if (formData.name !== initialData.name) updateData.name = formData.name;
             if (formData.description !== initialData.description) {
                 updateData.description = formData.description.trim() === '' ? null : formData.description;
@@ -107,7 +82,8 @@ export function EditConnectionModal({
             if (formData.password) updateData.password = formData.password;
             await updateConnection(updateData);
             onSuccess();
-        } catch (err) {
+        } catch {
+            // Ошибка уже обработана в хуке
         }
     };
 
