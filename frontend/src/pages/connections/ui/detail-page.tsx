@@ -45,62 +45,12 @@ import {useConnectionFunctions} from '../lib/useConnectionFunctions';
 import {useConnectionProcedures} from '../lib/useConnectionProcedures';
 import {useConnectionActiveQueries} from '../lib/useConnectionActiveQueries';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
-
-interface Connection {
-    id: number;
-    database_name: string;
-    description: string | null;
-    host: string;
-    port: number;
-    username: string;
-    name: string;
-    database_type: string;
-    environment: string;
-    is_favorite: boolean;
-    owner_id: number;
-    owner_username: string;
-    status: string;
-    db_size_mb: number | null;
-    created_at: string;
-}
-
-interface Metric {
-    metric: string;
-    value: string;
-}
-
-interface Extension {
-    name: string;
-    version: string;
-}
-
-interface GroupUser {
-    oid: number;
-    name: string;
-}
-
-interface DatabaseMetrics {
-    connection_id: number;
-    connection_name: string;
-    connection_description: string | null;
-    database_name: string;
-    host: string;
-    port: number;
-    username: string;
-    environment: string;
-    database_type: string;
-    status: string;
-    basic_metrics: Metric[];
-    extensions: Extension[];
-    cluster_replication: Array<{ replication_lag?: string | number | null }>;
-    segment_details: unknown[];
-}
+import { PAGE_SIZES } from '@pages/connections/model/detail-page-constants';
+import type { Connection, DatabaseMetrics, EditingUser, GroupUser, TabType, TablesFilterType, ViewsFilterType } from '@pages/connections/model/detail-page-types';
+import { formatDateTime, formatStartTime, formatUptime } from '@pages/connections/lib/detail-page/formatters';
+import { getConnectionById, getConnectionMetrics } from '@pages/connections/lib/detail-page/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-type TabType = 'metrics' | 'users' | 'groups' | 'schemas' | 'tables' | 'views' | 'indexes' | 'functions' | 'procedures' | 'sql_query' | 'active_sql';
-const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
-type TablesFilterType = 'regular' | 'temporary' | 'all';
-type ViewsFilterType = 'views' | 'materialized_views';
 
 export default function ConnectionDetailPage() {
     const {id} = useParams<{ id: string }>();
@@ -117,7 +67,7 @@ export default function ConnectionDetailPage() {
     const [editingConnection, setEditingConnection] = useState<Connection | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 // Состояния для редактирования пользователя
-    const [editingUser, setEditingUser] = useState<{ oid: number; name: string; email: string | null; description: string | null } | null>(null);
+    const [editingUser, setEditingUser] = useState<EditingUser | null>(null);
     const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
 
 // Состояния для пагинации пользователей
@@ -424,27 +374,17 @@ export default function ConnectionDetailPage() {
     );
 
     const loadConnection = async () => {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
+        if (!id) return;
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData?.detail || `Ошибка: ${response.status}`);
-            }
-            const data = await response.json();
+            const data = await getConnectionById(id);
             setConnection(data);
         } catch (err) {
+            if (err instanceof Error && err.message.includes('не авторизован')) {
+                navigate('/login');
+                return;
+            }
             console.error('Ошибка загрузки подключения:', err);
             setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
         } finally {
@@ -454,27 +394,16 @@ export default function ConnectionDetailPage() {
 
     const loadMetrics = async () => {
         if (!id) return;
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
         setLoadingMetrics(true);
         setError(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/metrics`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData?.detail || `Ошибка: ${response.status}`);
-            }
-            const data = await response.json();
+            const data = await getConnectionMetrics(id);
             setMetrics(data);
         } catch (err) {
+            if (err instanceof Error && err.message.includes('не авторизован')) {
+                navigate('/login');
+                return;
+            }
             console.error('Ошибка загрузки информации:', err);
             setError(err instanceof Error ? err.message : 'Не удалось загрузить информацию');
         } finally {
@@ -1506,58 +1435,6 @@ export default function ConnectionDetailPage() {
     };
 
 // Форматирование времени работы
-    const formatUptime = (uptimeStr: string): string => {
-        if (!uptimeStr || uptimeStr === '—') return '—';
-        if (uptimeStr.includes('day')) {
-            try {
-                const parts = uptimeStr.split(' ');
-                const days = parseInt(parts[0], 10) || 0;
-                const timePart = parts[2] || '00:00:00';
-                const [hoursStr, minutes, seconds] = timePart.split(':');
-                const totalHours = days * 24 + (parseInt(hoursStr, 10) || 0);
-                return `${totalHours.toString().padStart(2, '0')}:${minutes}:${seconds}`;
-            } catch (err) {
-                console.error('Ошибка форматирования времени работы:', err);
-                return uptimeStr;
-            }
-        }
-        if (/^\d+:\d+:\d+$/.test(uptimeStr.trim())) {
-            return uptimeStr.trim();
-        }
-        return uptimeStr;
-    };
-
-// Форматирование времени начала работы
-    const formatStartTime = (startTimeStr: string): string => {
-        if (!startTimeStr || startTimeStr === '—') return '—';
-        try {
-            const cleanStr = startTimeStr.replace(/ [+-]\d{2}(:\d{2})?$/, '').trim();
-            const [datePart, timePart] = cleanStr.split(' ');
-            if (!datePart || !timePart) return startTimeStr;
-            const [year, month, day] = datePart.split('-');
-            return `${day}.${month}.${year} ${timePart}`;
-        } catch (err) {
-            console.error('Ошибка форматирования времени начала работы:', err);
-            return startTimeStr;
-        }
-    };
-
-    const formatDate = (dateString: string) => {
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleString('ru-RU', {
-                year: 'numeric',
-                month: 'numeric',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-            });
-        } catch {
-            return dateString;
-        }
-    };
-
     const openDeleteConfirm = (connectionId: number, connectionName: string) => {
         setConfirmDeleteId(connectionId);
         setConfirmDeleteName(connectionName);
@@ -1657,7 +1534,7 @@ export default function ConnectionDetailPage() {
     };
 
 // Открытие модального окна редактирования пользователя
-    const openEditUserModal = (user: { oid: number; name: string; email: string | null; description: string | null }) => {
+    const openEditUserModal = (user: EditingUser) => {
         setEditingUser(user);
         setIsEditUserModalOpen(true);
     };
@@ -2084,7 +1961,7 @@ export default function ConnectionDetailPage() {
                                                         </div>
                                                         <div className={clsx(styles.metricsCardRow)}>
                                                             <div className={clsx(styles.metricsCardLabel)}>Дата создания подключения:</div>
-                                                            <div className={clsx(styles.metricsCardValue)}>{formatDate(connection.created_at)}</div>
+                                                            <div className={clsx(styles.metricsCardValue)}>{formatDateTime(connection.created_at)}</div>
                                                         </div>
                                                     </div>
                                                 </div>
