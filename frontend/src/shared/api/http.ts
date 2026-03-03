@@ -24,7 +24,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (withAuth) {
-    const token = localStorage.getItem('access_token');
+    const token = typeof window !== 'undefined' ? window.localStorage.getItem('access_token') : null;
     if (!token) {
       throw new ApiError(401, 'Пользователь не авторизован');
     }
