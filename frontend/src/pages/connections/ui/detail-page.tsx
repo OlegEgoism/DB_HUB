@@ -49,6 +49,7 @@ import { PAGE_SIZES } from '@pages/connections/model/detail-page-constants';
 import type { Connection, EditingUser, GroupUser, TabType, TablesFilterType, ViewsFilterType } from '@pages/connections/model/detail-page-types';
 import { formatDateTime, formatStartTime, formatUptime } from '@pages/connections/lib/detail-page/formatters';
 import { useConnectionDetailCore } from '@pages/connections/lib/detail-page/useConnectionDetailCore';
+import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navigation';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -1681,165 +1682,36 @@ export default function ConnectionDetailPage() {
                                 </div>
                             </div>
                         </div>
-                        <div className={clsx(styles.tabsContainer)}>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'metrics' && styles.tabButton_active
-                                )}
-                                onClick={() => setActiveTab('metrics')}
-                            >
-                                {/*<FontAwesomeIcon icon={faChartBar}/>*/}
-                                Информация
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'users' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('users');
-// Сбрасываем поиск при переключении на вкладку
-                                    setUsersSearchQuery('');
-                                    setUsersSearchTerm('');
-                                    setUsersPage(1);
-                                }}
-                            >
-                                {/*<FontAwesomeIcon icon={faUser}/>*/}
-                                Пользователи
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'groups' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('groups');
-                                    setGroupsSearchQuery('');
-                                    setGroupsSearchTerm('');
-                                    setGroupsPage(1);
-                                }}
-                            >
-                                {/*<FontAwesomeIcon icon={faLayerGroup}/>*/}
-                                Группы
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'schemas' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('schemas');
-                                    setSchemasSearchQuery('');
-                                    setSchemasSearchTerm('');
-                                    setSchemasPage(1);
-                                }}
-                            >
-                                {/*<FontAwesomeIcon icon={faSitemap}/>*/}
-                                Схемы
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'tables' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('tables');
-                                    setTablesSearchQuery('');
-                                    setTablesSearchTerm('');
-                                    setTablesPage(1);
-                                }}
-                            >
-                                {/*<FontAwesomeIcon icon={faTableList}/>*/}
-                                Таблицы
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'views' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('views');
-                                    setViewsSearchQuery('');
-                                    setViewsSearchTerm('');
-                                    setViewsPage(1);
-                                }}
-                            >
-                                {/*<FontAwesomeIcon icon={faEye}/>*/}
-                                Представления
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'indexes' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('indexes');
-                                    setIndexesSearchQuery('');
-                                    setIndexesSearchTerm('');
-                                    setIndexesPage(1);
-                                }}
-                            >
-                                {/*<FontAwesomeIcon icon={faNetworkWired}/>*/}
-                                Индексы
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'functions' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('functions');
-                                    setFunctionsSearchQuery('');
-                                    setFunctionsSearchTerm('');
-                                    setFunctionsPage(1);
-                                }}
-                            >
-                                {/*<FontAwesomeIcon icon={faCogs}/>*/}
-                                Функции
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'procedures' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('procedures');
-                                    setProceduresSearchQuery('');
-                                    setProceduresSearchTerm('');
-                                    setProceduresPage(1);
-                                }}
-                            >
-                                {/*<FontAwesomeIcon icon={faCogs}/>*/}
-                                Процедуры
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'active_sql' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('active_sql');
-                                    setActiveSqlPage(1);
-                                }}
-                            >
-                                {/*<FontAwesomeIcon icon={faDatabase}/>*/}
-                                Транзакции
-                            </button>
-                            <button
-                                className={clsx(
-                                    styles.tabButton,
-                                    activeTab === 'sql_query' && styles.tabButton_active
-                                )}
-                                onClick={() => {
-                                    setActiveTab('sql_query');
-                                    setSqlQueryError(null);
-                                }}
-                            >
-                                SQL
-                            </button>
-
-                        </div>
+                        <DetailTabNavigation
+                            activeTab={activeTab}
+                            setActiveTab={setActiveTab}
+                            setUsersSearchQuery={setUsersSearchQuery}
+                            setUsersSearchTerm={setUsersSearchTerm}
+                            setUsersPage={setUsersPage}
+                            setGroupsSearchQuery={setGroupsSearchQuery}
+                            setGroupsSearchTerm={setGroupsSearchTerm}
+                            setGroupsPage={setGroupsPage}
+                            setSchemasSearchQuery={setSchemasSearchQuery}
+                            setSchemasSearchTerm={setSchemasSearchTerm}
+                            setSchemasPage={setSchemasPage}
+                            setTablesSearchQuery={setTablesSearchQuery}
+                            setTablesSearchTerm={setTablesSearchTerm}
+                            setTablesPage={setTablesPage}
+                            setViewsSearchQuery={setViewsSearchQuery}
+                            setViewsSearchTerm={setViewsSearchTerm}
+                            setViewsPage={setViewsPage}
+                            setIndexesSearchQuery={setIndexesSearchQuery}
+                            setIndexesSearchTerm={setIndexesSearchTerm}
+                            setIndexesPage={setIndexesPage}
+                            setFunctionsSearchQuery={setFunctionsSearchQuery}
+                            setFunctionsSearchTerm={setFunctionsSearchTerm}
+                            setFunctionsPage={setFunctionsPage}
+                            setProceduresSearchQuery={setProceduresSearchQuery}
+                            setProceduresSearchTerm={setProceduresSearchTerm}
+                            setProceduresPage={setProceduresPage}
+                            setActiveSqlPage={setActiveSqlPage}
+                            setSqlQueryError={setSqlQueryError}
+                        />
                         <div className={clsx(styles.tabContent)}>
                             {activeTab === 'metrics' && (
                                 <div className={clsx(styles.metricsContent)}>
