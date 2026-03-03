@@ -1,15 +1,13 @@
-// frontend/src/pages/profile/lib/useProfile.ts
 import { useEffect, useState } from 'react';
 import type { User } from '@shared/types/user';
-import { useLogin } from '@pages/auth/lib/useLogin';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { getUserById } from '@entities/user/api/user-api';
+import { useSession } from '@features/auth';
 
 export function useProfile() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { getUser } = useLogin();
+  const { getUser } = useSession();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -17,32 +15,16 @@ export function useProfile() {
         setLoading(true);
         setError(null);
 
-        // Получаем данные текущего пользователя из localStorage
         const currentUser = getUser();
-        const token = localStorage.getItem('access_token');
 
-        if (!currentUser || !token) {
+        if (!currentUser) {
           throw new Error('Пользователь не авторизован');
         }
 
-        // Запрашиваем полные данные пользователя из API
-        const response = await fetch(`${API_BASE_URL}/api/v1/app_users/${currentUser.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(errorData?.detail || `HTTP error! status: ${response.status}`);
-        }
-
-        const userData: User = await response.json();
+        const userData = await getUserById(currentUser.id);
         setUser(userData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch user profile');
-        console.error('Error fetching user profile:', err);
       } finally {
         setLoading(false);
       }

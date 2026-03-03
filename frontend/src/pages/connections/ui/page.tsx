@@ -22,7 +22,7 @@ import {
     faHdd,
     faChevronCircleRight,
     faChevronCircleLeft,
-    faRotateRight, faRefresh, // ✅ Добавлен импорт иконки обновления
+    faRefresh, // ✅ Добавлен импорт иконки обновления
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {CreateConnectionModal} from './CreateConnectionModal';
