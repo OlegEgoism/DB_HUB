@@ -46,21 +46,26 @@ import {useConnectionProcedures} from '../lib/useConnectionProcedures';
 import {useConnectionActiveQueries} from '../lib/useConnectionActiveQueries';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 import { PAGE_SIZES } from '@pages/connections/model/detail-page-constants';
-import type { Connection, DatabaseMetrics, EditingUser, GroupUser, TabType, TablesFilterType, ViewsFilterType } from '@pages/connections/model/detail-page-types';
+import type { Connection, EditingUser, GroupUser, TabType, TablesFilterType, ViewsFilterType } from '@pages/connections/model/detail-page-types';
 import { formatDateTime, formatStartTime, formatUptime } from '@pages/connections/lib/detail-page/formatters';
-import { getConnectionById, getConnectionMetrics } from '@pages/connections/lib/detail-page/api';
+import { useConnectionDetailCore } from '@pages/connections/lib/detail-page/useConnectionDetailCore';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export default function ConnectionDetailPage() {
     const {id} = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [connection, setConnection] = useState<Connection | null>(null);
-    const [metrics, setMetrics] = useState<DatabaseMetrics | null>(null);
+    const {
+        connection,
+        metrics,
+        loading,
+        loadingMetrics,
+        error,
+        setError,
+        loadConnection,
+        loadMetrics,
+    } = useConnectionDetailCore(id);
     const [activeTab, setActiveTab] = useState<TabType>('metrics');
-    const [loading, setLoading] = useState(true);
-    const [loadingMetrics, setLoadingMetrics] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [confirmDeleteName, setConfirmDeleteName] = useState<string>('');
@@ -373,55 +378,11 @@ export default function ConnectionDetailPage() {
         activeSqlReloadTrigger,
     );
 
-    const loadConnection = async () => {
-        if (!id) return;
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await getConnectionById(id);
-            setConnection(data);
-        } catch (err) {
-            if (err instanceof Error && err.message.includes('не авторизован')) {
-                navigate('/login');
-                return;
-            }
-            console.error('Ошибка загрузки подключения:', err);
-            setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadMetrics = async () => {
-        if (!id) return;
-        setLoadingMetrics(true);
-        setError(null);
-        try {
-            const data = await getConnectionMetrics(id);
-            setMetrics(data);
-        } catch (err) {
-            if (err instanceof Error && err.message.includes('не авторизован')) {
-                navigate('/login');
-                return;
-            }
-            console.error('Ошибка загрузки информации:', err);
-            setError(err instanceof Error ? err.message : 'Не удалось загрузить информацию');
-        } finally {
-            setLoadingMetrics(false);
-        }
-    };
-
-    useEffect(() => {
-        if (id) {
-            loadConnection();
-        }
-    }, [id]);
-
     useEffect(() => {
         if (activeTab === 'metrics' && !metrics) {
             loadMetrics();
         }
-    }, [activeTab]);
+    }, [activeTab, metrics, loadMetrics]);
 
 // Обработчики для поиска и пагинации пользователей
 

@@ -26,37 +26,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {CreateConnectionModal} from './CreateConnectionModal';
-
-interface Connection {
-    id: number;
-    database_name: string;
-    description: string | null;
-    host: string;
-    port: number;
-    username: string;
-    name: string;
-    database_type: string;
-    environment: string;
-    is_favorite: boolean;
-    owner_id: number;
-    owner_username: string;
-    status: string;
-    db_size_mb: number | null;
-    created_at: string;
-    updated_at: string;
-}
-
-interface ConnectionsResponse {
-    items: Connection[];
-    total: number;
-    page: number;
-    size: number;
-    pages: number;
-    has_next: boolean;
-    has_prev: boolean;
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { CONNECTIONS_PAGE_SIZES } from '@pages/connections/model/page-constants';
+import type { Connection, ConnectionsTab } from '@pages/connections/model/page-types';
+import { fetchConnections, patchConnectionFavorite, removeConnection } from '@pages/connections/lib/page-api';
 
 export default function ConnectionsPage() {
     const navigate = useNavigate();
@@ -69,7 +41,7 @@ export default function ConnectionsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(8);
-    const [activeTab, setActiveTab] = useState('Все');
+    const [activeTab, setActiveTab] = useState<ConnectionsTab>('Все');
     const [totalItems, setTotalItems] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [hasNext, setHasNext] = useState(false);
@@ -86,62 +58,31 @@ export default function ConnectionsPage() {
     // Состояния для создания
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    const PAGE_SIZES = [4, 8, 16, 32, 50, 100];
+    const PAGE_SIZES = CONNECTIONS_PAGE_SIZES;
 
     // Загрузка подключений
     const loadConnections = async () => {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
-
         setLoading(true);
         setError(null);
 
         try {
-            const params = new URLSearchParams();
-            params.append('page', currentPage.toString());
-            params.append('size', pageSize.toString());
-
-            if (searchTerm.trim()) {
-                params.append('search', searchTerm.trim());
-            }
-
-            // Фильтрация по табам
-            if (activeTab !== 'Все') {
-                if (activeTab === 'Избранные') {
-                    params.append('is_favorite', 'true');
-                } else if (activeTab === 'Продакшн') {
-                    params.append('environment', 'production');
-                } else if (activeTab === 'Разработка') {
-                    params.append('environment', 'development');
-                } else if (activeTab === 'Тестирование') {
-                    params.append('environment', 'testing');
-                } else if (activeTab === 'Аналитика') {
-                    params.append('environment', 'analytics');
-                }
-            }
-
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections?${params.toString()}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
+            const data = await fetchConnections({
+                page: currentPage,
+                size: pageSize,
+                search: searchTerm,
+                activeTab,
             });
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData?.detail || `Ошибка: ${response.status}`);
-            }
-
-            const data: ConnectionsResponse = await response.json();
             setConnections(data.items);
             setTotalItems(data.total);
             setTotalPages(data.pages);
             setHasNext(data.has_next);
             setHasPrev(data.has_prev);
         } catch (err) {
+            if (err instanceof Error && err.message.includes('не авторизован')) {
+                navigate('/login');
+                return;
+            }
             console.error('Ошибка загрузки подключений:', err);
             setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
         } finally {
@@ -177,7 +118,7 @@ export default function ConnectionsPage() {
         setCurrentPage(1);
     };
 
-    const handleTabChange = (tab: string) => {
+    const handleTabChange = (tab: ConnectionsTab) => {
         setActiveTab(tab);
         setCurrentPage(1);
     };
@@ -222,33 +163,18 @@ export default function ConnectionsPage() {
     const deleteConnection = async () => {
         if (!confirmDeleteId) return;
 
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            navigate('/login');
-            closeDeleteConfirm();
-            return;
-        }
-
         setDeletingId(confirmDeleteId);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${confirmDeleteId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData?.detail || 'Не удалось удалить подключение');
-            }
-
-            // Обновляем список подключений
+            await removeConnection(confirmDeleteId);
             loadConnections();
             closeDeleteConfirm();
         } catch (err) {
+            if (err instanceof Error && err.message.includes('не авторизован')) {
+                navigate('/login');
+                closeDeleteConfirm();
+                return;
+            }
             console.error('Ошибка при удалении подключения:', err);
             setError(err instanceof Error ? err.message : 'Не удалось удалить подключение');
             closeDeleteConfirm();
@@ -259,43 +185,29 @@ export default function ConnectionsPage() {
 
     // Переключение избранного с оптимистичным обновлением UI
     const toggleFavorite = async (connectionId: number, isFavorite: boolean) => {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
-
-        // Оптимистичное обновление UI (сразу меняем состояние)
-        setConnections(prev =>
-            prev.map(conn =>
+        setConnections((prev) =>
+            prev.map((conn) =>
                 conn.id === connectionId
-                    ? {...conn, is_favorite: !isFavorite}
-                    : conn
-            )
+                    ? { ...conn, is_favorite: !isFavorite }
+                    : conn,
+            ),
         );
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${connectionId}/favorite`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({is_favorite: !isFavorite}),
-            });
-
-            if (!response.ok) {
-                // Если ошибка - откатываем изменение
-                setConnections(prev =>
-                    prev.map(conn =>
-                        conn.id === connectionId
-                            ? {...conn, is_favorite: isFavorite}
-                            : conn
-                    )
-                );
-                throw new Error('Не удалось обновить статус избранного');
-            }
+            await patchConnectionFavorite(connectionId, !isFavorite);
         } catch (err) {
+            setConnections((prev) =>
+                prev.map((conn) =>
+                    conn.id === connectionId
+                        ? { ...conn, is_favorite: isFavorite }
+                        : conn,
+                ),
+            );
+
+            if (err instanceof Error && err.message.includes('не авторизован')) {
+                navigate('/login');
+                return;
+            }
             console.error('Ошибка при изменении статуса избранного:', err);
             setError('Не удалось обновить статус избранного');
         }
