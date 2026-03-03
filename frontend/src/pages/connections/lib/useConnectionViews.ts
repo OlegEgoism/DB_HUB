@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiRequest } from '@shared/api/http';
+import { toQueryString } from '@shared/lib/query';
 
 export interface DBViewInfo {
   schema_name: string;
   view_name: string;
+  owner: string;
   description: string | null;
   definition: string;
 }
@@ -13,25 +14,24 @@ interface ViewsResponse {
   total?: number;
   total_views?: number;
   total_filtered_views?: number;
-  views?: DBViewInfo[];
-}
-
-interface MaterializedViewsResponse {
-  total?: number;
   total_materialized_views?: number;
   total_filtered_materialized_views?: number;
+  page: number;
+  size: number;
+  pages?: number;
+  has_next?: boolean;
+  has_prev?: boolean;
+  views?: DBViewInfo[];
   materialized_views?: DBViewInfo[];
 }
 
-function useViewsBase(
-  endpoint: string,
-  dataKey: 'views' | 'materialized_views',
-  totalKey: 'total_filtered_views' | 'total_filtered_materialized_views',
+function useBaseConnectionViews(
   connectionId: number,
-  page: number = 1,
-  size: number = 20,
-  search: string | null = null,
-  reloadTrigger: number = 0,
+  page: number,
+  size: number,
+  search: string | null,
+  reloadTrigger: number,
+  endpoint: 'views' | 'materialized_views',
 ) {
   const [views, setViews] = useState<DBViewInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,62 +47,23 @@ function useViewsBase(
         setLoading(true);
         setError(null);
 
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          setError('Пользователь не авторизован');
-          return;
-        }
+        const query = toQueryString({ page, size, search: search?.trim() });
+        const data = await apiRequest<ViewsResponse>(`/api/v1/db_connections/${connectionId}/${endpoint}?${query}`, {
+          withAuth: true,
+        });
 
-        const params = new URLSearchParams();
-        params.append('page', page.toString());
-        params.append('size', size.toString());
-        if (search && search.trim()) {
-          params.append('search', search.trim());
-        }
-
-        const response = await fetch(
-          `${API_BASE_URL}/api/v1/db_connections/${connectionId}/${endpoint}?${params.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          },
-        );
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData?.detail || `Ошибка: ${response.status}`);
-        }
-
-        const data: (ViewsResponse & MaterializedViewsResponse & { pages?: number; has_next?: boolean; has_prev?: boolean }) = await response.json();
-        const resolvedViews = Array.isArray(data[dataKey]) ? data[dataKey] ?? [] : [];
-
-        const resolvedTotal = typeof data[totalKey] === 'number'
-          ? data[totalKey]
-          : dataKey === 'views'
-            ? typeof data.total_views === 'number'
-              ? data.total_views
-              : typeof data.total === 'number'
-                ? data.total
-                : resolvedViews.length
-            : typeof data.total_materialized_views === 'number'
-              ? data.total_materialized_views
-              : typeof data.total === 'number'
-                ? data.total
-                : resolvedViews.length;
-
-        const resolvedPages = typeof data.pages === 'number' && data.pages > 0
-          ? data.pages
-          : Math.max(1, Math.ceil(resolvedTotal / size));
+        const resolvedViews = endpoint === 'materialized_views' ? data.materialized_views || [] : data.views || [];
+        const resolvedTotal =
+          endpoint === 'materialized_views'
+            ? data.total_filtered_materialized_views ?? data.total_materialized_views ?? data.total ?? resolvedViews.length
+            : data.total_filtered_views ?? data.total_views ?? data.total ?? resolvedViews.length;
 
         setViews(resolvedViews);
         setTotal(resolvedTotal);
-        setPages(resolvedPages);
-        setHasNext(typeof data.has_next === 'boolean' ? data.has_next : page < resolvedPages);
-        setHasPrev(typeof data.has_prev === 'boolean' ? data.has_prev : page > 1);
+        setPages(data.pages ?? 0);
+        setHasNext(Boolean(data.has_next));
+        setHasPrev(Boolean(data.has_prev));
       } catch (err) {
-        console.error('Ошибка загрузки представлений:', err);
         setError(err instanceof Error ? err.message : 'Не удалось загрузить представления');
       } finally {
         setLoading(false);
@@ -110,7 +71,7 @@ function useViewsBase(
     };
 
     fetchViews();
-  }, [connectionId, endpoint, page, size, search, reloadTrigger, dataKey, totalKey]);
+  }, [connectionId, page, size, search, reloadTrigger, endpoint]);
 
   return { views, loading, error, total, pages, hasNext, hasPrev };
 }
@@ -122,7 +83,7 @@ export function useConnectionViews(
   search: string | null = null,
   reloadTrigger: number = 0,
 ) {
-  return useViewsBase('views', 'views', 'total_filtered_views', connectionId, page, size, search, reloadTrigger);
+  return useBaseConnectionViews(connectionId, page, size, search, reloadTrigger, 'views');
 }
 
 export function useConnectionMaterializedViews(
@@ -132,5 +93,5 @@ export function useConnectionMaterializedViews(
   search: string | null = null,
   reloadTrigger: number = 0,
 ) {
-  return useViewsBase('views/materialized', 'materialized_views', 'total_filtered_materialized_views', connectionId, page, size, search, reloadTrigger);
+  return useBaseConnectionViews(connectionId, page, size, search, reloadTrigger, 'materialized_views');
 }

@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiRequest } from '@shared/api/http';
+import { toQueryString } from '@shared/lib/query';
 
 export interface DBGroup {
   oid: number;
   name: string;
   description: string | null;
-  user_count: number;
+  user_count?: number;
 }
 
-export interface GroupsResponse {
+interface GroupsResponse {
   items: DBGroup[];
   total: number;
   page: number;
@@ -40,42 +40,17 @@ export function useConnectionGroups(
         setLoading(true);
         setError(null);
 
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          setError('Пользователь не авторизован');
-          return;
-        }
+        const query = toQueryString({ page, size, search: search?.trim() });
+        const data = await apiRequest<GroupsResponse>(`/api/v1/db_connections/${connectionId}/groups?${query}`, {
+          withAuth: true,
+        });
 
-        const params = new URLSearchParams();
-        params.append('page', page.toString());
-        params.append('size', size.toString());
-        if (search && search.trim()) {
-          params.append('search', search.trim());
-        }
-
-        const response = await fetch(
-          `${API_BASE_URL}/api/v1/db_connections/${connectionId}/groups?${params.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          },
-        );
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData?.detail || `Ошибка: ${response.status}`);
-        }
-
-        const data: GroupsResponse = await response.json();
         setGroups(data.items);
         setTotal(data.total);
         setPages(data.pages);
         setHasNext(data.has_next);
         setHasPrev(data.has_prev);
       } catch (err) {
-        console.error('Ошибка загрузки групп:', err);
         setError(err instanceof Error ? err.message : 'Не удалось загрузить группы');
       } finally {
         setLoading(false);

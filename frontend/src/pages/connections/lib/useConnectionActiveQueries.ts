@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiRequest } from '@shared/api/http';
+import { toQueryString } from '@shared/lib/query';
 
 export interface ActiveQueryInfo {
   pid: number;
@@ -46,42 +46,25 @@ export function useConnectionActiveQueries(
         setLoading(true);
         setError(null);
 
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          setError('Пользователь не авторизован');
-          return;
-        }
+        const query = toQueryString({
+          page,
+          size,
+          username: username?.trim(),
+          min_duration_ms: minDurationMs,
+          max_duration_ms: maxDurationMs,
+        });
 
-        const params = new URLSearchParams();
-        params.append('page', page.toString());
-        params.append('size', size.toString());
-        if (username && username.trim()) params.append('username', username.trim());
-        if (minDurationMs !== null) params.append('min_duration_ms', String(minDurationMs));
-        if (maxDurationMs !== null) params.append('max_duration_ms', String(maxDurationMs));
-
-        const response = await fetch(
-          `${API_BASE_URL}/api/v1/db_connections/${connectionId}/active_connections?${params.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          },
+        const data = await apiRequest<ActiveQueriesResponse>(
+          `/api/v1/db_connections/${connectionId}/active_connections?${query}`,
+          { withAuth: true },
         );
 
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData?.detail || `Ошибка: ${response.status}`);
-        }
-
-        const data: ActiveQueriesResponse = await response.json();
-        setActiveQueries(data.active_connections);
-        setTotal(data.total_filtered_connections);
-        setPages(data.pages);
-        setHasNext(data.has_next);
-        setHasPrev(data.has_prev);
+        setActiveQueries(data.active_connections || []);
+        setTotal(data.total_filtered_connections ?? data.total_active_connections ?? 0);
+        setPages(data.pages ?? 0);
+        setHasNext(Boolean(data.has_next));
+        setHasPrev(Boolean(data.has_prev));
       } catch (err) {
-        console.error('Ошибка загрузки активных SQL-запросов:', err);
         setError(err instanceof Error ? err.message : 'Не удалось загрузить активные SQL-запросы');
       } finally {
         setLoading(false);
