@@ -497,7 +497,7 @@ class DBTablesService:
                 filtered_entries = all_entries
             else:
                 for entry in all_entries:
-                    matches_table = search_term in entry["schema_name"].lower() or search_term in entry["table_name"].lower() or search_term in entry["owner"].lower()
+                    matches_table = search_term in entry["table_name"].lower() or search_term in entry["owner"].lower()
                     if matches_table:
                         filtered_entries.append(entry)
                         continue

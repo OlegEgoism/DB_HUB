@@ -128,6 +128,7 @@ export default function ConnectionDetailPage() {
     const [tablesReloadTrigger, setTablesReloadTrigger] = useState(0);
     const [editingTable, setEditingTable] = useState<TablePrivilegeInfo | null>(null);
     const [tableGroupsForm, setTableGroupsForm] = useState<TableGroupPrivilege[]>([]);
+    const [tableGroupSearchQuery, setTableGroupSearchQuery] = useState('');
     const [tableModalLoading, setTableModalLoading] = useState(false);
 
     const [viewsPage, setViewsPage] = useState(1);
@@ -747,6 +748,7 @@ export default function ConnectionDetailPage() {
 
     const availableUsersForAdd = allUsersForGroup.filter((user) => !groupUsers.some((groupUser) => groupUser.oid === user.oid));
     const filteredAvailableUsersForAdd = availableUsersForAdd.filter((user) => user.name.toLowerCase().includes(groupUserSearchQuery.trim().toLowerCase()));
+    const filteredTableGroupsForm = tableGroupsForm.filter((group) => group.group.toLowerCase().includes(tableGroupSearchQuery.trim().toLowerCase()));
 
     const handleSchemasSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSchemasSearchQuery(e.target.value);
@@ -1270,12 +1272,14 @@ export default function ConnectionDetailPage() {
     const openTableEditModal = (table: TablePrivilegeInfo) => {
         setEditingTable(table);
         setTableGroupsForm(table.group_privileges.map((group) => ({...group})));
+        setTableGroupSearchQuery('');
     };
 
     const closeTableEditModal = () => {
         if (tableModalLoading) return;
         setEditingTable(null);
         setTableGroupsForm([]);
+        setTableGroupSearchQuery('');
     };
 
     const toggleTableGroupPrivilege = (
@@ -2464,7 +2468,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск таблиц"
+                                                    placeholder="Поиск по имени таблицы и владельцу"
                                                     value={tablesSearchQuery}
                                                     onChange={handleTablesSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -3837,8 +3841,30 @@ export default function ConnectionDetailPage() {
                                     TRUNCATE
                                 </button>
                             </div>
+                            <div className={clsx(styles.usersSearchWrapper)}>
+                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                <input
+                                    type="text"
+                                    placeholder="Поиск группы"
+                                    value={tableGroupSearchQuery}
+                                    onChange={(e) => setTableGroupSearchQuery(e.target.value)}
+                                    className={clsx(styles.usersSearchInput)}
+                                    disabled={tableModalLoading}
+                                />
+                                {tableGroupSearchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setTableGroupSearchQuery('')}
+                                        className={clsx(styles.usersSearchClear)}
+                                        title="Очистить поиск групп"
+                                        disabled={tableModalLoading}
+                                    >
+                                        <FontAwesomeIcon icon={faTimes}/>
+                                    </button>
+                                )}
+                            </div>
                             <div className={clsx(styles.schemasPrivilegesList)}>
-                                {tableGroupsForm.map((group) => (
+                                {filteredTableGroupsForm.map((group) => (
                                     <div key={group.group} className={clsx(styles.tablePrivilegeRow)}>
                                         <div className={clsx(styles.tablePrivilegeRole)}>{group.group}</div>
                                         <label className={clsx(styles.tablePrivilegeCell)}>
