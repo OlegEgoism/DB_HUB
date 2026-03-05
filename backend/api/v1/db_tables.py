@@ -154,7 +154,7 @@ async def get_tables_privileges_for_groups(
     ),
     search: str = Query(
         None,
-        description="Поиск по имени/описанию схемы, имени/описанию таблицы и имени группы",
+        description="Поиск по имени группы",
     ),
 ):
     """Получить права групп к таблицам"""

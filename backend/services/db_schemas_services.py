@@ -1,7 +1,9 @@
 # backend/services/db_schemas_services.py
 from typing import Any
+
 from asyncpg.utils import _quote_ident
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
 from backend.utils.pagination import calculate_pagination_info
@@ -18,11 +20,11 @@ class DBSchemaService:
         return connection
 
     async def get_schema_privileges_for_users(
-            self,
-            connection_id: int,
-            page: int = 1,
-            size: int = 20,
-            search: str | None = None,
+        self,
+        connection_id: int,
+        page: int = 1,
+        size: int = 20,
+        search: str | None = None,
     ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
@@ -107,10 +109,10 @@ class DBSchemaService:
             }
 
     async def update_schema_privileges_for_users(
-            self,
-            connection_id: int,
-            schema_name: str,
-            user_privileges: list[dict[str, Any]],
+        self,
+        connection_id: int,
+        schema_name: str,
+        user_privileges: list[dict[str, Any]],
     ) -> list[str]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
@@ -141,11 +143,11 @@ class DBSchemaService:
             return updated_users
 
     async def get_schema_privileges_for_groups(
-            self,
-            connection_id: int,
-            page: int = 1,
-            size: int = 20,
-            search: str | None = None,
+        self,
+        connection_id: int,
+        page: int = 1,
+        size: int = 20,
+        search: str | None = None,
     ) -> dict[str, Any]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:
@@ -230,10 +232,10 @@ class DBSchemaService:
             }
 
     async def update_schema_privileges_for_groups(
-            self,
-            connection_id: int,
-            schema_name: str,
-            group_privileges: list[dict[str, Any]],
+        self,
+        connection_id: int,
+        schema_name: str,
+        group_privileges: list[dict[str, Any]],
     ) -> list[str]:
         connection = await self._get_connection(connection_id)
         async with external_db_connection(connection) as conn:

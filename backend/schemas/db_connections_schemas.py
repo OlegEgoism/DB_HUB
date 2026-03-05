@@ -78,6 +78,7 @@ class ConnectionOut(BaseModel):
 
 class PaginatedConnectionResponse(BasePaginatedResponse[ConnectionOut]):
     """Пагинация подключений"""
+
     pass
 
 
