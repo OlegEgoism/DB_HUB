@@ -233,31 +233,37 @@ class DBViewsService:
                 for row in view_rows
             }
 
-            acl_rows = await conn.fetch(
+            schema_acl_rows = await conn.fetch(
                 """
                 SELECT
-                    c.oid AS view_oid,
-                    (aclexplode(c.relacl)).grantee AS grantee_oid,
-                    (aclexplode(c.relacl)).privilege_type
-                FROM pg_class c
-                JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE c.relkind::text = $1
-                AND n.nspname NOT LIKE 'pg_%'
+                    n.nspname AS schema_name,
+                    (aclexplode(n.nspacl)).grantee AS grantee_oid,
+                    (aclexplode(n.nspacl)).privilege_type
+                FROM pg_catalog.pg_namespace n
+                WHERE n.nspname NOT LIKE 'pg_%'
                 AND n.nspname != 'information_schema'
-                AND c.relacl IS NOT NULL;
-                """,
-                relkind,
+                AND n.nspacl IS NOT NULL;
+                """
             )
 
-            for row in acl_rows:
-                view_oid = row["view_oid"]
+            schema_privileges = {}
+            for row in schema_acl_rows:
+                schema_name = row["schema_name"]
                 grantee_oid = row["grantee_oid"]
                 privilege = row["privilege_type"]
                 if grantee_oid not in group_oids or privilege not in ("CREATE", "USAGE"):
                     continue
                 groupname = oid_to_rolname[grantee_oid]
-                if view_oid in view_info and groupname in view_info[view_oid]["privileges"]:
-                    view_info[view_oid]["privileges"][groupname][privilege] = True
+                schema_privileges.setdefault(schema_name, {}).setdefault(groupname, {"CREATE": False, "USAGE": False})
+                schema_privileges[schema_name][groupname][privilege] = True
+
+            for view_oid, info in view_info.items():
+                schema_name = info["schema_name"]
+                for groupname in all_groupnames:
+                    group_schema_priv = schema_privileges.get(schema_name, {}).get(groupname)
+                    if group_schema_priv:
+                        info["privileges"][groupname]["CREATE"] = group_schema_priv["CREATE"]
+                        info["privileges"][groupname]["USAGE"] = group_schema_priv["USAGE"]
 
             all_entries = []
             for info in view_info.values():
@@ -355,7 +361,6 @@ class DBViewsService:
             }
 
             quoted_schema = _quote_ident(schema_name)
-            quoted_view = _quote_ident(view_name)
             updated_groups = []
 
             for item in group_privileges:
@@ -372,13 +377,13 @@ class DBViewsService:
                 updated_groups.append(groupname)
 
                 if usage:
-                    await conn.execute(f"GRANT USAGE ON {quoted_schema}.{quoted_view} TO {quoted_group};")
+                    await conn.execute(f"GRANT USAGE ON SCHEMA {quoted_schema} TO {quoted_group};")
                 else:
-                    await conn.execute(f"REVOKE USAGE ON {quoted_schema}.{quoted_view} FROM {quoted_group};")
+                    await conn.execute(f"REVOKE USAGE ON SCHEMA {quoted_schema} FROM {quoted_group};")
 
                 if create:
-                    await conn.execute(f"GRANT CREATE ON {quoted_schema}.{quoted_view} TO {quoted_group};")
+                    await conn.execute(f"GRANT CREATE ON SCHEMA {quoted_schema} TO {quoted_group};")
                 else:
-                    await conn.execute(f"REVOKE CREATE ON {quoted_schema}.{quoted_view} FROM {quoted_group};")
+                    await conn.execute(f"REVOKE CREATE ON SCHEMA {quoted_schema} FROM {quoted_group};")
 
             return updated_groups
