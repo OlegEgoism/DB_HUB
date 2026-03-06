@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from asyncpg.utils import _quote_ident
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.db import DB_Connection
@@ -185,3 +186,140 @@ class DBViewsService:
         response["total_materialized_views"] = total_all
         response["total_filtered_materialized_views"] = total_filtered
         return response
+
+
+    async def update_views_privileges_for_groups(
+        self,
+        connection_id: int,
+        schema_name: str,
+        view_name: str,
+        group_privileges: list[dict[str, Any]],
+    ) -> list[str]:
+        connection = await self._get_connection(connection_id)
+        async with external_db_connection(connection) as conn:
+            exists = await conn.fetchval(
+                """
+                SELECT 1
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'v';
+                """,
+                schema_name,
+                view_name,
+            )
+            if not exists:
+                raise ValueError(f"Представление '{view_name}' в схеме '{schema_name}' не существует.")
+
+            valid_groups = {
+                row["rolname"]
+                for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = false AND rolname !~ '^pg_';")
+            }
+
+            updated_groups = []
+            target_privileges = ["SELECT", "INSERT", "UPDATE", "DELETE"]
+            quoted_schema = _quote_ident(schema_name)
+            quoted_view = _quote_ident(view_name)
+
+            for item in group_privileges:
+                groupname = item["groupname"]
+                if groupname not in valid_groups:
+                    raise ValueError(f"Группа '{groupname}' не существует или не является группой.")
+
+                updated_groups.append(groupname)
+                quoted_group = _quote_ident(groupname)
+
+                acl_rows = await conn.fetch(
+                    """
+                    SELECT (aclexplode(relacl)).grantee AS grantee_oid,
+                           (aclexplode(relacl)).privilege_type
+                    FROM pg_class c
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'v';
+                    """,
+                    schema_name,
+                    view_name,
+                )
+                group_oid_row = await conn.fetchrow("SELECT oid FROM pg_roles WHERE rolname = $1", groupname)
+                if not group_oid_row:
+                    continue
+
+                group_oid = group_oid_row["oid"]
+                current_privs = {row["privilege_type"] for row in acl_rows if row["grantee_oid"] == group_oid}
+
+                for priv in target_privileges:
+                    desired = item[priv.lower()]
+                    current = priv in current_privs
+                    if desired and not current:
+                        await conn.execute(f"GRANT {priv} ON TABLE {quoted_schema}.{quoted_view} TO {quoted_group};")
+                    elif not desired and current:
+                        await conn.execute(f"REVOKE {priv} ON TABLE {quoted_schema}.{quoted_view} FROM {quoted_group};")
+
+            return updated_groups
+
+    async def update_materialized_views_privileges_for_groups(
+        self,
+        connection_id: int,
+        schema_name: str,
+        view_name: str,
+        group_privileges: list[dict[str, Any]],
+    ) -> list[str]:
+        connection = await self._get_connection(connection_id)
+        async with external_db_connection(connection) as conn:
+            exists = await conn.fetchval(
+                """
+                SELECT 1
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'm';
+                """,
+                schema_name,
+                view_name,
+            )
+            if not exists:
+                raise ValueError(f"Материализованное представление '{view_name}' в схеме '{schema_name}' не существует.")
+
+            valid_groups = {
+                row["rolname"]
+                for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = false AND rolname !~ '^pg_';")
+            }
+
+            updated_groups = []
+            target_privileges = ["SELECT"]
+            quoted_schema = _quote_ident(schema_name)
+            quoted_view = _quote_ident(view_name)
+
+            for item in group_privileges:
+                groupname = item["groupname"]
+                if groupname not in valid_groups:
+                    raise ValueError(f"Группа '{groupname}' не существует или не является группой.")
+
+                updated_groups.append(groupname)
+                quoted_group = _quote_ident(groupname)
+
+                acl_rows = await conn.fetch(
+                    """
+                    SELECT (aclexplode(relacl)).grantee AS grantee_oid,
+                           (aclexplode(relacl)).privilege_type
+                    FROM pg_class c
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = 'm';
+                    """,
+                    schema_name,
+                    view_name,
+                )
+                group_oid_row = await conn.fetchrow("SELECT oid FROM pg_roles WHERE rolname = $1", groupname)
+                if not group_oid_row:
+                    continue
+
+                group_oid = group_oid_row["oid"]
+                current_privs = {row["privilege_type"] for row in acl_rows if row["grantee_oid"] == group_oid}
+
+                for priv in target_privileges:
+                    desired = item[priv.lower()]
+                    current = priv in current_privs
+                    if desired and not current:
+                        await conn.execute(f"GRANT {priv} ON TABLE {quoted_schema}.{quoted_view} TO {quoted_group};")
+                    elif not desired and current:
+                        await conn.execute(f"REVOKE {priv} ON TABLE {quoted_schema}.{quoted_view} FROM {quoted_group};")
+
+            return updated_groups
