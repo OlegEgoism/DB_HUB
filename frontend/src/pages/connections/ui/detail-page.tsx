@@ -53,6 +53,17 @@ import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navig
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+
+type ViewPrivilegeModalKind = 'view' | 'materialized';
+
+interface ViewGroupPrivilegeFormItem {
+    group: string;
+    select: boolean;
+    insert: boolean;
+    update: boolean;
+    delete: boolean;
+}
+
 export default function ConnectionDetailPage() {
     const {id} = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -142,6 +153,15 @@ export default function ConnectionDetailPage() {
     const [materializedViewsSearchTerm, setMaterializedViewsSearchTerm] = useState('');
     const [viewsFilterType, setViewsFilterType] = useState<ViewsFilterType>('views');
     const [viewsReloadTrigger, setViewsReloadTrigger] = useState(0);
+    const [editingViewPrivileges, setEditingViewPrivileges] = useState<{
+        schema_name: string;
+        view_name: string;
+        kind: ViewPrivilegeModalKind;
+    } | null>(null);
+    const [viewGroupsForm, setViewGroupsForm] = useState<ViewGroupPrivilegeFormItem[]>([]);
+    const [viewGroupSearchQuery, setViewGroupSearchQuery] = useState('');
+    const [viewModalLoading, setViewModalLoading] = useState(false);
+    const [viewModalGroupsLoading, setViewModalGroupsLoading] = useState(false);
 
     const [indexesPage, setIndexesPage] = useState(1);
     const [indexesPageSize, setIndexesPageSize] = useState(8);
@@ -749,6 +769,7 @@ export default function ConnectionDetailPage() {
     const availableUsersForAdd = allUsersForGroup.filter((user) => !groupUsers.some((groupUser) => groupUser.oid === user.oid));
     const filteredAvailableUsersForAdd = availableUsersForAdd.filter((user) => user.name.toLowerCase().includes(groupUserSearchQuery.trim().toLowerCase()));
     const filteredTableGroupsForm = tableGroupsForm.filter((group) => group.group.toLowerCase().includes(tableGroupSearchQuery.trim().toLowerCase()));
+    const filteredViewGroupsForm = viewGroupsForm.filter((group) => group.group.toLowerCase().includes(viewGroupSearchQuery.trim().toLowerCase()));
 
     const handleSchemasSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSchemasSearchQuery(e.target.value);
@@ -1359,6 +1380,180 @@ export default function ConnectionDetailPage() {
             setError(err instanceof Error ? err.message : 'Не удалось обновить привилегии таблицы');
         } finally {
             setTableModalLoading(false);
+        }
+    };
+
+    const fetchAllGroupsForViewPrivileges = async (): Promise<string[]> => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return [];
+        }
+
+        const allGroups: string[] = [];
+        let page = 1;
+        const size = 200;
+        let hasNext = false;
+
+        do {
+            const query = new URLSearchParams({
+                page: String(page),
+                size: String(size),
+            }).toString();
+
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups?${query}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(parseApiErrorDetail((errData as { detail?: unknown }).detail ?? errData, 'Не удалось загрузить список групп'));
+            }
+
+            const payload = await response.json() as { items?: Array<{ name?: string }>; has_next?: boolean };
+            const names = (payload.items || []).map((item) => item.name).filter((name): name is string => Boolean(name));
+            allGroups.push(...names);
+            hasNext = Boolean(payload.has_next);
+            page += 1;
+        } while (hasNext);
+
+        return Array.from(new Set(allGroups)).sort((a, b) => a.localeCompare(b, 'ru'));
+    };
+
+    const openViewPrivilegesModal = async (
+        view: { schema_name: string; view_name: string },
+        kind: ViewPrivilegeModalKind,
+    ) => {
+        setEditingViewPrivileges({...view, kind});
+        setViewGroupsForm(groups.map((group) => ({
+            group: group.name,
+            select: false,
+            insert: false,
+            update: false,
+            delete: false,
+        })));
+        setViewGroupSearchQuery('');
+        setViewModalGroupsLoading(true);
+
+        try {
+            const groupNames = await fetchAllGroupsForViewPrivileges();
+            setViewGroupsForm(groupNames.map((groupName) => ({
+                group: groupName,
+                select: false,
+                insert: false,
+                update: false,
+                delete: false,
+            })));
+        } catch (err) {
+            console.error('Ошибка загрузки групп для прав представления:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось загрузить список групп');
+        } finally {
+            setViewModalGroupsLoading(false);
+        }
+    };
+
+    const closeViewPrivilegesModal = () => {
+        if (viewModalLoading || viewModalGroupsLoading) return;
+
+        setEditingViewPrivileges(null);
+        setViewGroupsForm([]);
+        setViewGroupSearchQuery('');
+    };
+
+    const toggleViewGroupPrivilege = (
+        groupName: string,
+        field: 'select' | 'insert' | 'update' | 'delete',
+    ) => {
+        setViewGroupsForm((prev) => prev.map((group) => (
+            group.group === groupName ? {...group, [field]: !group[field]} : group
+        )));
+    };
+
+    const setViewPrivilegeForAllGroups = (field: 'select' | 'insert' | 'update' | 'delete') => {
+        setViewGroupsForm((prev) => {
+            const allSelected = prev.length > 0 && prev.every((group) => group[field]);
+            return prev.map((group) => ({...group, [field]: !allSelected}));
+        });
+    };
+
+    const getViewPrivilegeButtonState = (field: 'select' | 'insert' | 'update' | 'delete') => {
+        const total = viewGroupsForm.length;
+        const selected = viewGroupsForm.filter((group) => group[field]).length;
+
+        if (total > 0 && selected === total) return 'all';
+        if (selected > 0) return 'partial';
+        return 'none';
+    };
+
+    const saveViewPrivileges = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingViewPrivileges) return;
+
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        const groupsToUpdate = viewGroupsForm.filter((group) => (
+            group.select ||
+            (editingViewPrivileges.kind === 'view' && (group.insert || group.update || group.delete))
+        ));
+
+        if (groupsToUpdate.length === 0) {
+            setError('Выберите хотя бы одну группу и право для сохранения.');
+            return;
+        }
+
+        const endpoint = editingViewPrivileges.kind === 'view'
+            ? 'views/privileges_groups'
+            : 'views/materialized/privileges_groups';
+
+        const requestGroups = groupsToUpdate.map((group) => (
+            editingViewPrivileges.kind === 'view'
+                ? {
+                    groupname: group.group,
+                    select: group.select,
+                    insert: group.insert,
+                    update: group.update,
+                    delete: group.delete,
+                }
+                : {
+                    groupname: group.group,
+                    select: group.select,
+                }
+        ));
+
+        setViewModalLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    schema_name: editingViewPrivileges.schema_name,
+                    view_name: editingViewPrivileges.view_name,
+                    groups: requestGroups,
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(parseApiErrorDetail((errData as { detail?: unknown }).detail ?? errData, 'Не удалось обновить права на представление'));
+            }
+
+            closeViewPrivilegesModal();
+            setViewsReloadTrigger((prev) => prev + 1);
+        } catch (err) {
+            console.error('Ошибка обновления прав на представление:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось обновить права на представление');
+        } finally {
+            setViewModalLoading(false);
         }
     };
 
@@ -2676,6 +2871,15 @@ export default function ConnectionDetailPage() {
                                                                             <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
                                                                             <span className={clsx(styles.userItemInfoValue)}>{view.description || '—'}</span>
                                                                         </div>
+                                                                        <div className={clsx(styles.userActions)}>
+                                                                            <button
+                                                                                className={clsx(styles.userActionButton)}
+                                                                                onClick={() => openViewPrivilegesModal(view, 'view')}
+                                                                                title={`Назначить права группам для ${view.view_name}`}
+                                                                            >
+                                                                                <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -2744,6 +2948,15 @@ export default function ConnectionDetailPage() {
                                                                         <div className={clsx(styles.userItemInfo)}>
                                                                             <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
                                                                             <span className={clsx(styles.userItemInfoValue)}>{view.description || '—'}</span>
+                                                                        </div>
+                                                                        <div className={clsx(styles.userActions)}>
+                                                                            <button
+                                                                                className={clsx(styles.userActionButton)}
+                                                                                onClick={() => openViewPrivilegesModal(view, 'materialized')}
+                                                                                title={`Назначить права группам для ${view.view_name}`}
+                                                                            >
+                                                                                <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                            </button>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -3889,6 +4102,143 @@ export default function ConnectionDetailPage() {
                                 <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeTableEditModal} disabled={tableModalLoading}>Отмена</button>
                                 <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={tableModalLoading}>
                                     {tableModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {editingViewPrivileges !== null && (
+                <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeViewPrivilegesModal}>
+                    <div className={clsx(groupModalStyles.modal__content, groupModalStyles.modal__content_wide)} onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className={clsx(groupModalStyles.modal__closeButton)}
+                            onClick={closeViewPrivilegesModal}
+                            disabled={viewModalLoading || viewModalGroupsLoading}
+                            aria-label="Закрыть окно редактирования прав представления"
+                        >
+                            <FontAwesomeIcon icon={faTimes}/>
+                        </button>
+                        <div className={clsx(groupModalStyles.modal__header)}>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>
+                                {editingViewPrivileges.kind === 'view' ? 'Права групп на представление' : 'Права групп на материализованное представление'}
+                            </h2>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>{editingViewPrivileges.schema_name}.{editingViewPrivileges.view_name}</p>
+                        </div>
+                        <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveViewPrivileges}>
+                            <div className={clsx(styles.schemaBulkPrivilegeHeaderRow)}>
+                                <div className={clsx(styles.bulkPrivilegeHeaderSpacer)}></div>
+                                <button
+                                    type="button"
+                                    className={clsx(
+                                        styles.bulkPrivilegeButton,
+                                        getViewPrivilegeButtonState('select') === 'all' && styles.bulkPrivilegeButton_all,
+                                        getViewPrivilegeButtonState('select') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                    )}
+                                    onClick={() => setViewPrivilegeForAllGroups('select')}
+                                    disabled={viewModalLoading || viewModalGroupsLoading || viewGroupsForm.length === 0}
+                                >
+                                    SELECT
+                                </button>
+                                {editingViewPrivileges.kind === 'view' && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className={clsx(
+                                                styles.bulkPrivilegeButton,
+                                                getViewPrivilegeButtonState('insert') === 'all' && styles.bulkPrivilegeButton_all,
+                                                getViewPrivilegeButtonState('insert') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                            )}
+                                            onClick={() => setViewPrivilegeForAllGroups('insert')}
+                                            disabled={viewModalLoading || viewModalGroupsLoading || viewGroupsForm.length === 0}
+                                        >
+                                            INSERT
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={clsx(
+                                                styles.bulkPrivilegeButton,
+                                                getViewPrivilegeButtonState('update') === 'all' && styles.bulkPrivilegeButton_all,
+                                                getViewPrivilegeButtonState('update') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                            )}
+                                            onClick={() => setViewPrivilegeForAllGroups('update')}
+                                            disabled={viewModalLoading || viewModalGroupsLoading || viewGroupsForm.length === 0}
+                                        >
+                                            UPDATE
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={clsx(
+                                                styles.bulkPrivilegeButton,
+                                                getViewPrivilegeButtonState('delete') === 'all' && styles.bulkPrivilegeButton_all,
+                                                getViewPrivilegeButtonState('delete') === 'partial' && styles.bulkPrivilegeButton_partial,
+                                            )}
+                                            onClick={() => setViewPrivilegeForAllGroups('delete')}
+                                            disabled={viewModalLoading || viewModalGroupsLoading || viewGroupsForm.length === 0}
+                                        >
+                                            DELETE
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                            <div className={clsx(styles.usersSearchWrapper)}>
+                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                <input
+                                    type="text"
+                                    placeholder="Поиск группы"
+                                    value={viewGroupSearchQuery}
+                                    onChange={(e) => setViewGroupSearchQuery(e.target.value)}
+                                    className={clsx(styles.usersSearchInput)}
+                                    disabled={viewModalLoading || viewModalGroupsLoading}
+                                />
+                                {viewGroupSearchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewGroupSearchQuery('')}
+                                        className={clsx(styles.usersSearchClear)}
+                                        title="Очистить поиск групп"
+                                        disabled={viewModalLoading || viewModalGroupsLoading}
+                                    >
+                                        <FontAwesomeIcon icon={faTimes}/>
+                                    </button>
+                                )}
+                            </div>
+                            {viewModalGroupsLoading ? (
+                                <div className={clsx(styles.usersLoading)}>
+                                    <div className={clsx(styles.spinner)}>
+                                        <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                    </div>
+                                    <p>Загрузка списка групп...</p>
+                                </div>
+                            ) : (
+                                <div className={clsx(styles.schemasPrivilegesList)}>
+                                    {filteredViewGroupsForm.map((group) => (
+                                        <div key={group.group} className={clsx(styles.tablePrivilegeRow)}>
+                                            <div className={clsx(styles.tablePrivilegeRole)}>{group.group}</div>
+                                            <label className={clsx(styles.tablePrivilegeCell)}>
+                                                <input type="checkbox" checked={group.select} onChange={() => toggleViewGroupPrivilege(group.group, 'select')} disabled={viewModalLoading}/>
+                                            </label>
+                                            {editingViewPrivileges.kind === 'view' && (
+                                                <>
+                                                    <label className={clsx(styles.tablePrivilegeCell)}>
+                                                        <input type="checkbox" checked={group.insert} onChange={() => toggleViewGroupPrivilege(group.group, 'insert')} disabled={viewModalLoading}/>
+                                                    </label>
+                                                    <label className={clsx(styles.tablePrivilegeCell)}>
+                                                        <input type="checkbox" checked={group.update} onChange={() => toggleViewGroupPrivilege(group.group, 'update')} disabled={viewModalLoading}/>
+                                                    </label>
+                                                    <label className={clsx(styles.tablePrivilegeCell)}>
+                                                        <input type="checkbox" checked={group.delete} onChange={() => toggleViewGroupPrivilege(group.group, 'delete')} disabled={viewModalLoading}/>
+                                                    </label>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <div className={clsx(groupModalStyles.modal__formFooter)}>
+                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeViewPrivilegesModal} disabled={viewModalLoading || viewModalGroupsLoading}>Отмена</button>
+                                <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={viewModalLoading || viewModalGroupsLoading}>
+                                    {viewModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
                                 </button>
                             </div>
                         </form>
