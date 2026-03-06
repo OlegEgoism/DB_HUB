@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.db import DB_Connection
 from backend.utils.external_db import external_db_connection, get_db_connection_by_id
-from backend.utils.pagination import PaginatedServiceResponse, calculate_pagination_info, paginate_raw_sql
+from backend.utils.pagination import PaginatedServiceResponse, paginate_raw_sql
 
 
 def _map_view_row(row) -> dict:
@@ -301,17 +301,19 @@ class DBViewsService:
 
             total_views = len(all_entries)
             total_filtered = len(filtered_entries)
-            pagination_info = calculate_pagination_info(total_filtered, page, size)
             start = (page - 1) * size
             end = start + size
             paginated = filtered_entries[start:end]
 
-            result = {
-                "connection_id": connection.id,
-                "connection_name": connection.name,
-                **pagination_info,
-                "view_privileges": paginated,
-            }
+            result = PaginatedServiceResponse.prepare_response(
+                connection_id=connection.id,
+                connection_name=connection.name,
+                total_items=total_views,
+                total_filtered_items=total_filtered,
+                page=page,
+                size=size,
+            )
+            result["view_privileges"] = paginated
             if view_kind == "view":
                 result["total_views"] = total_views
                 result["total_filtered_views"] = total_filtered
