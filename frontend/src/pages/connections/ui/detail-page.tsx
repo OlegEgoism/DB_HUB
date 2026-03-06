@@ -1,5 +1,5 @@
 // frontend/src/pages/connections/ui/detail-page.tsx
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {useParams, useNavigate} from 'react-router';
 import clsx from 'clsx';
 import styles from './detail-page.module.scss';
@@ -30,6 +30,7 @@ import {
     faTableList,
     faEye,
     faArrowsRotate,
+    faChartLine,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
@@ -186,6 +187,9 @@ export default function ConnectionDetailPage() {
     const [activeSqlMinDuration, setActiveSqlMinDuration] = useState('');
     const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState('');
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
+    const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
+    const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
+    const [activityChartPoints, setActivityChartPoints] = useState<Array<{ timestamp: string; value: number }>>([]);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
 
@@ -414,11 +418,110 @@ export default function ConnectionDetailPage() {
         activeSqlReloadTrigger,
     );
 
+    const {
+        total: chartTotalActiveQueries,
+        loading: chartLoadingActiveQueries,
+    } = useConnectionActiveQueries(
+        id ? parseInt(id) : 0,
+        1,
+        1,
+        null,
+        null,
+        null,
+        activityChartReloadTrigger,
+    );
+
     useEffect(() => {
         if (activeTab === 'metrics' && !metrics) {
             loadMetrics();
         }
     }, [activeTab, metrics, loadMetrics]);
+
+    useEffect(() => {
+        if (!isActivityChartModalOpen) return;
+
+        setActivityChartReloadTrigger((prev) => prev + 1);
+        const intervalId = window.setInterval(() => {
+            setActivityChartReloadTrigger((prev) => prev + 1);
+        }, 1000);
+
+        return () => window.clearInterval(intervalId);
+    }, [isActivityChartModalOpen]);
+
+    useEffect(() => {
+        if (!isActivityChartModalOpen || chartLoadingActiveQueries) return;
+
+        const point = {
+            timestamp: new Date().toLocaleTimeString('ru-RU'),
+            value: chartTotalActiveQueries,
+        };
+
+        setActivityChartPoints((prev) => [...prev.slice(-59), point]);
+    }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen]);
+
+    const activityChartModel = useMemo(() => {
+        const width = 860;
+        const height = 280;
+        const axis = {left: 56, right: 24, top: 20, bottom: 44};
+        const innerWidth = width - axis.left - axis.right;
+        const innerHeight = height - axis.top - axis.bottom;
+
+        if (activityChartPoints.length === 0) {
+            return {
+                width,
+                height,
+                axis,
+                polylinePoints: '',
+                yTicks: [0, 1, 2, 3, 4],
+                xTickLabels: [] as Array<{ x: number; label: string }>,
+                minValue: 0,
+                maxValue: 0,
+                avgValue: 0,
+            };
+        }
+
+        const values = activityChartPoints.map((p) => p.value);
+        const minValue = Math.min(...values);
+        const maxValue = Math.max(...values);
+        const avgValue = Math.round((values.reduce((sum, val) => sum + val, 0) / values.length) * 10) / 10;
+        const topValue = Math.max(maxValue, 1);
+
+        const polylinePoints = activityChartPoints
+            .map((point, index) => {
+                const x = axis.left + (index / Math.max(activityChartPoints.length - 1, 1)) * innerWidth;
+                const y = axis.top + innerHeight - (point.value / topValue) * innerHeight;
+                return `${x},${y}`;
+            })
+            .join(' ');
+
+        const yTicks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(topValue * part));
+
+        const xTickIndexes = [0, 0.5, 1]
+            .map((part) => Math.round((activityChartPoints.length - 1) * part))
+            .filter((idx, pos, arr) => arr.indexOf(idx) === pos);
+
+        const xTickLabels = xTickIndexes.map((idx) => ({
+            x: axis.left + (idx / Math.max(activityChartPoints.length - 1, 1)) * innerWidth,
+            label: activityChartPoints[idx]?.timestamp ?? '',
+        }));
+
+        return {
+            width,
+            height,
+            axis,
+            polylinePoints,
+            yTicks,
+            xTickLabels,
+            minValue,
+            maxValue,
+            avgValue,
+        };
+    }, [activityChartPoints]);
+
+    const closeActivityChartModal = () => {
+        setIsActivityChartModalOpen(false);
+        setActivityChartPoints([]);
+    };
 
 // Обработчики для поиска и пагинации пользователей
 
@@ -3402,6 +3505,14 @@ export default function ConnectionDetailPage() {
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingActiveQueries}/>
                                             </button>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)}
+                                                onClick={() => setIsActivityChartModalOpen(true)}
+                                                title="Открыть график активности"
+                                            >
+                                                <FontAwesomeIcon icon={faChartLine}/> График активности
+                                            </button>
                                         </form>
                                     </div>
 
@@ -3484,6 +3595,131 @@ export default function ConnectionDetailPage() {
                     </div>
                 </div>
             </div>
+            {isActivityChartModalOpen && (
+                <div className={clsx(styles.modalOverlay)} onClick={closeActivityChartModal}>
+                    <div className={clsx(styles.activityChartModal)} onClick={(e) => e.stopPropagation()}>
+                        <div className={clsx(styles.activityChartHeader)}>
+                            <h2 className={clsx(styles.activityChartTitle)}>График активности БД (обновление 1 сек)</h2>
+                            <button
+                                type="button"
+                                className={clsx(styles.modalCancelButton)}
+                                onClick={closeActivityChartModal}
+                            >
+                                Закрыть
+                            </button>
+                        </div>
+                        <div className={clsx(styles.activityChartBody)}>
+                            <p className={clsx(styles.activityChartMeta)}>
+                                Текущее количество активных подключений: <b>{chartTotalActiveQueries}</b>
+                            </p>
+                            <div className={clsx(styles.activityChartSvgWrap)}>
+                                {activityChartPoints.length > 1 ? (
+                                    <svg
+                                        viewBox={`0 0 ${activityChartModel.width} ${activityChartModel.height}`}
+                                        className={clsx(styles.activityChartSvg)}
+                                        role="img"
+                                        aria-label="График активности БД"
+                                    >
+                                        {activityChartModel.yTicks.map((tick) => {
+                                            const y = activityChartModel.axis.top
+                                                + (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom)
+                                                - (tick / Math.max(activityChartModel.yTicks[activityChartModel.yTicks.length - 1], 1))
+                                                * (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom);
+                                            return (
+                                                <g key={`y-${tick}`}>
+                                                    <line
+                                                        x1={activityChartModel.axis.left}
+                                                        y1={y}
+                                                        x2={activityChartModel.width - activityChartModel.axis.right}
+                                                        y2={y}
+                                                        className={clsx(styles.activityChartGridLine)}
+                                                    />
+                                                    <text
+                                                        x={activityChartModel.axis.left - 10}
+                                                        y={y + 4}
+                                                        textAnchor="end"
+                                                        className={clsx(styles.activityChartAxisText)}
+                                                    >
+                                                        {tick}
+                                                    </text>
+                                                </g>
+                                            );
+                                        })}
+
+                                        <line
+                                            x1={activityChartModel.axis.left}
+                                            y1={activityChartModel.axis.top}
+                                            x2={activityChartModel.axis.left}
+                                            y2={activityChartModel.height - activityChartModel.axis.bottom}
+                                            className={clsx(styles.activityChartAxisLine)}
+                                        />
+                                        <line
+                                            x1={activityChartModel.axis.left}
+                                            y1={activityChartModel.height - activityChartModel.axis.bottom}
+                                            x2={activityChartModel.width - activityChartModel.axis.right}
+                                            y2={activityChartModel.height - activityChartModel.axis.bottom}
+                                            className={clsx(styles.activityChartAxisLine)}
+                                        />
+
+                                        <polyline
+                                            points={activityChartModel.polylinePoints}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+
+                                        {activityChartModel.xTickLabels.map((tick) => (
+                                            <text
+                                                key={`x-${tick.x}`}
+                                                x={tick.x}
+                                                y={activityChartModel.height - 10}
+                                                textAnchor="middle"
+                                                className={clsx(styles.activityChartAxisText)}
+                                            >
+                                                {tick.label}
+                                            </text>
+                                        ))}
+
+                                        <text
+                                            x={activityChartModel.width / 2}
+                                            y={activityChartModel.height - 28}
+                                            textAnchor="middle"
+                                            className={clsx(styles.activityChartAxisTitle)}
+                                        >
+                                            Время
+                                        </text>
+                                        <text
+                                            x={16}
+                                            y={activityChartModel.height / 2}
+                                            textAnchor="middle"
+                                            transform={`rotate(-90 16 ${activityChartModel.height / 2})`}
+                                            className={clsx(styles.activityChartAxisTitle)}
+                                        >
+                                            Активные подключения
+                                        </text>
+                                    </svg>
+                                ) : (
+                                    <div className={clsx(styles.usersEmpty)}>
+                                        <FontAwesomeIcon icon={faSpinner} spin={chartLoadingActiveQueries} size="2x"/>
+                                        <p>Собираем данные для графика...</p>
+                                    </div>
+                                )}
+                            </div>
+                            {activityChartPoints.length > 0 && (
+                                <div className={clsx(styles.activityChartTicks)}>
+                                    <span>Период: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
+                                    <span>Мин: {activityChartModel.minValue}</span>
+                                    <span>Среднее: {activityChartModel.avgValue}</span>
+                                    <span>Пик: {activityChartModel.maxValue}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Модальное окно подтверждения удаления */}
             {confirmDeleteId !== null && (
                 <div className={clsx(styles.modalOverlay)} onClick={closeDeleteConfirm}>
