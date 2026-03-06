@@ -1,5 +1,5 @@
 // frontend/src/pages/connections/ui/detail-page.tsx
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {useParams, useNavigate} from 'react-router';
 import clsx from 'clsx';
 import styles from './detail-page.module.scss';
@@ -30,6 +30,7 @@ import {
     faTableList,
     faEye,
     faArrowsRotate,
+    faChartLine,
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {EditUserModal} from './EditUserModal';
@@ -186,6 +187,9 @@ export default function ConnectionDetailPage() {
     const [activeSqlMinDuration, setActiveSqlMinDuration] = useState('');
     const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState('');
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
+    const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
+    const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
+    const [activityChartPoints, setActivityChartPoints] = useState<Array<{ timestamp: string; value: number }>>([]);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
 
@@ -414,11 +418,68 @@ export default function ConnectionDetailPage() {
         activeSqlReloadTrigger,
     );
 
+    const {
+        total: chartTotalActiveQueries,
+        loading: chartLoadingActiveQueries,
+    } = useConnectionActiveQueries(
+        id ? parseInt(id) : 0,
+        1,
+        1,
+        null,
+        null,
+        null,
+        activityChartReloadTrigger,
+    );
+
     useEffect(() => {
         if (activeTab === 'metrics' && !metrics) {
             loadMetrics();
         }
     }, [activeTab, metrics, loadMetrics]);
+
+    useEffect(() => {
+        if (!isActivityChartModalOpen) return;
+
+        setActivityChartReloadTrigger((prev) => prev + 1);
+        const intervalId = window.setInterval(() => {
+            setActivityChartReloadTrigger((prev) => prev + 1);
+        }, 1000);
+
+        return () => window.clearInterval(intervalId);
+    }, [isActivityChartModalOpen]);
+
+    useEffect(() => {
+        if (!isActivityChartModalOpen || chartLoadingActiveQueries) return;
+
+        const point = {
+            timestamp: new Date().toLocaleTimeString('ru-RU'),
+            value: chartTotalActiveQueries,
+        };
+
+        setActivityChartPoints((prev) => [...prev.slice(-59), point]);
+    }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen]);
+
+    const activityChartPolylinePoints = useMemo(() => {
+        if (activityChartPoints.length === 0) return '';
+
+        const width = 860;
+        const height = 280;
+        const padding = 20;
+        const maxValue = Math.max(...activityChartPoints.map((p) => p.value), 1);
+
+        return activityChartPoints
+            .map((point, index) => {
+                const x = padding + (index / Math.max(activityChartPoints.length - 1, 1)) * (width - padding * 2);
+                const y = height - padding - (point.value / maxValue) * (height - padding * 2);
+                return `${x},${y}`;
+            })
+            .join(' ');
+    }, [activityChartPoints]);
+
+    const closeActivityChartModal = () => {
+        setIsActivityChartModalOpen(false);
+        setActivityChartPoints([]);
+    };
 
 // Обработчики для поиска и пагинации пользователей
 
@@ -3402,6 +3463,14 @@ export default function ConnectionDetailPage() {
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingActiveQueries}/>
                                             </button>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)}
+                                                onClick={() => setIsActivityChartModalOpen(true)}
+                                                title="Открыть график активности"
+                                            >
+                                                <FontAwesomeIcon icon={faChartLine}/> График активности
+                                            </button>
                                         </form>
                                     </div>
 
@@ -3484,6 +3553,46 @@ export default function ConnectionDetailPage() {
                     </div>
                 </div>
             </div>
+            {isActivityChartModalOpen && (
+                <div className={clsx(styles.modalOverlay)} onClick={closeActivityChartModal}>
+                    <div className={clsx(styles.activityChartModal)} onClick={(e) => e.stopPropagation()}>
+                        <div className={clsx(styles.activityChartHeader)}>
+                            <h2 className={clsx(styles.activityChartTitle)}>График активности БД (обновление 1 сек)</h2>
+                            <button
+                                type="button"
+                                className={clsx(styles.modalCancelButton)}
+                                onClick={closeActivityChartModal}
+                            >
+                                Закрыть
+                            </button>
+                        </div>
+                        <div className={clsx(styles.activityChartBody)}>
+                            <p className={clsx(styles.activityChartMeta)}>
+                                Текущее количество активных подключений: <b>{chartTotalActiveQueries}</b>
+                            </p>
+                            <div className={clsx(styles.activityChartSvgWrap)}>
+                                {activityChartPoints.length > 1 ? (
+                                    <svg viewBox="0 0 860 280" className={clsx(styles.activityChartSvg)} role="img" aria-label="График активности БД">
+                                        <polyline points={activityChartPolylinePoints} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                ) : (
+                                    <div className={clsx(styles.usersEmpty)}>
+                                        <FontAwesomeIcon icon={faSpinner} spin={chartLoadingActiveQueries} size="2x"/>
+                                        <p>Собираем данные для графика...</p>
+                                    </div>
+                                )}
+                            </div>
+                            {activityChartPoints.length > 0 && (
+                                <div className={clsx(styles.activityChartTicks)}>
+                                    <span>{activityChartPoints[0].timestamp}</span>
+                                    <span>{activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Модальное окно подтверждения удаления */}
             {confirmDeleteId !== null && (
                 <div className={clsx(styles.modalOverlay)} onClick={closeDeleteConfirm}>
