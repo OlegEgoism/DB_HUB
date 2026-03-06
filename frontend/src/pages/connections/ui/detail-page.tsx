@@ -3923,6 +3923,11 @@ export default function ConnectionDetailPage() {
                             <p className={clsx(groupModalStyles.modal__subtitle)}>{editingView.schema_name}.{editingView.view_name}</p>
                         </div>
                         <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveViewPrivileges}>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>
+                                Привилегии CREATE/USAGE задаются на уровне схемы <b>{editingView.schema_name}</b>.
+                                Поэтому изменения автоматически применяются ко всем объектам схемы,
+                                включая обычные и материализованные представления.
+                            </p>
                             <div className={clsx(styles.schemaBulkPrivilegeHeaderRow)}>
                                 <div className={clsx(styles.bulkPrivilegeHeaderSpacer)}></div>
                                 <button
