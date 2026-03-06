@@ -214,7 +214,7 @@ class DBViewsService:
                     pg_catalog.obj_description(c.oid, 'pg_class') AS description
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE c.relkind = $1
+                WHERE c.relkind::text = $1
                 AND n.nspname NOT LIKE 'pg_%'
                 AND n.nspname != 'information_schema'
                 ORDER BY n.nspname, c.relname;
@@ -241,7 +241,7 @@ class DBViewsService:
                     (aclexplode(c.relacl)).privilege_type
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE c.relkind = $1
+                WHERE c.relkind::text = $1
                 AND n.nspname NOT LIKE 'pg_%'
                 AND n.nspname != 'information_schema'
                 AND c.relacl IS NOT NULL;
@@ -337,7 +337,7 @@ class DBViewsService:
                 SELECT 1
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind = $3;
+                WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind::text = $3;
                 """,
                 schema_name,
                 view_name,
