@@ -459,21 +459,63 @@ export default function ConnectionDetailPage() {
         setActivityChartPoints((prev) => [...prev.slice(-59), point]);
     }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen]);
 
-    const activityChartPolylinePoints = useMemo(() => {
-        if (activityChartPoints.length === 0) return '';
-
+    const activityChartModel = useMemo(() => {
         const width = 860;
         const height = 280;
-        const padding = 20;
-        const maxValue = Math.max(...activityChartPoints.map((p) => p.value), 1);
+        const axis = {left: 56, right: 24, top: 20, bottom: 44};
+        const innerWidth = width - axis.left - axis.right;
+        const innerHeight = height - axis.top - axis.bottom;
 
-        return activityChartPoints
+        if (activityChartPoints.length === 0) {
+            return {
+                width,
+                height,
+                axis,
+                polylinePoints: '',
+                yTicks: [0, 1, 2, 3, 4],
+                xTickLabels: [] as Array<{ x: number; label: string }>,
+                minValue: 0,
+                maxValue: 0,
+                avgValue: 0,
+            };
+        }
+
+        const values = activityChartPoints.map((p) => p.value);
+        const minValue = Math.min(...values);
+        const maxValue = Math.max(...values);
+        const avgValue = Math.round((values.reduce((sum, val) => sum + val, 0) / values.length) * 10) / 10;
+        const topValue = Math.max(maxValue, 1);
+
+        const polylinePoints = activityChartPoints
             .map((point, index) => {
-                const x = padding + (index / Math.max(activityChartPoints.length - 1, 1)) * (width - padding * 2);
-                const y = height - padding - (point.value / maxValue) * (height - padding * 2);
+                const x = axis.left + (index / Math.max(activityChartPoints.length - 1, 1)) * innerWidth;
+                const y = axis.top + innerHeight - (point.value / topValue) * innerHeight;
                 return `${x},${y}`;
             })
             .join(' ');
+
+        const yTicks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(topValue * part));
+
+        const xTickIndexes = [0, 0.5, 1]
+            .map((part) => Math.round((activityChartPoints.length - 1) * part))
+            .filter((idx, pos, arr) => arr.indexOf(idx) === pos);
+
+        const xTickLabels = xTickIndexes.map((idx) => ({
+            x: axis.left + (idx / Math.max(activityChartPoints.length - 1, 1)) * innerWidth,
+            label: activityChartPoints[idx]?.timestamp ?? '',
+        }));
+
+        return {
+            width,
+            height,
+            axis,
+            polylinePoints,
+            yTicks,
+            xTickLabels,
+            minValue,
+            maxValue,
+            avgValue,
+        };
     }, [activityChartPoints]);
 
     const closeActivityChartModal = () => {
@@ -3572,8 +3614,91 @@ export default function ConnectionDetailPage() {
                             </p>
                             <div className={clsx(styles.activityChartSvgWrap)}>
                                 {activityChartPoints.length > 1 ? (
-                                    <svg viewBox="0 0 860 280" className={clsx(styles.activityChartSvg)} role="img" aria-label="График активности БД">
-                                        <polyline points={activityChartPolylinePoints} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <svg
+                                        viewBox={`0 0 ${activityChartModel.width} ${activityChartModel.height}`}
+                                        className={clsx(styles.activityChartSvg)}
+                                        role="img"
+                                        aria-label="График активности БД"
+                                    >
+                                        {activityChartModel.yTicks.map((tick) => {
+                                            const y = activityChartModel.axis.top
+                                                + (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom)
+                                                - (tick / Math.max(activityChartModel.yTicks[activityChartModel.yTicks.length - 1], 1))
+                                                * (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom);
+                                            return (
+                                                <g key={`y-${tick}`}>
+                                                    <line
+                                                        x1={activityChartModel.axis.left}
+                                                        y1={y}
+                                                        x2={activityChartModel.width - activityChartModel.axis.right}
+                                                        y2={y}
+                                                        className={clsx(styles.activityChartGridLine)}
+                                                    />
+                                                    <text
+                                                        x={activityChartModel.axis.left - 10}
+                                                        y={y + 4}
+                                                        textAnchor="end"
+                                                        className={clsx(styles.activityChartAxisText)}
+                                                    >
+                                                        {tick}
+                                                    </text>
+                                                </g>
+                                            );
+                                        })}
+
+                                        <line
+                                            x1={activityChartModel.axis.left}
+                                            y1={activityChartModel.axis.top}
+                                            x2={activityChartModel.axis.left}
+                                            y2={activityChartModel.height - activityChartModel.axis.bottom}
+                                            className={clsx(styles.activityChartAxisLine)}
+                                        />
+                                        <line
+                                            x1={activityChartModel.axis.left}
+                                            y1={activityChartModel.height - activityChartModel.axis.bottom}
+                                            x2={activityChartModel.width - activityChartModel.axis.right}
+                                            y2={activityChartModel.height - activityChartModel.axis.bottom}
+                                            className={clsx(styles.activityChartAxisLine)}
+                                        />
+
+                                        <polyline
+                                            points={activityChartModel.polylinePoints}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="3"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+
+                                        {activityChartModel.xTickLabels.map((tick) => (
+                                            <text
+                                                key={`x-${tick.x}`}
+                                                x={tick.x}
+                                                y={activityChartModel.height - 10}
+                                                textAnchor="middle"
+                                                className={clsx(styles.activityChartAxisText)}
+                                            >
+                                                {tick.label}
+                                            </text>
+                                        ))}
+
+                                        <text
+                                            x={activityChartModel.width / 2}
+                                            y={activityChartModel.height - 28}
+                                            textAnchor="middle"
+                                            className={clsx(styles.activityChartAxisTitle)}
+                                        >
+                                            Время
+                                        </text>
+                                        <text
+                                            x={16}
+                                            y={activityChartModel.height / 2}
+                                            textAnchor="middle"
+                                            transform={`rotate(-90 16 ${activityChartModel.height / 2})`}
+                                            className={clsx(styles.activityChartAxisTitle)}
+                                        >
+                                            Активные подключения
+                                        </text>
                                     </svg>
                                 ) : (
                                     <div className={clsx(styles.usersEmpty)}>
@@ -3584,8 +3709,10 @@ export default function ConnectionDetailPage() {
                             </div>
                             {activityChartPoints.length > 0 && (
                                 <div className={clsx(styles.activityChartTicks)}>
-                                    <span>{activityChartPoints[0].timestamp}</span>
-                                    <span>{activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
+                                    <span>Период: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
+                                    <span>Мин: {activityChartModel.minValue}</span>
+                                    <span>Среднее: {activityChartModel.avgValue}</span>
+                                    <span>Пик: {activityChartModel.maxValue}</span>
                                 </div>
                             )}
                         </div>
