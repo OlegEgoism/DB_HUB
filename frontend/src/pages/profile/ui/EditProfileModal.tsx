@@ -1,6 +1,7 @@
 // frontend/src/pages/profile/ui/EditProfileModal.tsx
-import {useState, useEffect} from 'react';
+import {useState} from 'react';
 import {useEditProfile} from '../lib/useEditProfile';
+import type {User} from '@shared/types/user';
 import clsx from 'clsx';
 import styles from './edit-profile-modal.module.scss';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -15,7 +16,7 @@ export function EditProfileModal({
                                      onClose,
                                      onSuccess,
                                  }: {
-    user: any;
+    user: User;
     onClose: () => void;
     onSuccess: () => void;
 }) {
@@ -25,21 +26,10 @@ export function EditProfileModal({
         role: user.role,
     });
 
-    const [initialData, setInitialData] = useState({...formData});
+    const [initialData] = useState({ ...formData });
     const {updateProfile, loading, error, success} = useEditProfile(user.id);
 
-    useEffect(() => {
-        setFormData({
-            email: user.email,
-            fio: user.fio || '',
-            role: user.role,
-        });
-        setInitialData({
-            email: user.email,
-            fio: user.fio || '',
-            role: user.role,
-        });
-    }, [user]);
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,7 +47,7 @@ export function EditProfileModal({
         try {
             await updateProfile(formData);
             onSuccess();
-        } catch (err) {
+        } catch {
             // Ошибка уже обработана в хуке
         }
     };
@@ -217,3 +207,4 @@ export function EditProfileModal({
         </div>
     );
 }
+

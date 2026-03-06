@@ -1,7 +1,8 @@
 # backend/services/db_views_services.py
 
-from typing import Any
+from typing import Any, Literal
 
+from asyncpg.utils import _quote_ident
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.db import DB_Connection
@@ -185,3 +186,204 @@ class DBViewsService:
         response["total_materialized_views"] = total_all
         response["total_filtered_materialized_views"] = total_filtered
         return response
+
+    async def get_views_privileges_for_groups(
+        self,
+        connection_id: int,
+        page: int = 1,
+        size: int = 20,
+        search: str | None = None,
+        view_kind: Literal["view", "materialized"] = "view",
+    ) -> dict[str, Any]:
+        connection = await self._get_connection(connection_id)
+        relkind = "v" if view_kind == "view" else "m"
+
+        async with external_db_connection(connection) as conn:
+            group_rows = await conn.fetch("SELECT oid, rolname FROM pg_roles WHERE rolcanlogin = false AND rolname !~ '^pg_' ORDER BY rolname;")
+            group_oids = {row["oid"] for row in group_rows}
+            oid_to_rolname = {row["oid"]: row["rolname"] for row in group_rows}
+            all_groupnames = sorted(oid_to_rolname.values())
+
+            view_rows = await conn.fetch(
+                """
+                SELECT
+                    n.nspname AS schema_name,
+                    c.relname AS view_name,
+                    c.oid AS view_oid,
+                    pg_get_userbyid(c.relowner) AS owner,
+                    pg_catalog.obj_description(c.oid, 'pg_class') AS description
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE c.relkind::text = $1
+                AND n.nspname NOT LIKE 'pg_%'
+                AND n.nspname != 'information_schema'
+                ORDER BY n.nspname, c.relname;
+                """,
+                relkind,
+            )
+
+            view_info = {
+                row["view_oid"]: {
+                    "schema_name": row["schema_name"],
+                    "view_name": row["view_name"],
+                    "owner": row["owner"],
+                    "description": row["description"],
+                    "privileges": {groupname: {"CREATE": False, "USAGE": False} for groupname in all_groupnames},
+                }
+                for row in view_rows
+            }
+
+            schema_acl_rows = await conn.fetch(
+                """
+                SELECT
+                    n.nspname AS schema_name,
+                    (aclexplode(n.nspacl)).grantee AS grantee_oid,
+                    (aclexplode(n.nspacl)).privilege_type
+                FROM pg_catalog.pg_namespace n
+                WHERE n.nspname NOT LIKE 'pg_%'
+                AND n.nspname != 'information_schema'
+                AND n.nspacl IS NOT NULL;
+                """
+            )
+
+            schema_privileges = {}
+            for row in schema_acl_rows:
+                schema_name = row["schema_name"]
+                grantee_oid = row["grantee_oid"]
+                privilege = row["privilege_type"]
+                if grantee_oid not in group_oids or privilege not in ("CREATE", "USAGE"):
+                    continue
+                groupname = oid_to_rolname[grantee_oid]
+                schema_privileges.setdefault(schema_name, {}).setdefault(groupname, {"CREATE": False, "USAGE": False})
+                schema_privileges[schema_name][groupname][privilege] = True
+
+            for view_oid, info in view_info.items():
+                schema_name = info["schema_name"]
+                for groupname in all_groupnames:
+                    group_schema_priv = schema_privileges.get(schema_name, {}).get(groupname)
+                    if group_schema_priv:
+                        info["privileges"][groupname]["CREATE"] = group_schema_priv["CREATE"]
+                        info["privileges"][groupname]["USAGE"] = group_schema_priv["USAGE"]
+
+            all_entries = []
+            for info in view_info.values():
+                entry = {
+                    "schema_name": info["schema_name"],
+                    "view_name": info["view_name"],
+                    "owner": info["owner"],
+                    "description": info["description"],
+                    "role_privileges": [
+                        {
+                            "role": group,
+                            "create": priv["CREATE"],
+                            "usage": priv["USAGE"],
+                        }
+                        for group, priv in info["privileges"].items()
+                    ],
+                }
+                all_entries.append(entry)
+
+            search_term = search.strip().lower() if search and search.strip() else None
+            filtered_entries = []
+            if not search_term:
+                filtered_entries = all_entries
+            else:
+                for entry in all_entries:
+                    matches_view = (
+                        search_term in entry["schema_name"].lower()
+                        or search_term in entry["view_name"].lower()
+                        or (entry["description"] and search_term in entry["description"].lower())
+                        or search_term in entry["owner"].lower()
+                    )
+                    if matches_view:
+                        filtered_entries.append(entry)
+                        continue
+
+                    matching_roles = [rp for rp in entry["role_privileges"] if search_term in rp["role"].lower()]
+                    if matching_roles:
+                        entry_copy = entry.copy()
+                        entry_copy["role_privileges"] = matching_roles
+                        filtered_entries.append(entry_copy)
+
+            total_views = len(all_entries)
+            total_filtered = len(filtered_entries)
+            start = (page - 1) * size
+            end = start + size
+            paginated = filtered_entries[start:end]
+
+            result = PaginatedServiceResponse.prepare_response(
+                connection_id=connection.id,
+                connection_name=connection.name,
+                total_items=total_views,
+                total_filtered_items=total_filtered,
+                page=page,
+                size=size,
+            )
+            result["view_privileges"] = paginated
+            if view_kind == "view":
+                result["total_views"] = total_views
+                result["total_filtered_views"] = total_filtered
+            else:
+                result["total_materialized_views"] = total_views
+                result["total_filtered_materialized_views"] = total_filtered
+            return result
+
+    async def update_view_privileges_for_groups(
+        self,
+        connection_id: int,
+        schema_name: str,
+        view_name: str,
+        group_privileges: list[dict[str, Any]],
+        view_kind: Literal["view", "materialized"] = "view",
+    ) -> list[str]:
+        connection = await self._get_connection(connection_id)
+        relkind = "v" if view_kind == "view" else "m"
+
+        async with external_db_connection(connection) as conn:
+            exists = await conn.fetchval(
+                """
+                SELECT 1
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind::text = $3;
+                """,
+                schema_name,
+                view_name,
+                relkind,
+            )
+            if not exists:
+                view_type = "Представление" if view_kind == "view" else "Материализованное представление"
+                raise ValueError(f"{view_type} '{schema_name}.{view_name}' не существует.")
+
+            valid_groups = {
+                row["rolname"]
+                for row in await conn.fetch("SELECT rolname FROM pg_roles WHERE rolcanlogin = false AND rolname !~ '^pg_';")
+            }
+
+            quoted_schema = _quote_ident(schema_name)
+            updated_groups = []
+
+            for item in group_privileges:
+                groupname = item["groupname"]
+                create = item["create"]
+                usage = item["usage"]
+
+                if groupname not in valid_groups:
+                    raise ValueError(
+                        f"Группа '{groupname}' не существует или не является группой (ожидается rolcanlogin = false)."
+                    )
+
+                quoted_group = _quote_ident(groupname)
+                updated_groups.append(groupname)
+
+                if usage:
+                    await conn.execute(f"GRANT USAGE ON SCHEMA {quoted_schema} TO {quoted_group};")
+                else:
+                    await conn.execute(f"REVOKE USAGE ON SCHEMA {quoted_schema} FROM {quoted_group};")
+
+                if create:
+                    await conn.execute(f"GRANT CREATE ON SCHEMA {quoted_schema} TO {quoted_group};")
+                else:
+                    await conn.execute(f"REVOKE CREATE ON SCHEMA {quoted_schema} FROM {quoted_group};")
+
+            return updated_groups

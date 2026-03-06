@@ -39,7 +39,7 @@ export function ChangePasswordModal({
     }
     try {
       await changePassword({ new_password: formData.newPassword });
-    } catch (err) {
+    } catch {
       // Ошибка уже обработана в хуке
     }
   };

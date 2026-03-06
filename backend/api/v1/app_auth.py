@@ -16,7 +16,6 @@ from backend.schemas.app_users_schemas import (
     LoginRequest,
     Token,
     UserLoginResponse,
-    UserProfile,
 )
 from backend.services.app_users_services import UserService
 

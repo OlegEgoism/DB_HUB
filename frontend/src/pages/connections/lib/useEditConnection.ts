@@ -1,7 +1,5 @@
-// frontend/src/pages/connections/lib/useEditConnection.ts
 import { useState } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import { apiRequest } from '@shared/api/http';
 
 export interface EditConnectionData {
   name: string;
@@ -28,31 +26,16 @@ export function useEditConnection(connectionId: number) {
       setError(null);
       setSuccess(false);
 
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        throw new Error('Пользователь не авторизован');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${connectionId}`, {
+      const updatedConnection = await apiRequest(`/api/v1/db_connections/${connectionId}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data),
+        withAuth: true,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.detail || `HTTP error! status: ${response.status}`);
-      }
-
-      const updatedConnection = await response.json();
       setSuccess(true);
       return updatedConnection;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update connection');
-      console.error('Update connection error:', err);
       throw err;
     } finally {
       setLoading(false);
