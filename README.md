@@ -159,3 +159,51 @@ npm run dev
 ```
 
 
+
+<h3 style="color: #f39c12; text-align: center">
+Запуск DB HUB в Docker (полный вариант)
+</h3>
+
+1. Создайте `.env` в корне проекта (как у вас уже есть).
+
+> Важно: для Docker Compose значение `DB_HOST` из `.env` можно оставлять `localhost` —
+> для контейнера backend хост базы принудительно задается как `db` в `docker-compose.yml`.
+
+2. Соберите и запустите все сервисы:
+
+```bash
+docker compose up --build -d
+```
+
+3. Проверка сервисов:
+
+```bash
+docker compose ps
+```
+
+4. Открыть приложение и API:
+
+- Frontend: http://localhost
+- Swagger: http://localhost/docs
+- ReDoc: http://localhost/redoc
+- API (пример): http://localhost/api/v1
+
+5. Остановка:
+
+```bash
+docker compose down
+```
+
+6. Остановка с удалением тома БД (сброс данных):
+
+```bash
+docker compose down -v
+```
+
+### Что добавлено для Docker
+
+- `docker-compose.yml` — оркестрация `db` + `backend` + `frontend`.
+- `Dockerfile.backend` — контейнер FastAPI.
+- `Dockerfile.frontend` — сборка фронтенда и отдача через Nginx.
+- `nginx.conf` — SPA-конфиг и reverse proxy `/api` → backend.
+- `.dockerignore` — исключение лишних файлов из контекста сборки.

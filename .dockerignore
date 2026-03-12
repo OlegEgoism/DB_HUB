@@ -1,6 +1,10 @@
 .git
 .gitignore
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
 **/node_modules
-**/build
-**/dist
-npm-debug.log*
+frontend/build
+.env
