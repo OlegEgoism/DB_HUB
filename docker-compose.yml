@@ -7,8 +7,11 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "5432:5432"
+    # Порт БД наружу по умолчанию не публикуем, чтобы не конфликтовать
+    # с локальным PostgreSQL на хосте (ошибка: address already in use).
+    # Для внешнего доступа раскомментируйте строки ниже или задайте DB_EXTERNAL_PORT.
+    # ports:
+    #   - "${DB_EXTERNAL_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
