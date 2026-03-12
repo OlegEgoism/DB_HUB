@@ -43,14 +43,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-      args:
-        VITE_API_BASE_URL: /api
     container_name: db_hub_frontend
     restart: unless-stopped
     depends_on:
       - backend
     ports:
-      - "80:80"
+      - "80:5173"
 
 volumes:
   postgres_data:

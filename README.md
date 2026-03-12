@@ -175,6 +175,8 @@ npm run dev
 docker compose up --build -d
 ```
 
+> Примечание: фронтенд запускается через Vite dev server в контейнере и проброшен на `http://localhost` (`80 -> 5173`).
+
 3. Проверка сервисов:
 
 ```bash
@@ -184,9 +186,9 @@ docker compose ps
 4. Открыть приложение и API:
 
 - Frontend: http://localhost
-- Swagger: http://localhost/docs
-- ReDoc: http://localhost/redoc
-- API (пример): http://localhost/api/v1
+- Swagger: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- API (пример): http://localhost:8000/api/v1
 
 5. Остановка:
 
@@ -232,6 +234,6 @@ sudo docker compose logs --tail=200 backend
 
 - `docker-compose.yml` — оркестрация `db` + `backend` + `frontend`.
 - `Dockerfile.backend` — контейнер FastAPI.
-- `Dockerfile.frontend` — сборка фронтенда и отдача через Nginx.
-- `nginx.conf` — SPA-конфиг и reverse proxy `/api` → backend.
+- `Dockerfile.frontend` — запуск фронтенда через Vite dev server в контейнере.
+- `nginx.conf` — сохранен в репозитории, но в текущей Docker-схеме не используется.
 - `.dockerignore` — исключение лишних файлов из контекста сборки.
