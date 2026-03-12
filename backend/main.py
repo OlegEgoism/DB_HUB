@@ -1,5 +1,6 @@
 # backend/main.py
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -20,14 +21,30 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(backend: FastAPI):
     """При запуске приложения: создаем таблицы"""
-    try:
-        async with engine.begin() as conn:
-            logger.info("🔄 Создание таблиц базы данных...")
-            await conn.run_sync(Base.metadata.create_all)
-            logger.info("✅ Таблицы базы данных успешно созданы")
-    except Exception as e:
-        logger.error(f"❌ Ошибка при создании таблиц: {e}")
-        raise
+    max_attempts = 20
+    retry_delay_seconds = 2
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            async with engine.begin() as conn:
+                logger.info("🔄 Создание таблиц базы данных...")
+                await conn.run_sync(Base.metadata.create_all)
+                logger.info("✅ Таблицы базы данных успешно созданы")
+            break
+        except Exception as e:
+            if attempt == max_attempts:
+                logger.error(f"❌ Ошибка при создании таблиц после {max_attempts} попыток: {e}")
+                raise
+
+            logger.warning(
+                "⚠️ База данных недоступна (попытка %s/%s): %s. Повтор через %s сек...",
+                attempt,
+                max_attempts,
+                e,
+                retry_delay_seconds,
+            )
+            await asyncio.sleep(retry_delay_seconds)
+
     yield
     await engine.dispose()
 

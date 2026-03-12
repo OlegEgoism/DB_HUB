@@ -200,6 +200,27 @@ docker compose down
 docker compose down -v
 ```
 
+### Если `docker compose ps` показывает пусто
+
+Чаще всего это происходит, если команды запускались в разных контекстах (`sudo docker ...` и `docker ...` без sudo).
+Используйте один и тот же способ для всех команд:
+
+```bash
+sudo docker compose up -d --build
+sudo docker compose ps
+sudo docker compose logs -f backend
+```
+
+### Если backend падает при старте
+
+- В проекте добавлены повторные попытки подключения к БД при старте FastAPI, чтобы пережить задержку DNS/готовности postgres внутри Docker-сети.
+- Проверка логов:
+
+```bash
+sudo docker compose logs --tail=200 db
+sudo docker compose logs --tail=200 backend
+```
+
 ### Что добавлено для Docker
 
 - `docker-compose.yml` — оркестрация `db` + `backend` + `frontend`.
