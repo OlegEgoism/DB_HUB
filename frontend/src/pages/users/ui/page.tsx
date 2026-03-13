@@ -8,6 +8,7 @@ import {
   faChevronCircleRight,
   faSpinner,
   faExclamationCircle,
+  faUser,
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@shared/config';
@@ -93,115 +94,119 @@ export default function UsersPage() {
   };
 
   return (
-    <section className={clsx(styles.usersPage)}>
-      <div className="container">
-        <h1 className={clsx(styles.title)}>Пользователи</h1>
-
-        {loading ? (
-          <div className={clsx(styles.state)}>
-            <FontAwesomeIcon icon={faSpinner} spin />
-            <span>Загрузка пользователей...</span>
-          </div>
-        ) : error ? (
-          <div className={clsx(styles.state, styles.state_error)}>
-            <FontAwesomeIcon icon={faExclamationCircle} />
-            <span>{error}</span>
-          </div>
-        ) : (
-          <>
-            <div className={clsx(styles.tableWrapper)}>
-              <table className={clsx(styles.table)}>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Логин</th>
-                    <th>ФИО</th>
-                    <th>Email</th>
-                    <th>Роль</th>
-                    <th>Активен</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td>{user.id}</td>
-                      <td>{user.username}</td>
-                      <td>{user.fio?.trim() || '—'}</td>
-                      <td>{user.email}</td>
-                      <td>{user.role}</td>
-                      <td>{user.is_active ? 'Да' : 'Нет'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {users.length === 0 && (
-              <div className={clsx(styles.state)}>
-                <span>Пользователи не найдены.</span>
-              </div>
-            )}
-
-            {totalItems > 0 && (
-              <div className={clsx(styles.pagination)}>
-                <div className={clsx(styles.paginationInfo)}>
-                  <span className={clsx(styles.paginationText)}>
-                    Показано <span className={clsx(styles.paginationHighlight)}>{((currentPage - 1) * pageSize) + 1}</span>–
-                    <span className={clsx(styles.paginationHighlight)}>{Math.min(currentPage * pageSize, totalItems)}</span> из{' '}
-                    <span className={clsx(styles.paginationHighlight)}>{totalItems}</span> пользователей
-                  </span>
-                </div>
-
-                <div className={clsx(styles.paginationControls)}>
-                  <select value={pageSize} onChange={handlePageSizeChange} className={clsx(styles.paginationSelect)}>
-                    {PAGE_SIZES.map((size) => (
-                      <option key={size} value={size}>
-                        {size} / стр.
-                      </option>
-                    ))}
-                  </select>
-
-                  <div className={clsx(styles.paginationButtons)}>
-                    <button
-                      className={clsx(styles.paginationButton, styles.paginationButton_first)}
-                      onClick={() => handlePageChange(1)}
-                      disabled={currentPage === 1 || !hasPrev}
-                      title="Первая страница"
-                    >
-                      <FontAwesomeIcon icon={faChevronCircleLeft} />
-                    </button>
-                    <button
-                      className={clsx(styles.paginationButton)}
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1 || !hasPrev}
-                      title="Предыдущая страница"
-                    >
-                      <FontAwesomeIcon icon={faChevronLeft} />
-                    </button>
-                    <span className={clsx(styles.pageInfo)}>Страница {currentPage} из {totalPages}</span>
-                    <button
-                      className={clsx(styles.paginationButton)}
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages || !hasNext}
-                      title="Следующая страница"
-                    >
-                      <FontAwesomeIcon icon={faChevronRight} />
-                    </button>
-                    <button
-                      className={clsx(styles.paginationButton, styles.paginationButton_last)}
-                      onClick={() => handlePageChange(totalPages)}
-                      disabled={currentPage === totalPages || !hasNext}
-                      title="Последняя страница"
-                    >
-                      <FontAwesomeIcon icon={faChevronCircleRight} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+    <section className={clsx(styles.users__section)}>
+      <div className={clsx(styles.users__header)}>
+        <h1 className={clsx(styles.users__title)}>
+          <FontAwesomeIcon icon={faUser} />
+          Пользователи
+        </h1>
+        <div className={clsx(styles.users__meta)}>Всего: {totalItems}</div>
       </div>
+
+      {loading ? (
+        <div className={clsx(styles.users__state)}>
+          <FontAwesomeIcon icon={faSpinner} spin />
+          <span>Загрузка пользователей...</span>
+        </div>
+      ) : error ? (
+        <div className={clsx(styles.users__state, styles.users__state_error)}>
+          <FontAwesomeIcon icon={faExclamationCircle} />
+          <span>{error}</span>
+        </div>
+      ) : (
+        <>
+          <div className={clsx(styles.users__tableWrapper)}>
+            <table className={clsx(styles.users__table)}>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Логин</th>
+                  <th>ФИО</th>
+                  <th>Email</th>
+                  <th>Роль</th>
+                  <th>Активен</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.id}</td>
+                    <td>{user.username}</td>
+                    <td>{user.fio?.trim() || '—'}</td>
+                    <td>{user.email}</td>
+                    <td>{user.role}</td>
+                    <td>{user.is_active ? 'Да' : 'Нет'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {users.length === 0 && (
+            <div className={clsx(styles.users__state)}>
+              <span>Пользователи не найдены.</span>
+            </div>
+          )}
+
+          {totalItems > 0 && (
+            <div className={clsx(styles.users__pagination)}>
+              <div className={clsx(styles.users__paginationInfo)}>
+                <span className={clsx(styles.users__paginationText)}>
+                  Показано <span className={clsx(styles.users__paginationHighlight)}>{((currentPage - 1) * pageSize) + 1}</span>–
+                  <span className={clsx(styles.users__paginationHighlight)}>{Math.min(currentPage * pageSize, totalItems)}</span> из{' '}
+                  <span className={clsx(styles.users__paginationHighlight)}>{totalItems}</span> пользователей
+                </span>
+              </div>
+
+              <div className={clsx(styles.users__paginationControls)}>
+                <select value={pageSize} onChange={handlePageSizeChange} className={clsx(styles.users__paginationSelect)}>
+                  {PAGE_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size} / стр.
+                    </option>
+                  ))}
+                </select>
+
+                <div className={clsx(styles.users__paginationButtons)}>
+                  <button
+                    className={clsx(styles.users__paginationButton)}
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1 || !hasPrev}
+                    title="Первая страница"
+                  >
+                    <FontAwesomeIcon icon={faChevronCircleLeft} />
+                  </button>
+                  <button
+                    className={clsx(styles.users__paginationButton)}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || !hasPrev}
+                    title="Предыдущая страница"
+                  >
+                    <FontAwesomeIcon icon={faChevronLeft} />
+                  </button>
+                  <span className={clsx(styles.users__pageInfo)}>Страница {currentPage} из {totalPages}</span>
+                  <button
+                    className={clsx(styles.users__paginationButton)}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || !hasNext}
+                    title="Следующая страница"
+                  >
+                    <FontAwesomeIcon icon={faChevronRight} />
+                  </button>
+                  <button
+                    className={clsx(styles.users__paginationButton)}
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages || !hasNext}
+                    title="Последняя страница"
+                  >
+                    <FontAwesomeIcon icon={faChevronCircleRight} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </section>
   );
 }
