@@ -31,6 +31,15 @@
     flex-wrap: wrap;
   }
 
+
+  &__titleContainer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 200px;
+  }
+
   &__actions {
     display: flex;
     align-items: center;
@@ -52,10 +61,26 @@
     }
   }
 
-  &__meta {
-    color: var(--color-text-muted);
-    font-size: 14px;
-    font-weight: 500;
+
+  &__countBadge {
+    background: var(--color-primary);
+    color: white;
+    border-radius: 40%;
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 2px;
+    font-size: 24px;
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(79, 70, 229, 0.3);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+    }
   }
 
   &__createButton {
@@ -426,6 +451,15 @@
     color: var(--color-status-danger);
     padding: 10px;
     font-size: 14px;
+  }
+
+
+  &__titleContainer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 200px;
   }
 
   &__actions {

@@ -353,12 +353,14 @@ export default function UsersPage() {
       <div className="container">
         <div className={clsx(styles.users__section)}>
       <div className={clsx(styles.users__header)}>
-        <h1 className={clsx(styles.users__title)}>
-          <FontAwesomeIcon icon={faUser} />
-          Пользователи
-        </h1>
+        <div className={clsx(styles.users__titleContainer)}>
+          <h1 className={clsx(styles.users__title)}>
+            <FontAwesomeIcon icon={faUser} />
+            Пользователи
+            <span className={clsx(styles.users__countBadge)}>{totalItems}</span>
+          </h1>
+        </div>
         <div className={clsx(styles.users__actions)}>
-          <div className={clsx(styles.users__meta)}>Всего: {totalItems}</div>
           <button type="button" className={clsx(styles.users__createButton)} onClick={openCreateModal}>
             <FontAwesomeIcon icon={faPlus} />
             Добавить пользователя
