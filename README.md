@@ -168,6 +168,8 @@ npm run dev
 
 > Важно: для Docker Compose значение `DB_HOST` из `.env` можно оставлять `localhost` —
 > для контейнера backend хост базы принудительно задается как `db` в `docker-compose.yml`.
+>
+> Для фронтенда в Docker используется `VITE_API_BASE_URL=http://localhost:8088` (задано в `docker-compose.yml`).
 
 2. Соберите и запустите все сервисы:
 
@@ -175,7 +177,7 @@ npm run dev
 docker compose up --build -d
 ```
 
-> Примечание: фронтенд запускается через Vite dev server в контейнере и проброшен на `http://localhost` (`80 -> 5173`).
+> Примечание: фронтенд запускается через Vite dev server в контейнере и проброшен на `http://localhost:8099` (`8099 -> 5173`).
 
 3. Проверка сервисов:
 
@@ -185,10 +187,10 @@ docker compose ps
 
 4. Открыть приложение и API:
 
-- Frontend: http://localhost
-- Swagger: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- API (пример): http://localhost:8000/api/v1
+- Frontend: http://localhost:8099
+- Swagger: http://localhost:8088/docs
+- ReDoc: http://localhost:8088/redoc
+- API (пример): http://localhost:8088/api/v1
 
 5. Остановка:
 
