@@ -323,7 +323,9 @@ export default function UsersPage() {
   const editingUser = useMemo(() => users.find((user) => user.id === editingUserId) ?? null, [users, editingUserId]);
 
   return (
-    <section className={clsx(styles.users__section)}>
+    <section className={clsx(styles.users)}>
+      <div className="container">
+        <div className={clsx(styles.users__section)}>
       <div className={clsx(styles.users__header)}>
         <h1 className={clsx(styles.users__title)}>
           <FontAwesomeIcon icon={faUser} />
@@ -444,7 +446,6 @@ export default function UsersPage() {
             <table className={clsx(styles.users__table)}>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Логин</th>
                   <th>ФИО</th>
                   <th>Email</th>
@@ -457,7 +458,6 @@ export default function UsersPage() {
               <tbody>
                 {users.map((user) => (
                   <tr key={user.id}>
-                    <td>{user.id}</td>
                     <td>{user.username}</td>
                     <td>{user.fio?.trim() || '—'}</td>
                     <td>{user.email}</td>
@@ -635,7 +635,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {deletingUser && (
+        {deletingUser && (
         <div className={clsx(styles.modal__overlay)}>
           <div className={clsx(styles.modal__content, styles.modal__content_small)}>
             <button type="button" className={clsx(styles.modal__close)} onClick={closeModals} disabled={isSubmitting}>
@@ -655,6 +655,8 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </section>
   );
 }
