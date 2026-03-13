@@ -52,6 +52,9 @@ export function Header() {
                 <NavLink to={ROUTES.CONNECTIONS} className={clsx(styles.header__profileButton)}>
                   Подключения
                 </NavLink>
+                <NavLink to={ROUTES.USERS} className={clsx(styles.header__profileButton)}>
+                  Пользователи
+                </NavLink>
                 <NavLink to={ROUTES.PROFILE} className={clsx(styles.header__profileButton)}>
                   Профиль
                 </NavLink>

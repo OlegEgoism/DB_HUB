@@ -3,6 +3,7 @@
 export const ROUTES = {
   HOME: '/',
   CONNECTIONS: '/connections',
+  USERS: '/users',
   PROFILE: '/profile',
   DOCUMENTATIONS: '/documentations',
   AGREEMENTS: '/agreements',

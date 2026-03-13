@@ -6,6 +6,7 @@ export default [
     route(ROUTES.HOME, "./layout/base-layout.tsx", [
         index("../pages/home/ui/page.tsx"),
         route(ROUTES.CONNECTIONS, "../pages/connections/ui/page.tsx"),
+        route(ROUTES.USERS, "../pages/users/ui/page.tsx"),
         route(`${ROUTES.CONNECTIONS}/:id`, "../pages/connections/ui/detail-page.tsx"),
         route(ROUTES.PROFILE, "../pages/profile/ui/page.tsx"),
         route(ROUTES.DOCUMENTATIONS, "../pages/documentations/ui/page.tsx"),

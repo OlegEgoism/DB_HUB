@@ -17,6 +17,9 @@ type Pages = {
   "/connections": {
     params: {};
   };
+  "/users": {
+    params: {};
+  };
   "/connections/:id": {
     params: {
       "id": string;
@@ -44,11 +47,11 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/connections" | "/connections/:id" | "/profile" | "/documentations" | "/agreements" | "/login" | "/*";
+    page: "/" | "/connections" | "/users" | "/connections/:id" | "/profile" | "/documentations" | "/agreements" | "/login" | "/*";
   };
   "./layout/base-layout.tsx": {
     id: "layout/base-layout";
-    page: "/" | "/connections" | "/connections/:id" | "/profile" | "/documentations" | "/agreements";
+    page: "/" | "/connections" | "/users" | "/connections/:id" | "/profile" | "/documentations" | "/agreements";
   };
   "../pages/home/ui/page.tsx": {
     id: "../pages/home/ui/page";
@@ -57,6 +60,10 @@ type RouteFiles = {
   "../pages/connections/ui/page.tsx": {
     id: "../pages/connections/ui/page";
     page: "/connections";
+  };
+  "../pages/users/ui/page.tsx": {
+    id: "../pages/users/ui/page";
+    page: "/users";
   };
   "../pages/connections/ui/detail-page.tsx": {
     id: "../pages/connections/ui/detail-page";
@@ -89,6 +96,7 @@ type RouteModules = {
   "layout/base-layout": typeof import("./src/app/./layout/base-layout.tsx");
   "../pages/home/ui/page": unknown;
   "../pages/connections/ui/page": unknown;
+  "../pages/users/ui/page": unknown;
   "../pages/connections/ui/detail-page": unknown;
   "../pages/profile/ui/page": unknown;
   "../pages/documentations/ui/page": unknown;
