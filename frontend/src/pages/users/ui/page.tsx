@@ -357,7 +357,7 @@ export default function UsersPage() {
           <h1 className={clsx(styles.users__title)}>
             <FontAwesomeIcon icon={faUser} />
             Пользователи
-            <span className={clsx(styles.users__countBadge)}>{totalItems}</span>
+            <span className={clsx(styles.users__countBadge)}>{users.length}</span>
           </h1>
         </div>
         <div className={clsx(styles.users__actions)}>
