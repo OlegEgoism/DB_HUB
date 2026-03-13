@@ -85,7 +85,6 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<BoolFilter>('all');
-  const [superuserFilter, setSuperuserFilter] = useState<BoolFilter>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
@@ -132,9 +131,6 @@ export default function UsersPage() {
     if (activeFilter !== 'all') {
       query.set('is_active', activeFilter);
     }
-    if (superuserFilter !== 'all') {
-      query.set('is_superuser', superuserFilter);
-    }
     if (roleFilter !== 'all') {
       query.set('role', roleFilter);
     }
@@ -169,7 +165,7 @@ export default function UsersPage() {
       window.clearTimeout(timeoutId);
       setLoading(false);
     }
-  }, [currentPage, pageSize, searchTerm, activeFilter, superuserFilter, roleFilter, navigate]);
+  }, [currentPage, pageSize, searchTerm, activeFilter, roleFilter, navigate]);
 
   useEffect(() => {
     if (isSuperUser) {
@@ -394,18 +390,6 @@ export default function UsersPage() {
               ))}
             </select>
 
-            <select
-              value={superuserFilter}
-              className={clsx(styles.users__filterSelect)}
-              onChange={(event) => {
-                setSuperuserFilter(event.target.value as BoolFilter);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="all">Права суперпользователя</option>
-              <option value="true">Только суперпользователи</option>
-              <option value="false">Без прав суперпользователя</option>
-            </select>
 
             <button type="submit" className={clsx(styles.users__searchButton)}>
               Поиск
