@@ -50,20 +50,8 @@ interface UserUpdatePayload {
 }
 
 type BoolFilter = 'all' | 'true' | 'false';
-type SortBy = 'id' | 'username' | 'email' | 'created_at' | 'last_login' | 'role' | 'fio';
-type SortOrder = 'asc' | 'desc';
-
 const PAGE_SIZES = [5, 10, 20, 50] as const;
 const USER_ROLES = ['Администратор БД', 'Аналитик', 'Разработчик', 'Тестировщик', 'Пользователь'] as const;
-const SORT_BY_OPTIONS: Array<{ value: SortBy; label: string }> = [
-  { value: 'id', label: 'ID' },
-  { value: 'username', label: 'Логин' },
-  { value: 'fio', label: 'ФИО' },
-  { value: 'email', label: 'Email' },
-  { value: 'role', label: 'Роль' },
-  { value: 'created_at', label: 'Дата создания' },
-  { value: 'last_login', label: 'Последний вход' },
-];
 
 const CREATE_FORM_INITIAL: UserCreatePayload = {
   username: '',
@@ -99,9 +87,6 @@ export default function UsersPage() {
   const [activeFilter, setActiveFilter] = useState<BoolFilter>('all');
   const [superuserFilter, setSuperuserFilter] = useState<BoolFilter>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<SortBy>('id');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
   const [totalItems, setTotalItems] = useState(0);
@@ -139,8 +124,6 @@ export default function UsersPage() {
     const query = new URLSearchParams({
       page: String(currentPage),
       size: String(pageSize),
-      sort_by: sortBy,
-      sort_order: sortOrder,
     });
 
     if (searchTerm.trim()) {
@@ -186,7 +169,7 @@ export default function UsersPage() {
       window.clearTimeout(timeoutId);
       setLoading(false);
     }
-  }, [currentPage, pageSize, sortBy, sortOrder, searchTerm, activeFilter, superuserFilter, roleFilter, navigate]);
+  }, [currentPage, pageSize, searchTerm, activeFilter, superuserFilter, roleFilter, navigate]);
 
   useEffect(() => {
     if (isSuperUser) {
@@ -366,102 +349,75 @@ export default function UsersPage() {
           </h1>
         </div>
         <div className={clsx(styles.users__actions)}>
+          <form className={clsx(styles.users__toolbar)} onSubmit={handleSearchSubmit}>
+            <div className={clsx(styles.users__searchWrapper)}>
+              <FontAwesomeIcon icon={faSearch} className={clsx(styles.users__searchIcon)} />
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Поиск"
+                className={clsx(styles.users__searchInput)}
+              />
+              {searchQuery && (
+                <button type="button" className={clsx(styles.users__searchClear)} onClick={handleSearchClear} title="Очистить поиск">
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              )}
+            </div>
+
+            <select
+              value={activeFilter}
+              className={clsx(styles.users__filterSelect)}
+              onChange={(event) => {
+                setActiveFilter(event.target.value as BoolFilter);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="all">Активности</option>
+              <option value="true">Активные</option>
+              <option value="false">Неактивные</option>
+            </select>
+
+            <select
+              value={roleFilter}
+              className={clsx(styles.users__filterSelect)}
+              onChange={(event) => {
+                setRoleFilter(event.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="all">Роли</option>
+              {USER_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={superuserFilter}
+              className={clsx(styles.users__filterSelect)}
+              onChange={(event) => {
+                setSuperuserFilter(event.target.value as BoolFilter);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="all">Права суперпользователя</option>
+              <option value="true">Только суперпользователи</option>
+              <option value="false">Без прав суперпользователя</option>
+            </select>
+
+            <button type="submit" className={clsx(styles.users__searchButton)}>
+              Поиск
+            </button>
+          </form>
+
           <button type="button" className={clsx(styles.users__createButton)} onClick={openCreateModal}>
             <FontAwesomeIcon icon={faPlus} />
             Добавить пользователя
           </button>
         </div>
       </div>
-
-      <form className={clsx(styles.users__toolbar)} onSubmit={handleSearchSubmit}>
-        <div className={clsx(styles.users__searchWrapper)}>
-          <FontAwesomeIcon icon={faSearch} className={clsx(styles.users__searchIcon)} />
-          <input
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Поиск по логину, email, ФИО"
-            className={clsx(styles.users__searchInput)}
-          />
-          {searchQuery && (
-            <button type="button" className={clsx(styles.users__searchClear)} onClick={handleSearchClear} title="Очистить поиск">
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          )}
-        </div>
-
-        <select
-          value={activeFilter}
-          className={clsx(styles.users__filterSelect)}
-          onChange={(event) => {
-            setActiveFilter(event.target.value as BoolFilter);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="all">Активность: Все</option>
-          <option value="true">Активные</option>
-          <option value="false">Неактивные</option>
-        </select>
-
-        <select
-          value={superuserFilter}
-          className={clsx(styles.users__filterSelect)}
-          onChange={(event) => {
-            setSuperuserFilter(event.target.value as BoolFilter);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="all">Права: Все</option>
-          <option value="true">Только суперпользователи</option>
-          <option value="false">Без прав суперпользователя</option>
-        </select>
-
-        <select
-          value={roleFilter}
-          className={clsx(styles.users__filterSelect)}
-          onChange={(event) => {
-            setRoleFilter(event.target.value);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="all">Роль: Все</option>
-          {USER_ROLES.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={sortBy}
-          className={clsx(styles.users__filterSelect)}
-          onChange={(event) => {
-            setSortBy(event.target.value as SortBy);
-            setCurrentPage(1);
-          }}
-        >
-          {SORT_BY_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              Сортировка: {option.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={sortOrder}
-          className={clsx(styles.users__filterSelect)}
-          onChange={(event) => {
-            setSortOrder(event.target.value as SortOrder);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="asc">По возрастанию</option>
-          <option value="desc">По убыванию</option>
-        </select>
-
-        <button type="submit" className={clsx(styles.users__searchButton)}>
-          Поиск
-        </button>
-      </form>
 
       {loading ? (
         <div className={clsx(styles.users__state)}>
