@@ -195,6 +195,14 @@ export default function UsersPage() {
     setCurrentPage(1);
   };
 
+  const handleFirstPage = () => {
+    setCurrentPage(1);
+  };
+
+  const handleLastPage = () => {
+    setCurrentPage(totalPages);
+  };
+
   const resetActionError = () => setActionError(null);
 
   const openCreateModal = () => {
@@ -500,13 +508,13 @@ export default function UsersPage() {
                 <select value={pageSize} onChange={handlePageSizeChange} className={clsx(styles.users__paginationSelect)}>
                   {PAGE_SIZES.map((size) => (
                     <option key={size} value={size}>
-                      {size} / стр.
+                      {size} на странице
                     </option>
                   ))}
                 </select>
 
                 <div className={clsx(styles.users__paginationButtons)}>
-                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(1)} disabled={currentPage === 1 || !hasPrev} title="Первая страница">
+                  <button className={clsx(styles.users__paginationButton, styles.users__paginationButton_first)} onClick={handleFirstPage} disabled={currentPage === 1 || !hasPrev} title="Первая страница">
                     <FontAwesomeIcon icon={faChevronCircleLeft} />
                   </button>
                   <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1 || !hasPrev} title="Предыдущая страница">
@@ -516,7 +524,7 @@ export default function UsersPage() {
                   <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages || !hasNext} title="Следующая страница">
                     <FontAwesomeIcon icon={faChevronRight} />
                   </button>
-                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages || !hasNext} title="Последняя страница">
+                  <button className={clsx(styles.users__paginationButton, styles.users__paginationButton_last)} onClick={handleLastPage} disabled={currentPage === totalPages || !hasNext} title="Последняя страница">
                     <FontAwesomeIcon icon={faChevronCircleRight} />
                   </button>
                 </div>

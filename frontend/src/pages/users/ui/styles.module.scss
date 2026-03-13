@@ -253,35 +253,40 @@
   &__paginationInfo {
     display: flex;
     align-items: center;
+    gap: 12px;
   }
 
   &__paginationText {
+    font-size: 14px;
     color: var(--color-text-muted);
   }
 
   &__paginationHighlight {
-    color: var(--color-primary);
-    font-weight: 700;
+    font-weight: 600;
+    color: var(--color-text-main);
   }
 
   &__paginationControls {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
+    flex-wrap: wrap;
   }
 
   &__paginationSelect {
-    height: 36px;
-    border-radius: 8px;
+    padding: 8px 12px;
     border: 1px solid $clr-gray-300;
-    background: white;
+    border-radius: 6px;
+    font-size: 14px;
     color: var(--color-text-main);
-    padding: 0 10px;
+    background: white;
+    cursor: pointer;
+    min-width: 140px;
 
     &:focus {
       outline: none;
       border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.12);
+      box-shadow: none;
     }
   }
 
@@ -292,31 +297,44 @@
   }
 
   &__paginationButton {
-    width: 36px;
-    height: 36px;
-    border: 1px solid $clr-gray-300;
-    border-radius: 8px;
     background: white;
+    border: 1px solid $clr-gray-300;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 16px;
     color: var(--color-text-main);
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
 
     &:hover:not(:disabled) {
+      background: var(--color-primary);
+      color: white;
       border-color: var(--color-primary);
-      color: var(--color-primary);
     }
 
     &:disabled {
-      opacity: 0.45;
+      opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    &_first,
+    &_last {
+      width: 40px;
+      height: 36px;
     }
   }
 
   &__pageInfo {
-    min-width: 145px;
-    text-align: center;
-    color: var(--color-text-muted);
+    font-size: 14px;
+    color: var(--color-text-main);
     font-weight: 500;
+    min-width: 120px;
+    text-align: center;
   }
 }
 
