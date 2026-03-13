@@ -30,7 +30,8 @@ const ADMIN_ROLE = 'Администратор БД';
 
 export default function AppUsersPage() {
   const navigate = useNavigate();
-  const { getUser } = useSession();
+  const { getUser, checkAuth } = useSession();
+  const isAuthenticated = checkAuth();
   const currentUser = getUser();
   const isAdmin = currentUser?.role === ADMIN_ROLE;
 
@@ -51,10 +52,10 @@ export default function AppUsersPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin) {
-      navigate('/');
+    if (!isAuthenticated) {
+      navigate('/login');
     }
-  }, [isAdmin, navigate]);
+  }, [isAuthenticated, navigate]);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -73,9 +74,9 @@ export default function AppUsersPage() {
   };
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAuthenticated || !isAdmin) return;
     loadUsers();
-  }, [page, size, searchTerm, isAdmin]);
+  }, [page, size, searchTerm, isAdmin, isAuthenticated]);
 
   const handleSubmitCreate = async (payload: AppUserCreatePayload) => {
     setSubmitting(true);
@@ -119,7 +120,27 @@ export default function AppUsersPage() {
     }
   };
 
+  if (!isAuthenticated) {
+    return null;
+  }
+
   if (!isAdmin) {
+    return (
+      <main className={styles.page}>
+        <section className="container">
+          <div className={styles.card}>
+            <h1>Доступ ограничен</h1>
+            <p className={styles.error}>Раздел «Пользователи» доступен только роли «Администратор БД».</p>
+            <button className={styles.primaryButton} onClick={() => navigate('/')}>
+              На главную
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!currentUser) {
     return null;
   }
 
