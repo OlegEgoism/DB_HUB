@@ -8,6 +8,7 @@ export default [
         route(ROUTES.CONNECTIONS, "../pages/connections/ui/page.tsx"),
         route(`${ROUTES.CONNECTIONS}/:id`, "../pages/connections/ui/detail-page.tsx"),
         route(ROUTES.PROFILE, "../pages/profile/ui/page.tsx"),
+        route(ROUTES.USERS, "../pages/app-users/ui/page.tsx"),
         route(ROUTES.DOCUMENTATIONS, "../pages/documentations/ui/page.tsx"),
         route(ROUTES.AGREEMENTS, "../pages/agreements/ui/page.tsx"),
     ]),
