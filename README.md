@@ -202,6 +202,21 @@ docker compose down
 docker compose down -v
 ```
 
+7. После сборки/запуска Docker автоматически создается пользователь `admin` (если отсутствует):
+
+- `username`: `admin`
+- `email`: `admin@admin.com`
+- `hashed_password`: `$2b$12$4X9Y9CEdbYwO7PkItheV7eqfYlVj435cPIWSZOjDP2.MCFwPNBcyK`
+- `fio`: `admin`
+- `is_active`: `true`
+- `is_superuser`: `true`
+- `role`: `Администратор БД`
+- `last_login`: `null`
+- `refresh_token`: `null`
+- `created_at`: `2026-03-13 23:43:52.972 +0300`
+- `updated_at`: `2026-03-13 23:44:09.549 +0300`
+
+
 ### Проблема `failed to bind host port 0.0.0.0:5432`
 
 Если на хосте уже занят порт `5432` (локальный PostgreSQL), Docker не сможет поднять сервис `db`.
