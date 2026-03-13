@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,12 +12,44 @@ from slowapi.errors import RateLimitExceeded
 
 from backend.api.v1 import api_v1_router
 from backend.core.limiter import limiter
-from backend.database.session import Base, engine
+from sqlalchemy import select
+
+from backend.database.session import AsyncSessionLocal, Base, engine
+from backend.models.user import User
 
 """Настройка логирования"""
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+async def ensure_admin_user() -> None:
+    """Создать дефолтного superuser admin, если он отсутствует."""
+    admin_created_at = datetime(2026, 3, 13, 23, 43, 52, 972000, tzinfo=timezone(timedelta(hours=3)))
+    admin_updated_at = datetime(2026, 3, 13, 23, 44, 9, 549000, tzinfo=timezone(timedelta(hours=3)))
+
+    async with AsyncSessionLocal() as session:
+        existing_admin = await session.scalar(select(User).where(User.username == "admin"))
+        if existing_admin is not None:
+            logger.info("ℹ️ Пользователь admin уже существует, создание не требуется")
+            return
+
+        admin_user = User(
+            username="admin",
+            email="admin@admin.com",
+            hashed_password="$2b$12$4X9Y9CEdbYwO7PkItheV7eqfYlVj435cPIWSZOjDP2.MCFwPNBcyK",
+            fio="admin",
+            is_active=True,
+            is_superuser=True,
+            role="Администратор БД",
+            last_login=None,
+            refresh_token=None,
+            created_at=admin_created_at,
+            updated_at=admin_updated_at,
+        )
+
+        session.add(admin_user)
+        await session.commit()
+        logger.info("✅ Дефолтный пользователь admin создан")
 
 @asynccontextmanager
 async def lifespan(backend: FastAPI):
@@ -44,6 +77,8 @@ async def lifespan(backend: FastAPI):
                 retry_delay_seconds,
             )
             await asyncio.sleep(retry_delay_seconds)
+
+    await ensure_admin_user()
 
     yield
     await engine.dispose()
