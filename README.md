@@ -164,47 +164,91 @@ npm run dev
 Запуск DB HUB в Docker (полный вариант)
 </h3>
 
-1. Создайте `.env` в корне проекта (как у вас уже есть).
+Ниже — пошаговая инструкция, как **собрать и запустить проект через Docker**.
 
-> Важно: для Docker Compose значение `DB_HOST` из `.env` можно оставлять `localhost` —
-> для контейнера backend хост базы принудительно задается как `db` в `docker-compose.yml`.
->
-> Для фронтенда в Docker используется `VITE_API_BASE_URL=http://localhost:8088` (задано в `docker-compose.yml`).
+### 1) Проверить, что Docker установлен
 
-2. Соберите и запустите все сервисы:
+```bash
+docker --version
+docker compose version
+```
+
+Если команды не найдены — установите Docker Desktop (Windows/macOS) или Docker Engine + Docker Compose Plugin (Linux).
+
+### 2) Создать и заполнить `.env` в корне проекта
+
+Минимальный пример:
+
+```env
+# PostgreSQL
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=db_hub
+DB_USER=postgres
+DB_PASSWORD=your_password
+
+# APP
+ENCRYPTION_KEY=your_32_byte_base64_encryption_key
+
+# JWT / Security
+SECRET_KEY=your-secret-key-change-in-production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# FastAPI (для локального запуска без Docker)
+HOST=127.0.0.1
+PORT=8000
+```
+
+> В Docker Compose БД для backend берется по имени сервиса `db` (это уже задано в `docker-compose.yml`).
+> Для frontend в Docker уже задан `VITE_API_BASE_URL=http://localhost:8088`.
+
+### 3) Собрать и поднять контейнеры
+
+Из корня проекта выполните:
 
 ```bash
 docker compose up --build -d
 ```
 
-> Примечание: фронтенд запускается через Vite dev server в контейнере и проброшен на `http://localhost:8099` (`8099 -> 5173`).
+Будут подняты сервисы:
+- `db` (PostgreSQL)
+- `backend` (FastAPI) → `http://localhost:8088`
+- `frontend` (Vite) → `http://localhost:8099`
 
-3. Проверка сервисов:
+### 4) Проверить, что всё запустилось
 
 ```bash
 docker compose ps
 ```
 
-4. Открыть приложение и API:
+Посмотреть логи backend:
+
+```bash
+docker compose logs -f backend
+```
+
+Посмотреть логи БД:
+
+```bash
+docker compose logs -f db
+```
+
+### 5) Открыть приложение
 
 - Frontend: http://localhost:8099
 - Swagger: http://localhost:8088/docs
 - ReDoc: http://localhost:8088/redoc
-- API (пример): http://localhost:8088/api/v1
+- API base: http://localhost:8088/api/v1
 
-5. Остановка:
+### 6) Автоматическое создание пользователя `admin`
 
-```bash
-docker compose down
-```
+При запуске контейнера backend автоматически:
+1. создаются таблицы (если их нет),
+2. создается пользователь `admin` (если еще не существует).
 
-6. Остановка с удалением тома БД (сброс данных):
-
-```bash
-docker compose down -v
-```
-
-7. После сборки/запуска Docker автоматически создается пользователь `admin` (если отсутствует):
+Поля и значения пользователя:
 
 - `username`: `admin`
 - `email`: `admin@admin.com`
@@ -218,6 +262,17 @@ docker compose down -v
 - `created_at`: `2026-03-13 23:43:52.972 +0300`
 - `updated_at`: `2026-03-13 23:44:09.549 +0300`
 
+### 7) Остановить контейнеры
+
+```bash
+docker compose down
+```
+
+С удалением тома БД (полный сброс данных):
+
+```bash
+docker compose down -v
+```
 
 ### Проблема `failed to bind host port 0.0.0.0:5432`
 
