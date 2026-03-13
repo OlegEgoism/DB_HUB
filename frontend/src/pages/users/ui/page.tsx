@@ -344,6 +344,11 @@ export default function UsersPage() {
 
   const editingUser = useMemo(() => users.find((user) => user.id === editingUserId) ?? null, [users, editingUserId]);
 
+
+  const shownFrom = users.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0;
+  const shownTo = users.length > 0 ? shownFrom + users.length - 1 : 0;
+
+
   if (!isAuthenticated || !isSuperUser) {
     return null;
   }
@@ -526,8 +531,8 @@ export default function UsersPage() {
             <div className={clsx(styles.users__pagination)}>
               <div className={clsx(styles.users__paginationInfo)}>
                 <span className={clsx(styles.users__paginationText)}>
-                  Показано <span className={clsx(styles.users__paginationHighlight)}>{((currentPage - 1) * pageSize) + 1}</span>–
-                  <span className={clsx(styles.users__paginationHighlight)}>{Math.min(currentPage * pageSize, totalItems)}</span> из{' '}
+                  Показано <span className={clsx(styles.users__paginationHighlight)}>{shownFrom}</span>–
+                  <span className={clsx(styles.users__paginationHighlight)}>{shownTo}</span> из{' '}
                   <span className={clsx(styles.users__paginationHighlight)}>{totalItems}</span> пользователей
                 </span>
               </div>
