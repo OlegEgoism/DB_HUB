@@ -57,7 +57,7 @@ async def list_users(
             filters.append(User.role == role)
         if filters:
             query = query.where(and_(*filters))
-        count_query = select(func.count(User.id)).select_from(query.subquery())
+        count_query = select(func.count()).select_from(query.subquery())
         total_result = await db.execute(count_query)
         total = total_result.scalar_one()
         valid_sort_fields = [
