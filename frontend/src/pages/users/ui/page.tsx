@@ -10,6 +10,7 @@ import {
   faExclamationCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router';
+import { ROUTES } from '@shared/config';
 import { apiRequest } from '@shared/api/http';
 import type { User } from '@shared/types/user';
 import styles from './styles.module.scss';
@@ -44,9 +45,12 @@ export default function UsersPage() {
     setLoading(true);
     setError(null);
 
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+
     try {
       const data = await apiRequest<PaginatedUsersResponse>(`/api/v1/app_users?page=${currentPage}&size=${pageSize}`, {
-        withAuth: true,
+        signal: controller.signal,
       });
 
       setUsers(data.items);
@@ -55,14 +59,20 @@ export default function UsersPage() {
       setHasNext(data.has_next);
       setHasPrev(data.has_prev);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Сервер долго не отвечает. Проверьте, что backend запущен и доступен.');
+        return;
+      }
+
       if (err instanceof Error && err.message.includes('не авторизован')) {
-        navigate('/login');
+        navigate(ROUTES.LOGIN);
         return;
       }
 
       console.error('Ошибка загрузки пользователей:', err);
       setError(err instanceof Error ? err.message : 'Не удалось загрузить пользователей');
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   }, [currentPage, pageSize, navigate]);
@@ -116,7 +126,7 @@ export default function UsersPage() {
                     <tr key={user.id}>
                       <td>{user.id}</td>
                       <td>{user.username}</td>
-                      <td>{user.fio || '—'}</td>
+                      <td>{user.fio?.trim() || '—'}</td>
                       <td>{user.email}</td>
                       <td>{user.role}</td>
                       <td>{user.is_active ? 'Да' : 'Нет'}</td>
@@ -125,6 +135,12 @@ export default function UsersPage() {
                 </tbody>
               </table>
             </div>
+
+            {users.length === 0 && (
+              <div className={clsx(styles.state)}>
+                <span>Пользователи не найдены.</span>
+              </div>
+            )}
 
             {totalItems > 0 && (
               <div className={clsx(styles.pagination)}>
