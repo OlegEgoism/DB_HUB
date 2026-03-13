@@ -13,6 +13,8 @@ import {
   faPen,
   faTrash,
   faXmark,
+  faSearch,
+  faTimes,
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@shared/config';
@@ -46,8 +48,21 @@ interface UserUpdatePayload {
   is_superuser: boolean;
 }
 
+type BoolFilter = 'all' | 'true' | 'false';
+type SortBy = 'id' | 'username' | 'email' | 'created_at' | 'last_login' | 'role' | 'fio';
+type SortOrder = 'asc' | 'desc';
+
 const PAGE_SIZES = [5, 10, 20, 50] as const;
 const USER_ROLES = ['Администратор БД', 'Аналитик', 'Разработчик', 'Тестировщик', 'Пользователь'] as const;
+const SORT_BY_OPTIONS: Array<{ value: SortBy; label: string }> = [
+  { value: 'id', label: 'ID' },
+  { value: 'username', label: 'Логин' },
+  { value: 'fio', label: 'ФИО' },
+  { value: 'email', label: 'Email' },
+  { value: 'role', label: 'Роль' },
+  { value: 'created_at', label: 'Дата создания' },
+  { value: 'last_login', label: 'Последний вход' },
+];
 
 const CREATE_FORM_INITIAL: UserCreatePayload = {
   username: '',
@@ -73,6 +88,14 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState<BoolFilter>('all');
+  const [superuserFilter, setSuperuserFilter] = useState<BoolFilter>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('id');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
   const [totalItems, setTotalItems] = useState(0);
@@ -93,12 +116,33 @@ export default function UsersPage() {
     setLoading(true);
     setError(null);
 
+    const query = new URLSearchParams({
+      page: String(currentPage),
+      size: String(pageSize),
+      sort_by: sortBy,
+      sort_order: sortOrder,
+    });
+
+    if (searchTerm.trim()) {
+      query.set('search', searchTerm.trim());
+    }
+    if (activeFilter !== 'all') {
+      query.set('is_active', activeFilter);
+    }
+    if (superuserFilter !== 'all') {
+      query.set('is_superuser', superuserFilter);
+    }
+    if (roleFilter !== 'all') {
+      query.set('role', roleFilter);
+    }
+
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 10000);
 
     try {
-      const data = await apiRequest<PaginatedUsersResponse>(`/api/v1/app_users?page=${currentPage}&size=${pageSize}`, {
+      const data = await apiRequest<PaginatedUsersResponse>(`/api/v1/app_users?${query.toString()}`, {
         signal: controller.signal,
+        withAuth: true,
       });
 
       setUsers(data.items);
@@ -122,11 +166,23 @@ export default function UsersPage() {
       window.clearTimeout(timeoutId);
       setLoading(false);
     }
-  }, [currentPage, pageSize, navigate]);
+  }, [currentPage, pageSize, sortBy, sortOrder, searchTerm, activeFilter, superuserFilter, roleFilter, navigate]);
 
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
+
+  const handleSearchSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    setSearchTerm(searchQuery.trim());
+    setCurrentPage(1);
+  };
+
+  const handleSearchClear = () => {
+    setSearchQuery('');
+    setSearchTerm('');
+    setCurrentPage(1);
+  };
 
   const handlePageChange = (nextPage: number) => {
     if (nextPage >= 1 && nextPage <= totalPages) {
@@ -177,6 +233,7 @@ export default function UsersPage() {
     try {
       await apiRequest<User>('/api/v1/app_users', {
         method: 'POST',
+        withAuth: true,
         body: JSON.stringify({
           ...createForm,
           username: createForm.username.trim(),
@@ -210,6 +267,7 @@ export default function UsersPage() {
     try {
       await apiRequest<User>(`/api/v1/app_users/${editingUserId}`, {
         method: 'PUT',
+        withAuth: true,
         body: JSON.stringify({
           ...updateForm,
           email: updateForm.email.trim(),
@@ -237,6 +295,7 @@ export default function UsersPage() {
     try {
       await apiRequest<void>(`/api/v1/app_users/${deletingUser.id}`, {
         method: 'DELETE',
+        withAuth: true,
       });
 
       setDeletingUser(null);
@@ -270,6 +329,96 @@ export default function UsersPage() {
           </button>
         </div>
       </div>
+
+      <form className={clsx(styles.users__toolbar)} onSubmit={handleSearchSubmit}>
+        <div className={clsx(styles.users__searchWrapper)}>
+          <FontAwesomeIcon icon={faSearch} className={clsx(styles.users__searchIcon)} />
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Поиск по логину, email, ФИО"
+            className={clsx(styles.users__searchInput)}
+          />
+          {searchQuery && (
+            <button type="button" className={clsx(styles.users__searchClear)} onClick={handleSearchClear} title="Очистить поиск">
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          )}
+        </div>
+
+        <select
+          value={activeFilter}
+          className={clsx(styles.users__filterSelect)}
+          onChange={(event) => {
+            setActiveFilter(event.target.value as BoolFilter);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="all">Активность: Все</option>
+          <option value="true">Активные</option>
+          <option value="false">Неактивные</option>
+        </select>
+
+        <select
+          value={superuserFilter}
+          className={clsx(styles.users__filterSelect)}
+          onChange={(event) => {
+            setSuperuserFilter(event.target.value as BoolFilter);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="all">Права: Все</option>
+          <option value="true">Только суперпользователи</option>
+          <option value="false">Без прав суперпользователя</option>
+        </select>
+
+        <select
+          value={roleFilter}
+          className={clsx(styles.users__filterSelect)}
+          onChange={(event) => {
+            setRoleFilter(event.target.value);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="all">Роль: Все</option>
+          {USER_ROLES.map((role) => (
+            <option key={role} value={role}>
+              {role}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={sortBy}
+          className={clsx(styles.users__filterSelect)}
+          onChange={(event) => {
+            setSortBy(event.target.value as SortBy);
+            setCurrentPage(1);
+          }}
+        >
+          {SORT_BY_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              Сортировка: {option.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={sortOrder}
+          className={clsx(styles.users__filterSelect)}
+          onChange={(event) => {
+            setSortOrder(event.target.value as SortOrder);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="asc">По возрастанию</option>
+          <option value="desc">По убыванию</option>
+        </select>
+
+        <button type="submit" className={clsx(styles.users__searchButton)}>
+          Поиск
+        </button>
+      </form>
 
       {loading ? (
         <div className={clsx(styles.users__state)}>
@@ -357,37 +506,17 @@ export default function UsersPage() {
                 </select>
 
                 <div className={clsx(styles.users__paginationButtons)}>
-                  <button
-                    className={clsx(styles.users__paginationButton)}
-                    onClick={() => handlePageChange(1)}
-                    disabled={currentPage === 1 || !hasPrev}
-                    title="Первая страница"
-                  >
+                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(1)} disabled={currentPage === 1 || !hasPrev} title="Первая страница">
                     <FontAwesomeIcon icon={faChevronCircleLeft} />
                   </button>
-                  <button
-                    className={clsx(styles.users__paginationButton)}
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1 || !hasPrev}
-                    title="Предыдущая страница"
-                  >
+                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1 || !hasPrev} title="Предыдущая страница">
                     <FontAwesomeIcon icon={faChevronLeft} />
                   </button>
                   <span className={clsx(styles.users__pageInfo)}>Страница {currentPage} из {totalPages}</span>
-                  <button
-                    className={clsx(styles.users__paginationButton)}
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages || !hasNext}
-                    title="Следующая страница"
-                  >
+                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages || !hasNext} title="Следующая страница">
                     <FontAwesomeIcon icon={faChevronRight} />
                   </button>
-                  <button
-                    className={clsx(styles.users__paginationButton)}
-                    onClick={() => handlePageChange(totalPages)}
-                    disabled={currentPage === totalPages || !hasNext}
-                    title="Последняя страница"
-                  >
+                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages || !hasNext} title="Последняя страница">
                     <FontAwesomeIcon icon={faChevronCircleRight} />
                   </button>
                 </div>
@@ -407,41 +536,19 @@ export default function UsersPage() {
             <form className={clsx(styles.modal__form)} onSubmit={handleCreateSubmit}>
               <label className={clsx(styles.modal__label)}>
                 Логин
-                <input
-                  required
-                  minLength={3}
-                  maxLength={50}
-                  value={createForm.username}
-                  onChange={(event) => setCreateForm((prev) => ({ ...prev, username: event.target.value }))}
-                  className={clsx(styles.modal__input)}
-                />
+                <input required minLength={3} maxLength={50} value={createForm.username} onChange={(event) => setCreateForm((prev) => ({ ...prev, username: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
                 Email
-                <input
-                  required
-                  type="email"
-                  value={createForm.email}
-                  onChange={(event) => setCreateForm((prev) => ({ ...prev, email: event.target.value }))}
-                  className={clsx(styles.modal__input)}
-                />
+                <input required type="email" value={createForm.email} onChange={(event) => setCreateForm((prev) => ({ ...prev, email: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
                 ФИО
-                <input
-                  maxLength={100}
-                  value={createForm.fio}
-                  onChange={(event) => setCreateForm((prev) => ({ ...prev, fio: event.target.value }))}
-                  className={clsx(styles.modal__input)}
-                />
+                <input maxLength={100} value={createForm.fio} onChange={(event) => setCreateForm((prev) => ({ ...prev, fio: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
                 Роль
-                <select
-                  value={createForm.role}
-                  onChange={(event) => setCreateForm((prev) => ({ ...prev, role: event.target.value }))}
-                  className={clsx(styles.modal__input)}
-                >
+                <select value={createForm.role} onChange={(event) => setCreateForm((prev) => ({ ...prev, role: event.target.value }))} className={clsx(styles.modal__input)}>
                   {USER_ROLES.map((role) => (
                     <option key={role} value={role}>
                       {role}
@@ -451,14 +558,7 @@ export default function UsersPage() {
               </label>
               <label className={clsx(styles.modal__label)}>
                 Пароль
-                <input
-                  required
-                  type="password"
-                  minLength={4}
-                  value={createForm.password}
-                  onChange={(event) => setCreateForm((prev) => ({ ...prev, password: event.target.value }))}
-                  className={clsx(styles.modal__input)}
-                />
+                <input required type="password" minLength={4} value={createForm.password} onChange={(event) => setCreateForm((prev) => ({ ...prev, password: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
 
               {actionError && <div className={clsx(styles.modal__error)}>{actionError}</div>}
@@ -486,30 +586,15 @@ export default function UsersPage() {
             <form className={clsx(styles.modal__form)} onSubmit={handleUpdateSubmit}>
               <label className={clsx(styles.modal__label)}>
                 Email
-                <input
-                  required
-                  type="email"
-                  value={updateForm.email}
-                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, email: event.target.value }))}
-                  className={clsx(styles.modal__input)}
-                />
+                <input required type="email" value={updateForm.email} onChange={(event) => setUpdateForm((prev) => ({ ...prev, email: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
                 ФИО
-                <input
-                  maxLength={100}
-                  value={updateForm.fio}
-                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, fio: event.target.value }))}
-                  className={clsx(styles.modal__input)}
-                />
+                <input maxLength={100} value={updateForm.fio} onChange={(event) => setUpdateForm((prev) => ({ ...prev, fio: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
                 Роль
-                <select
-                  value={updateForm.role}
-                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, role: event.target.value }))}
-                  className={clsx(styles.modal__input)}
-                >
+                <select value={updateForm.role} onChange={(event) => setUpdateForm((prev) => ({ ...prev, role: event.target.value }))} className={clsx(styles.modal__input)}>
                   {USER_ROLES.map((role) => (
                     <option key={role} value={role}>
                       {role}
@@ -519,19 +604,11 @@ export default function UsersPage() {
               </label>
 
               <label className={clsx(styles.modal__checkbox)}>
-                <input
-                  type="checkbox"
-                  checked={updateForm.is_active}
-                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, is_active: event.target.checked }))}
-                />
+                <input type="checkbox" checked={updateForm.is_active} onChange={(event) => setUpdateForm((prev) => ({ ...prev, is_active: event.target.checked }))} />
                 Активен
               </label>
               <label className={clsx(styles.modal__checkbox)}>
-                <input
-                  type="checkbox"
-                  checked={updateForm.is_superuser}
-                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, is_superuser: event.target.checked }))}
-                />
+                <input type="checkbox" checked={updateForm.is_superuser} onChange={(event) => setUpdateForm((prev) => ({ ...prev, is_superuser: event.target.checked }))} />
                 Суперпользователь
               </label>
 
