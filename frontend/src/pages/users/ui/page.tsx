@@ -19,6 +19,7 @@ import {
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@shared/config';
 import { apiRequest } from '@shared/api/http';
+import { useSession } from '@features/auth';
 import type { User } from '@shared/types/user';
 import styles from './styles.module.scss';
 
@@ -82,6 +83,11 @@ const UPDATE_FORM_INITIAL: UserUpdatePayload = {
 
 export default function UsersPage() {
   const navigate = useNavigate();
+  const { checkAuth, getUser } = useSession();
+
+  const isAuthenticated = checkAuth();
+  const currentUser = getUser();
+  const isSuperUser = Boolean(currentUser?.is_superuser);
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,6 +117,20 @@ export default function UsersPage() {
 
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate(ROUTES.LOGIN);
+      return;
+    }
+
+    if (!isSuperUser) {
+      navigate(ROUTES.HOME);
+    }
+  }, [isAuthenticated, isSuperUser, navigate]);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -169,8 +189,10 @@ export default function UsersPage() {
   }, [currentPage, pageSize, sortBy, sortOrder, searchTerm, activeFilter, superuserFilter, roleFilter, navigate]);
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    if (isSuperUser) {
+      loadUsers();
+    }
+  }, [isSuperUser, loadUsers]);
 
   const handleSearchSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -321,6 +343,10 @@ export default function UsersPage() {
   };
 
   const editingUser = useMemo(() => users.find((user) => user.id === editingUserId) ?? null, [users, editingUserId]);
+
+  if (!isAuthenticated || !isSuperUser) {
+    return null;
+  }
 
   return (
     <section className={clsx(styles.users)}>
