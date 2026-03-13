@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import clsx from 'clsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -9,6 +9,10 @@ import {
   faSpinner,
   faExclamationCircle,
   faUser,
+  faPlus,
+  faPen,
+  faTrash,
+  faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@shared/config';
@@ -26,7 +30,40 @@ interface PaginatedUsersResponse {
   has_prev: boolean;
 }
 
+interface UserCreatePayload {
+  username: string;
+  email: string;
+  fio: string;
+  role: string;
+  password: string;
+}
+
+interface UserUpdatePayload {
+  email: string;
+  fio: string;
+  role: string;
+  is_active: boolean;
+  is_superuser: boolean;
+}
+
 const PAGE_SIZES = [5, 10, 20, 50] as const;
+const USER_ROLES = ['Администратор БД', 'Аналитик', 'Разработчик', 'Тестировщик', 'Пользователь'] as const;
+
+const CREATE_FORM_INITIAL: UserCreatePayload = {
+  username: '',
+  email: '',
+  fio: '',
+  role: 'Пользователь',
+  password: '',
+};
+
+const UPDATE_FORM_INITIAL: UserUpdatePayload = {
+  email: '',
+  fio: '',
+  role: 'Пользователь',
+  is_active: false,
+  is_superuser: false,
+};
 
 export default function UsersPage() {
   const navigate = useNavigate();
@@ -34,6 +71,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
@@ -41,6 +79,15 @@ export default function UsersPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState<UserCreatePayload>(CREATE_FORM_INITIAL);
+
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [updateForm, setUpdateForm] = useState<UserUpdatePayload>(UPDATE_FORM_INITIAL);
+
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -70,7 +117,6 @@ export default function UsersPage() {
         return;
       }
 
-      console.error('Ошибка загрузки пользователей:', err);
       setError(err instanceof Error ? err.message : 'Не удалось загрузить пользователей');
     } finally {
       window.clearTimeout(timeoutId);
@@ -93,6 +139,122 @@ export default function UsersPage() {
     setCurrentPage(1);
   };
 
+  const resetActionError = () => setActionError(null);
+
+  const openCreateModal = () => {
+    resetActionError();
+    setCreateForm(CREATE_FORM_INITIAL);
+    setIsCreateModalOpen(true);
+  };
+
+  const openEditModal = (user: User) => {
+    resetActionError();
+    setEditingUserId(user.id);
+    setUpdateForm({
+      email: user.email,
+      fio: user.fio ?? '',
+      role: user.role,
+      is_active: user.is_active,
+      is_superuser: user.is_superuser,
+    });
+  };
+
+  const closeModals = () => {
+    if (isSubmitting) {
+      return;
+    }
+    setIsCreateModalOpen(false);
+    setEditingUserId(null);
+    setDeletingUser(null);
+    resetActionError();
+  };
+
+  const handleCreateSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    resetActionError();
+
+    try {
+      await apiRequest<User>('/api/v1/app_users', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...createForm,
+          username: createForm.username.trim(),
+          email: createForm.email.trim(),
+          fio: createForm.fio.trim(),
+        }),
+      });
+
+      setIsCreateModalOpen(false);
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        await loadUsers();
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Не удалось создать пользователя');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!editingUserId) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    resetActionError();
+
+    try {
+      await apiRequest<User>(`/api/v1/app_users/${editingUserId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...updateForm,
+          email: updateForm.email.trim(),
+          fio: updateForm.fio.trim(),
+        }),
+      });
+
+      setEditingUserId(null);
+      await loadUsers();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Не удалось обновить пользователя');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingUser) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    resetActionError();
+
+    try {
+      await apiRequest<void>(`/api/v1/app_users/${deletingUser.id}`, {
+        method: 'DELETE',
+      });
+
+      setDeletingUser(null);
+
+      if (users.length === 1 && currentPage > 1) {
+        setCurrentPage((prev) => prev - 1);
+      } else {
+        await loadUsers();
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Не удалось удалить пользователя');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const editingUser = useMemo(() => users.find((user) => user.id === editingUserId) ?? null, [users, editingUserId]);
+
   return (
     <section className={clsx(styles.users__section)}>
       <div className={clsx(styles.users__header)}>
@@ -100,7 +262,13 @@ export default function UsersPage() {
           <FontAwesomeIcon icon={faUser} />
           Пользователи
         </h1>
-        <div className={clsx(styles.users__meta)}>Всего: {totalItems}</div>
+        <div className={clsx(styles.users__actions)}>
+          <div className={clsx(styles.users__meta)}>Всего: {totalItems}</div>
+          <button type="button" className={clsx(styles.users__createButton)} onClick={openCreateModal}>
+            <FontAwesomeIcon icon={faPlus} />
+            Добавить пользователя
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -125,6 +293,8 @@ export default function UsersPage() {
                   <th>Email</th>
                   <th>Роль</th>
                   <th>Активен</th>
+                  <th>Суперпользователь</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,6 +306,25 @@ export default function UsersPage() {
                     <td>{user.email}</td>
                     <td>{user.role}</td>
                     <td>{user.is_active ? 'Да' : 'Нет'}</td>
+                    <td>{user.is_superuser ? 'Да' : 'Нет'}</td>
+                    <td>
+                      <div className={clsx(styles.users__rowActions)}>
+                        <button type="button" className={clsx(styles.users__iconButton)} title="Редактировать" onClick={() => openEditModal(user)}>
+                          <FontAwesomeIcon icon={faPen} />
+                        </button>
+                        <button
+                          type="button"
+                          className={clsx(styles.users__iconButton, styles.users__iconButton_delete)}
+                          title="Удалить"
+                          onClick={() => {
+                            resetActionError();
+                            setDeletingUser(user);
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -206,6 +395,180 @@ export default function UsersPage() {
             </div>
           )}
         </>
+      )}
+
+      {isCreateModalOpen && (
+        <div className={clsx(styles.modal__overlay)}>
+          <div className={clsx(styles.modal__content)}>
+            <button type="button" className={clsx(styles.modal__close)} onClick={closeModals} disabled={isSubmitting}>
+              <FontAwesomeIcon icon={faXmark} />
+            </button>
+            <h2 className={clsx(styles.modal__title)}>Создать пользователя</h2>
+            <form className={clsx(styles.modal__form)} onSubmit={handleCreateSubmit}>
+              <label className={clsx(styles.modal__label)}>
+                Логин
+                <input
+                  required
+                  minLength={3}
+                  maxLength={50}
+                  value={createForm.username}
+                  onChange={(event) => setCreateForm((prev) => ({ ...prev, username: event.target.value }))}
+                  className={clsx(styles.modal__input)}
+                />
+              </label>
+              <label className={clsx(styles.modal__label)}>
+                Email
+                <input
+                  required
+                  type="email"
+                  value={createForm.email}
+                  onChange={(event) => setCreateForm((prev) => ({ ...prev, email: event.target.value }))}
+                  className={clsx(styles.modal__input)}
+                />
+              </label>
+              <label className={clsx(styles.modal__label)}>
+                ФИО
+                <input
+                  maxLength={100}
+                  value={createForm.fio}
+                  onChange={(event) => setCreateForm((prev) => ({ ...prev, fio: event.target.value }))}
+                  className={clsx(styles.modal__input)}
+                />
+              </label>
+              <label className={clsx(styles.modal__label)}>
+                Роль
+                <select
+                  value={createForm.role}
+                  onChange={(event) => setCreateForm((prev) => ({ ...prev, role: event.target.value }))}
+                  className={clsx(styles.modal__input)}
+                >
+                  {USER_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={clsx(styles.modal__label)}>
+                Пароль
+                <input
+                  required
+                  type="password"
+                  minLength={4}
+                  value={createForm.password}
+                  onChange={(event) => setCreateForm((prev) => ({ ...prev, password: event.target.value }))}
+                  className={clsx(styles.modal__input)}
+                />
+              </label>
+
+              {actionError && <div className={clsx(styles.modal__error)}>{actionError}</div>}
+
+              <div className={clsx(styles.modal__actions)}>
+                <button type="button" onClick={closeModals} className={clsx(styles.modal__button, styles.modal__button_cancel)} disabled={isSubmitting}>
+                  Отмена
+                </button>
+                <button type="submit" className={clsx(styles.modal__button, styles.modal__button_submit)} disabled={isSubmitting}>
+                  {isSubmitting ? 'Сохранение...' : 'Создать'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingUser && (
+        <div className={clsx(styles.modal__overlay)}>
+          <div className={clsx(styles.modal__content)}>
+            <button type="button" className={clsx(styles.modal__close)} onClick={closeModals} disabled={isSubmitting}>
+              <FontAwesomeIcon icon={faXmark} />
+            </button>
+            <h2 className={clsx(styles.modal__title)}>Редактировать пользователя: {editingUser.username}</h2>
+            <form className={clsx(styles.modal__form)} onSubmit={handleUpdateSubmit}>
+              <label className={clsx(styles.modal__label)}>
+                Email
+                <input
+                  required
+                  type="email"
+                  value={updateForm.email}
+                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, email: event.target.value }))}
+                  className={clsx(styles.modal__input)}
+                />
+              </label>
+              <label className={clsx(styles.modal__label)}>
+                ФИО
+                <input
+                  maxLength={100}
+                  value={updateForm.fio}
+                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, fio: event.target.value }))}
+                  className={clsx(styles.modal__input)}
+                />
+              </label>
+              <label className={clsx(styles.modal__label)}>
+                Роль
+                <select
+                  value={updateForm.role}
+                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, role: event.target.value }))}
+                  className={clsx(styles.modal__input)}
+                >
+                  {USER_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className={clsx(styles.modal__checkbox)}>
+                <input
+                  type="checkbox"
+                  checked={updateForm.is_active}
+                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, is_active: event.target.checked }))}
+                />
+                Активен
+              </label>
+              <label className={clsx(styles.modal__checkbox)}>
+                <input
+                  type="checkbox"
+                  checked={updateForm.is_superuser}
+                  onChange={(event) => setUpdateForm((prev) => ({ ...prev, is_superuser: event.target.checked }))}
+                />
+                Суперпользователь
+              </label>
+
+              {actionError && <div className={clsx(styles.modal__error)}>{actionError}</div>}
+
+              <div className={clsx(styles.modal__actions)}>
+                <button type="button" onClick={closeModals} className={clsx(styles.modal__button, styles.modal__button_cancel)} disabled={isSubmitting}>
+                  Отмена
+                </button>
+                <button type="submit" className={clsx(styles.modal__button, styles.modal__button_submit)} disabled={isSubmitting}>
+                  {isSubmitting ? 'Сохранение...' : 'Сохранить'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deletingUser && (
+        <div className={clsx(styles.modal__overlay)}>
+          <div className={clsx(styles.modal__content, styles.modal__content_small)}>
+            <button type="button" className={clsx(styles.modal__close)} onClick={closeModals} disabled={isSubmitting}>
+              <FontAwesomeIcon icon={faXmark} />
+            </button>
+            <h2 className={clsx(styles.modal__title)}>Удалить пользователя</h2>
+            <p className={clsx(styles.modal__text)}>Вы уверены, что хотите удалить пользователя «{deletingUser.username}»?</p>
+            {actionError && <div className={clsx(styles.modal__error)}>{actionError}</div>}
+            <div className={clsx(styles.modal__actions)}>
+              <button type="button" onClick={closeModals} className={clsx(styles.modal__button, styles.modal__button_cancel)} disabled={isSubmitting}>
+                Отмена
+              </button>
+              <button type="button" onClick={handleDelete} className={clsx(styles.modal__button, styles.modal__button_delete)} disabled={isSubmitting}>
+                {isSubmitting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

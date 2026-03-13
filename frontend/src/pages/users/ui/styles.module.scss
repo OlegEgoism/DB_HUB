@@ -31,6 +31,13 @@
     flex-wrap: wrap;
   }
 
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
   &__title {
     margin: 0;
     font-size: 32px;
@@ -49,6 +56,23 @@
     color: var(--color-text-muted);
     font-size: 14px;
     font-weight: 500;
+  }
+
+  &__createButton {
+    border: none;
+    border-radius: 8px;
+    background: var(--color-primary);
+    color: white;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &:hover {
+      background: var(--color-primary-dark);
+    }
   }
 
   &__state {
@@ -98,6 +122,32 @@
 
     tbody tr:hover {
       background: rgba($clr-indigo-500, 0.04);
+    }
+  }
+
+  &__rowActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__iconButton {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid $clr-gray-300;
+    background: white;
+    color: var(--color-text-main);
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    &_delete:hover {
+      border-color: var(--color-status-danger);
+      color: var(--color-status-danger);
     }
   }
 
@@ -177,5 +227,131 @@
     text-align: center;
     color: var(--color-text-muted);
     font-weight: 500;
+  }
+}
+
+.modal {
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  &__content {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 580px;
+    padding: 24px;
+    position: relative;
+
+    &_small {
+      max-width: 440px;
+    }
+  }
+
+  &__close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    border: none;
+    background: transparent;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--color-text-muted);
+  }
+
+  &__title {
+    margin: 0 0 16px;
+    color: var(--color-text-main);
+    font-size: 24px;
+  }
+
+  &__text {
+    margin: 0 0 18px;
+    color: var(--color-text-main);
+  }
+
+  &__form {
+    display: grid;
+    gap: 12px;
+  }
+
+  &__label {
+    display: grid;
+    gap: 6px;
+    color: var(--color-text-main);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  &__input {
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid $clr-gray-300;
+    padding: 0 12px;
+    font-size: 14px;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.12);
+    }
+  }
+
+  &__checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-main);
+  }
+
+  &__error {
+    border-radius: 8px;
+    border: 1px solid rgba($clr-red-500, 0.35);
+    background: rgba($clr-red-500, 0.08);
+    color: var(--color-status-danger);
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  &__button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &_cancel {
+      background: $clr-gray-200;
+      color: var(--color-text-main);
+    }
+
+    &_submit {
+      background: var(--color-primary);
+      color: white;
+    }
+
+    &_delete {
+      background: var(--color-status-danger);
+      color: white;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 }
