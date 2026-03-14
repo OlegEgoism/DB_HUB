@@ -8,7 +8,6 @@ import {
   faChevronCircleRight,
   faSpinner,
   faExclamationCircle,
-  faUser,
   faPlus,
   faPen,
   faTrash,
@@ -339,7 +338,6 @@ export default function UsersPage() {
       <div className={clsx(styles.users__header)}>
         <div className={clsx(styles.users__titleContainer)}>
           <h1 className={clsx(styles.users__title)}>
-            <FontAwesomeIcon icon={faUser} />
             Пользователи
             <span className={clsx(styles.users__countBadge)}>{users.length}</span>
           </h1>
