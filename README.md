@@ -202,7 +202,7 @@ PORT=8000
 ```
 
 > В Docker Compose БД для backend берется по имени сервиса `db` (это уже задано в `docker-compose.yml`).
-> Для frontend в Docker уже задан `VITE_API_BASE_URL=http://localhost:8088`.
+> Для frontend в Docker уже задан `VITE_API_BASE_URL=http://localhost:8088`, а сам dev-сервер frontend слушает порт `8099`.
 
 ### 3) Собрать и поднять контейнеры
 
@@ -215,7 +215,7 @@ docker compose up --build -d
 Будут подняты сервисы:
 - `db` (PostgreSQL)
 - `backend` (FastAPI) → `http://localhost:8088`
-- `frontend` (Vite) → `http://localhost:8099`
+- `frontend` (Vite) → `http://localhost:8099` (порт контейнера 8099)
 
 ### 4) Проверить, что всё запустилось
 
