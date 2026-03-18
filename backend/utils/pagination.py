@@ -1,15 +1,13 @@
-# backend/utils/pagination.py
-
 import math
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
 
-class PaginatedResponse[T: BaseModel](BaseModel):
+class PaginatedResponse(BaseModel, Generic[T]):
     """Универсальный класс для пагинированных ответов с элементами"""
 
     items: list[T]
@@ -95,15 +93,19 @@ async def paginate_raw_sql(
         size = 1
     if size > 1000:
         size = 1000
+
     offset = (page - 1) * size
     total_row = await conn.fetchrow(count_query, *(params or []))
     total = total_row["total"] if total_row else 0
+
     paginated_query = f"{base_query} LIMIT {size} OFFSET {offset}"
     rows = await conn.fetch(paginated_query, *(params or []))
+
     if row_mapper:
         items = [row_mapper(row) for row in rows]
     else:
         items = [dict(row) for row in rows]
+
     return items, total
 
 
@@ -111,6 +113,7 @@ def calculate_pagination_info(total_items: int, page: int, size: int) -> dict[st
     """Вычисляет информацию о пагинации"""
     if size <= 0:
         size = 20
+
     pages = math.ceil(total_items / size) if total_items > 0 else 1
     return {
         "page": page,

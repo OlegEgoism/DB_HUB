@@ -933,7 +933,7 @@
   background: white;
   border-bottom: 1px solid var(--border-glass);
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(340px, auto);
+  grid-template-columns: 2fr 4fr;
   align-items: center;
   gap: 16px;
 
@@ -951,8 +951,6 @@
 
 .userItemHeaderRight {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
   gap: 16px;
   min-width: 0;
 
@@ -964,8 +962,8 @@
 
 .userItemInfo {
   display: flex;
+  flex-grow: 1;
   align-items: center;
-  justify-content: flex-end;
   gap: 6px;
   min-height: 40px;
   font-size: 14px;
@@ -1541,11 +1539,9 @@
 }
 
 .usersMetaGrid {
+  flex-grow: 1;
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
-  gap: 12px 16px;
-  align-items: center;
-  width: min(420px, 100%);
+  grid-template-columns: 1fr 1fr;
 
   @media (max-width: 1200px) {
     grid-template-columns: minmax(0, 1fr);
