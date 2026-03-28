@@ -837,9 +837,12 @@ export default function ConnectionDetailPage() {
                 throw new Error(errData?.detail || 'Не удалось добавить пользователя в группу');
             }
 
+            const addedUserOid = Number(selectedUserOid);
+            const addedUser = allUsersForGroup.find((user) => user.oid === addedUserOid);
+            if (addedUser) {
+                setGroupUsers((prev) => (prev.some((user) => user.oid === addedUserOid) ? prev : [...prev, addedUser]));
+            }
             setSelectedUserOid('');
-            await loadGroupUsers(groupUsersModal.oid);
-            setGroupsReloadTrigger(prev => prev + 1);
         } catch (err) {
             console.error('Ошибка при добавлении пользователя в группу:', err);
             setError(err instanceof Error ? err.message : 'Не удалось добавить пользователя в группу');
@@ -873,8 +876,7 @@ export default function ConnectionDetailPage() {
                 throw new Error(errData?.detail || 'Не удалось удалить пользователя из группы');
             }
 
-            await loadGroupUsers(groupUsersModal.oid);
-            setGroupsReloadTrigger(prev => prev + 1);
+            setGroupUsers((prev) => prev.filter((user) => user.oid !== userOid));
         } catch (err) {
             console.error('Ошибка при удалении пользователя из группы:', err);
             setError(err instanceof Error ? err.message : 'Не удалось удалить пользователя из группы');
