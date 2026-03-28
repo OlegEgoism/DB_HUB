@@ -1,6 +1,5 @@
 # backend/services/app_content_services.py
 import math
-from typing import Literal
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -8,8 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.app_content import AppContent
 from backend.schemas.app_content_schemas import AppContentCreate, AppContentUpdate
-
-ContentType = Literal["agreement", "documentation"]
 
 
 class AppContentService:
@@ -21,19 +18,19 @@ class AppContentService:
         result = await self.db.execute(select(AppContent).where(AppContent.id == content_id))
         return result.scalar_one_or_none()
 
-    async def get_content_by_type_and_number(self, content_type: ContentType, number: str) -> AppContent | None:
+    async def get_content_by_type_and_number(self, content_type: str, number: str) -> AppContent | None:
         """Получить контент по типу и номеру"""
         result = await self.db.execute(select(AppContent).where(AppContent.content_type == content_type, AppContent.number == number))
         return result.scalar_one_or_none()
 
-    async def get_content_by_type_and_title(self, content_type: ContentType, title: str) -> AppContent | None:
+    async def get_content_by_type_and_title(self, content_type: str, title: str) -> AppContent | None:
         """Получить контент по типу и заголовку"""
         result = await self.db.execute(select(AppContent).where(AppContent.content_type == content_type, AppContent.title == title))
         return result.scalar_one_or_none()
 
     async def list_content(
         self,
-        content_type: ContentType | None = None,
+        content_type: str | None = None,
         is_active: bool | None = None,
         page: int = 1,
         size: int = 20,
@@ -77,14 +74,6 @@ class AppContentService:
             "has_next": has_next,
             "has_prev": has_prev,
         }
-
-    async def list_agreements(self, is_active: bool | None = None, **kwargs) -> dict:
-        """Получить список соглашений"""
-        return await self.list_content(content_type="agreement", is_active=is_active, **kwargs)
-
-    async def list_documentations(self, is_active: bool | None = None, **kwargs) -> dict:
-        """Получить список документаций"""
-        return await self.list_content(content_type="documentation", is_active=is_active, **kwargs)
 
     async def create_content(self, content_data: AppContentCreate) -> AppContent:
         """Создать новый контент"""
@@ -138,35 +127,12 @@ class AppContentService:
         await self.db.commit()
         return True
 
-    # async def toggle_active(self, content_id: int) -> AppContent | None:
-    #     """Переключить статус активности"""
-    #     content = await self.get_content(content_id)
-    #     if not content:
-    #         return None
-    #     content.is_active = not content.is_active
-    #     await self.db.commit()
-    #     await self.db.refresh(content)
-    #     return content
-    #
-    # async def bulk_create_agreements(self, agreements_data: list[dict]) -> list[AppContent]:
-    #     """Массовое создание соглашений"""
-    #     created = []
-    #     for data in agreements_data:
-    #         content_data = AppContentCreate(content_type="agreement", **data)
-    #         try:
-    #             content = await self.create_content(content_data)
-    #             created.append(content)
-    #         except ValueError:
-    #             # Пропускаем дубликаты
-    #             continue
-    #     return created
-
-    async def bulk_create_documentations(self, contents: list[dict]) -> list[AppContent]:
+    async def bulk_create_contents(self, contents: list[dict]) -> list[AppContent]:
         created = []
         for content_data in contents:
             schema = AppContentCreate.model_validate(content_data)
             obj = AppContent(**schema.model_dump())
-            self.db.add(obj)  # ✅ Используем правильный атрибут self.db
+            self.db.add(obj)
             created.append(obj)
         await self.db.flush()
         return created

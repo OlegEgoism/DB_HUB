@@ -17,7 +17,7 @@ router = APIRouter(prefix="/app_content", tags=["APP CONTENT"])
 @router.get("", response_model=PaginatedAppContentResponse)
 async def list_content(
     db: AsyncSession = Depends(get_db),
-    content_type: str | None = Query(None, description="Тип контента: agreement или documentation"),
+    content_type: str | None = Query(None, description="Тип контента"),
     is_active: bool | None = Query(None, description="Фильтр по активности"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     size: int = Query(20, ge=1, le=200, description="Размер страницы"),
@@ -30,40 +30,6 @@ async def list_content(
         return result
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении списка контента: {str(e)}") from e
-
-
-@router.get("/agreements", response_model=PaginatedAppContentResponse)
-async def list_agreements(
-    db: AsyncSession = Depends(get_db),
-    is_active: bool | None = Query(None, description="Фильтр по активности"),
-    page: int = Query(1, ge=1, description="Номер страницы"),
-    size: int = Query(20, ge=1, le=200, description="Размер страницы"),
-    search: str | None = Query(None, description="Поиск по номеру, заголовку или содержанию"),
-):
-    """Получить список соглашений"""
-    try:
-        service = AppContentService(db)
-        result = await service.list_agreements(is_active=is_active, page=page, size=size, search=search)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении списка соглашений: {str(e)}") from e
-
-
-@router.get("/documentations", response_model=PaginatedAppContentResponse)
-async def list_documentations(
-    db: AsyncSession = Depends(get_db),
-    is_active: bool | None = Query(None, description="Фильтр по активности"),
-    page: int = Query(1, ge=1, description="Номер страницы"),
-    size: int = Query(20, ge=1, le=200, description="Размер страницы"),
-    search: str | None = Query(None, description="Поиск по номеру, заголовку или содержанию"),
-):
-    """Получить список документаций"""
-    try:
-        service = AppContentService(db)
-        result = await service.list_documentations(is_active=is_active, page=page, size=size, search=search)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении списка документаций: {str(e)}") from e
 
 
 @router.get("/{content_id}", response_model=AppContentResponse)
@@ -119,16 +85,3 @@ async def delete_content(content_id: int, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Контент с ID {content_id} не найден")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при удалении контента: {str(e)}") from e
-
-
-# @router.patch("/{content_id}/toggle-active", response_model=AppContentResponse)
-# async def toggle_active(content_id: int, db: AsyncSession = Depends(get_db)):
-#     """Переключить статус активности"""
-#     try:
-#         service = AppContentService(db)
-#         content = await service.toggle_active(content_id)
-#         if not content:
-#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Контент с ID {content_id} не найден")
-#         return content
-#     except Exception as e:
-#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при переключении статуса: {str(e)}") from e

@@ -1,21 +1,14 @@
 # backend/models/app_content.py
-from enum import Enum
-
 from sqlalchemy import Boolean, Column, Index, Integer, String, Text, UniqueConstraint
 
 from backend.database.session import Base
 from backend.models.base_mixin import DateTimeMixin
 
 
-class ContentTypeEnum(str, Enum):
-    AGREEMENT = "agreement"
-    DOCUMENTATION = "documentation"
-
-
 class AppContent(Base, DateTimeMixin):
     __tablename__ = "app_content"
     id = Column(Integer, primary_key=True, index=True, comment="PK контента приложения")
-    content_type = Column(String(20), nullable=False, index=True, comment="Тип контента: agreement или documentation")
+    content_type = Column(String(20), nullable=False, index=True, comment="Тип контента")
     number = Column(String(50), nullable=False, index=True, comment="Порядковый номер")
     title = Column(String(100), nullable=False, comment="Заголовок")
     content = Column(Text, nullable=False, comment="Содержание")

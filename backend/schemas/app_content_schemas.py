@@ -1,16 +1,11 @@
 # backend/schemas/app_content_schemas.py
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend.models.app_content import ContentTypeEnum
-
-ContentType = Literal["agreement", "documentation"]
-
 
 class AppContentBase(BaseModel):
-    content_type: ContentType = Field(..., description="Тип контента: agreement или documentation")
+    content_type: str = Field(..., min_length=1, max_length=20, description="Тип контента")
     number: str = Field(..., max_length=50, description="Порядковый номер")
     title: str = Field(..., max_length=100, description="Заголовок")
     content: str = Field(..., description="Содержание")
@@ -18,7 +13,7 @@ class AppContentBase(BaseModel):
 
 
 class AppContentCreate(BaseModel):
-    content_type: ContentTypeEnum
+    content_type: str = Field(..., min_length=1, max_length=20)
     number: str
     title: str
     content: str
@@ -26,7 +21,7 @@ class AppContentCreate(BaseModel):
 
 
 class AppContentUpdate(BaseModel):
-    content_type: ContentType | None = Field(None, description="Тип контента")
+    content_type: str | None = Field(None, min_length=1, max_length=20, description="Тип контента")
     number: str | None = Field(None, max_length=50, description="Порядковый номер")
     title: str | None = Field(None, max_length=100, description="Заголовок")
     content: str | None = Field(None, description="Содержание")
