@@ -1,6 +1,6 @@
 // frontend/src/pages/connections/ui/page.tsx
 import clsx from 'clsx';
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import styles from './styles.module.scss';
 import {useNavigate} from 'react-router';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -36,6 +36,7 @@ export default function ConnectionsPage() {
     // Состояния
     const [connections, setConnections] = useState<Connection[]>([]);
     const [loading, setLoading] = useState(true);
+    const [gridLoading, setGridLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -57,12 +58,17 @@ export default function ConnectionsPage() {
 
     // Состояния для создания
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const hasLoadedOnceRef = useRef(false);
 
     const PAGE_SIZES = CONNECTIONS_PAGE_SIZES;
 
     // Загрузка подключений
     const loadConnections = async () => {
-        setLoading(true);
+        if (hasLoadedOnceRef.current) {
+            setGridLoading(true);
+        } else {
+            setLoading(true);
+        }
         setError(null);
 
         try {
@@ -87,7 +93,9 @@ export default function ConnectionsPage() {
             setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
         } finally {
             setLoading(false);
+            setGridLoading(false);
             setRefreshing(false);
+            hasLoadedOnceRef.current = true;
         }
     };
 
@@ -295,7 +303,7 @@ export default function ConnectionsPage() {
     // Фильтрация подключений по активному табу
     const filteredConnections = connections;
 
-    if (loading) {
+    if (loading && !hasLoadedOnceRef.current) {
         return (
             <section className={clsx(styles.connections)}>
                 <div className="container">
@@ -312,7 +320,7 @@ export default function ConnectionsPage() {
         );
     }
 
-    if (error) {
+    if (error && !hasLoadedOnceRef.current) {
         return (
             <section className={clsx(styles.connections)}>
                 <div className="container">
@@ -393,7 +401,7 @@ export default function ConnectionsPage() {
                             <button
                                 className={clsx(styles.refreshButton, refreshing && styles.refreshButton_loading)}
                                 onClick={handleRefresh}
-                                disabled={refreshing || loading}
+                                disabled={refreshing || loading || gridLoading}
                                 aria-label="Обновить список подключений"
                                 title="Обновить список подключений"
                             >
@@ -463,17 +471,49 @@ export default function ConnectionsPage() {
                         </div>
                     </div>
 
+                    {error && hasLoadedOnceRef.current && (
+                        <div className={clsx(styles.connections__error)}>
+                            <FontAwesomeIcon icon={faExclamationCircle}/>
+                            <p>{error}</p>
+                            <button
+                                className={clsx(styles.retryButton)}
+                                onClick={() => loadConnections()}
+                            >
+                                Попробовать снова
+                            </button>
+                        </div>
+                    )}
+
                     {/* Список подключений */}
                     {connections.length > 0 ? (
                         <div className={clsx(styles.connections__list)}>
                             <div className={clsx(styles.grid)}>
-                                {filteredConnections.map((connection) => (
+                                {gridLoading ? (
+                                    <div className={clsx(styles.connections__loading)}>
+                                        <div className={clsx(styles.spinner)}>
+                                            <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                        </div>
+                                        <p>Обновление списка подключений...</p>
+                                    </div>
+                                ) : filteredConnections.map((connection) => (
                                     <div
                                         key={connection.id}
                                         className={clsx(styles.connectionCard)}
                                     >
                                         <div className={clsx(styles.cardHeader)}>
-                                            <div className={clsx(styles.cardIconContainer)}>
+                                            <div
+                                                className={clsx(styles.cardIconContainer)}
+                                                role="button"
+                                                tabIndex={0}
+                                                title="Перейти к подключению"
+                                                onClick={() => handleConnectionClick(connection.id)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.preventDefault();
+                                                        handleConnectionClick(connection.id);
+                                                    }
+                                                }}
+                                            >
                                                 <FontAwesomeIcon
                                                     icon={faDatabase}
                                                     className={clsx(styles.cardIcon)}

@@ -8,7 +8,6 @@ extend-exclude = [
     "venv",
     "__pycache__",
     "frontend",
-    "load_data.py",
     "collect_backend.py",
     "collect_frontend.py",
 ]

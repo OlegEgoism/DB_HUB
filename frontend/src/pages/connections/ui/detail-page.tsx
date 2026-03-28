@@ -2163,7 +2163,7 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.cardFooter)}>
                                                     <div className={clsx(styles.cardFooterRight)}>
                                                         <button
-                                                            className={clsx(styles.actionButton)}
+                                                            className={clsx(styles.actionButton, styles.actionButton_primary)}
                                                             onClick={downloadConnectionSettings}
                                                             title="Скачать настройки"
                                                             disabled={deletingId === connection.id}
@@ -2171,7 +2171,7 @@ export default function ConnectionDetailPage() {
                                                             Скачать настройки
                                                         </button>
                                                         <button
-                                                            className={clsx(styles.actionButton, styles.actionButton_edit)}
+                                                            className={clsx(styles.actionButton, styles.actionButton_primary)}
                                                             onClick={openEditModal}
                                                             title="Редактировать подключение"
                                                             disabled={deletingId === connection.id}
@@ -2324,7 +2324,7 @@ export default function ConnectionDetailPage() {
 
                                             {/* Пагинация */}
                                             {totalUsers > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((usersPage - 1) * usersPageSize) + 1}</span>–
@@ -2506,7 +2506,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {totalGroups > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((groupsPage - 1) * groupsPageSize) + 1}</span>–
@@ -2626,7 +2626,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {totalSchemas > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((schemasPage - 1) * schemasPageSize) + 1}</span>–
@@ -2681,7 +2681,7 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleTablesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
-                                            <select value={tablesFilterType} onChange={handleTablesFilterTypeChange} className={clsx(styles.paginationSelect)}>
+                                            <select value={tablesFilterType} onChange={handleTablesFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
                                                 <option value="regular">Обычные таблицы</option>
                                                 <option value="temporary">Временные таблицы</option>
                                                 <option value="all">Все таблицы</option>
@@ -2751,7 +2751,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {totalTables > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((tablesPage - 1) * tablesPageSize) + 1}</span>–
@@ -2805,17 +2805,12 @@ export default function ConnectionDetailPage() {
                             {activeTab === 'views' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
-                                        <h3 className={clsx(styles.userItemTitle)}>
-                                            {viewsFilterType === 'views' ? 'Список представлений' : 'Список материализованных представлений'}
-                                        </h3>
-                                        <div className={clsx(styles.paginationControls)}>
-                                            <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.paginationSelect)}>
-                                                <option value="views">Представления</option>
-                                                <option value="materialized_views">Материализованные представления</option>
-                                            </select>
-                                        </div>
                                         {viewsFilterType === 'views' ? (
                                             <form onSubmit={handleViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                                <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
+                                                    <option value="views">Представления</option>
+                                                    <option value="materialized_views">Материализованные представления</option>
+                                                </select>
                                                 <div className={clsx(styles.usersSearchWrapper)}>
                                                     <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                     <input
@@ -2845,6 +2840,10 @@ export default function ConnectionDetailPage() {
                                             </form>
                                         ) : (
                                             <form onSubmit={handleMaterializedViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                                <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
+                                                    <option value="views">Представления</option>
+                                                    <option value="materialized_views">Материализованные представления</option>
+                                                </select>
                                                 <div className={clsx(styles.usersSearchWrapper)}>
                                                     <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                     <input
@@ -2923,7 +2922,7 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 )}
                                                 {resolvedViewsTotal > 0 && (
-                                                    <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.pagination)}>
                                                         <div className={clsx(styles.paginationInfo)}>
                                                             <span className={clsx(styles.paginationText)}>
                                                                 Показано <span className={clsx(styles.paginationHighlight)}>{((viewsPage - 1) * viewsPageSize) + 1}</span>–
@@ -3004,7 +3003,7 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 )}
                                                 {resolvedMaterializedViewsTotal > 0 && (
-                                                    <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.pagination)}>
                                                         <div className={clsx(styles.paginationInfo)}>
                                                             <span className={clsx(styles.paginationText)}>
                                                                 Показано <span className={clsx(styles.paginationHighlight)}>{((materializedViewsPage - 1) * materializedViewsPageSize) + 1}</span>–
@@ -3105,7 +3104,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {resolvedIndexesTotal > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((indexesPage - 1) * indexesPageSize) + 1}</span>–
@@ -3226,7 +3225,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {resolvedFunctionsTotal > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((functionsPage - 1) * functionsPageSize) + 1}</span>–
@@ -3337,7 +3336,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {resolvedProceduresTotal > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((proceduresPage - 1) * proceduresPageSize) + 1}</span>–
@@ -3556,7 +3555,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {totalActiveQueries > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
                                                         <span className={clsx(styles.paginationText)}>
                                                             Показано <span className={clsx(styles.paginationHighlight)}>{((activeSqlPage - 1) * activeSqlPageSize) + 1}</span>–
