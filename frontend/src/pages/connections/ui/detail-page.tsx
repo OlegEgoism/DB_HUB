@@ -2163,7 +2163,7 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.cardFooter)}>
                                                     <div className={clsx(styles.cardFooterRight)}>
                                                         <button
-                                                            className={clsx(styles.actionButton, styles.actionButton_edit)}
+                                                            className={clsx(styles.actionButton, styles.actionButton_primary)}
                                                             onClick={downloadConnectionSettings}
                                                             title="Скачать настройки"
                                                             disabled={deletingId === connection.id}
@@ -2171,7 +2171,7 @@ export default function ConnectionDetailPage() {
                                                             Скачать настройки
                                                         </button>
                                                         <button
-                                                            className={clsx(styles.actionButton, styles.actionButton_edit)}
+                                                            className={clsx(styles.actionButton, styles.actionButton_primary)}
                                                             onClick={openEditModal}
                                                             title="Редактировать подключение"
                                                             disabled={deletingId === connection.id}

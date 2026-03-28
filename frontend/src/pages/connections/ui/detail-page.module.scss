@@ -522,6 +522,18 @@
     }
   }
 
+  &_primary {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: var(--color-primary-dark);
+      border-color: var(--color-primary-dark);
+      box-shadow: 0 4px 12px rgba($clr-indigo-500, 0.3);
+    }
+  }
+
   &_delete {
     background: rgba($clr-red-500, 0.1);
     border-color: rgba($clr-red-500, 0.3);
