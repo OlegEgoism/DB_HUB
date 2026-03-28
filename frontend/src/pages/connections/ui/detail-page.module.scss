@@ -1150,7 +1150,7 @@
 }
 
 // Пагинация пользователей
-.usersPagination {
+.pagination {
   margin-top: 24px;
   padding: 20px;
   background: var(--color-surface-glass);
@@ -1187,10 +1187,10 @@
 }
 
 .paginationSelect {
-  padding: 12px 12px;
+  padding: 8px 12px;
   border: 1px solid $clr-gray-300;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 6px;
+  font-size: 14px;
   color: var(--color-text-main);
   background: white;
   cursor: pointer;

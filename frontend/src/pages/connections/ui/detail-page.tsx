@@ -2324,7 +2324,7 @@ export default function ConnectionDetailPage() {
 
                                             {/* Пагинация */}
                                             {totalUsers > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((usersPage - 1) * usersPageSize) + 1}</span>–
@@ -2506,7 +2506,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {totalGroups > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((groupsPage - 1) * groupsPageSize) + 1}</span>–
@@ -2626,7 +2626,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {totalSchemas > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((schemasPage - 1) * schemasPageSize) + 1}</span>–
@@ -2751,7 +2751,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {totalTables > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((tablesPage - 1) * tablesPageSize) + 1}</span>–
@@ -2923,7 +2923,7 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 )}
                                                 {resolvedViewsTotal > 0 && (
-                                                    <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.pagination)}>
                                                         <div className={clsx(styles.paginationInfo)}>
                                                             <span className={clsx(styles.paginationText)}>
                                                                 Показано <span className={clsx(styles.paginationHighlight)}>{((viewsPage - 1) * viewsPageSize) + 1}</span>–
@@ -3004,7 +3004,7 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 )}
                                                 {resolvedMaterializedViewsTotal > 0 && (
-                                                    <div className={clsx(styles.usersPagination)}>
+                                                    <div className={clsx(styles.pagination)}>
                                                         <div className={clsx(styles.paginationInfo)}>
                                                             <span className={clsx(styles.paginationText)}>
                                                                 Показано <span className={clsx(styles.paginationHighlight)}>{((materializedViewsPage - 1) * materializedViewsPageSize) + 1}</span>–
@@ -3105,7 +3105,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {resolvedIndexesTotal > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((indexesPage - 1) * indexesPageSize) + 1}</span>–
@@ -3226,7 +3226,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {resolvedFunctionsTotal > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((functionsPage - 1) * functionsPageSize) + 1}</span>–
@@ -3337,7 +3337,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {resolvedProceduresTotal > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 Показано <span className={clsx(styles.paginationHighlight)}>{((proceduresPage - 1) * proceduresPageSize) + 1}</span>–
@@ -3556,7 +3556,7 @@ export default function ConnectionDetailPage() {
                                                 ))}
                                             </div>
                                             {totalActiveQueries > 0 && (
-                                                <div className={clsx(styles.usersPagination)}>
+                                                <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
                                                         <span className={clsx(styles.paginationText)}>
                                                             Показано <span className={clsx(styles.paginationHighlight)}>{((activeSqlPage - 1) * activeSqlPageSize) + 1}</span>–
