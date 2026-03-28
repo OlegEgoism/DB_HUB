@@ -2805,17 +2805,12 @@ export default function ConnectionDetailPage() {
                             {activeTab === 'views' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
-                                        <h3 className={clsx(styles.userItemTitle)}>
-                                            {viewsFilterType === 'views' ? 'Список представлений' : 'Список материализованных представлений'}
-                                        </h3>
-                                        <div className={clsx(styles.paginationControls)}>
-                                            <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.paginationSelect)}>
-                                                <option value="views">Представления</option>
-                                                <option value="materialized_views">Материализованные представления</option>
-                                            </select>
-                                        </div>
                                         {viewsFilterType === 'views' ? (
                                             <form onSubmit={handleViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                                <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.paginationSelect)}>
+                                                    <option value="views">Представления</option>
+                                                    <option value="materialized_views">Материализованные представления</option>
+                                                </select>
                                                 <div className={clsx(styles.usersSearchWrapper)}>
                                                     <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                     <input
@@ -2845,6 +2840,10 @@ export default function ConnectionDetailPage() {
                                             </form>
                                         ) : (
                                             <form onSubmit={handleMaterializedViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                                <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.paginationSelect)}>
+                                                    <option value="views">Представления</option>
+                                                    <option value="materialized_views">Материализованные представления</option>
+                                                </select>
                                                 <div className={clsx(styles.usersSearchWrapper)}>
                                                     <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                     <input
