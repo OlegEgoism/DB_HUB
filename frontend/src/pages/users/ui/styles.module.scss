@@ -265,12 +265,16 @@
   }
 
   &__pagination {
-    margin-top: 18px;
+    margin-top: 24px;
+    padding: 10px;
+    background: var(--color-surface-glass);
+    border-radius: 8px;
+    border: 1px solid var(--border-glass);
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
   }
 
   &__paginationInfo {
@@ -309,7 +313,6 @@
     &:focus {
       outline: none;
       border-color: var(--color-primary);
-      box-shadow: none;
     }
   }
 
