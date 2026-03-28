@@ -1170,6 +1170,11 @@
   }
 }
 
+.groupUsersManagerModal {
+  width: min(1200px, calc(100vw - 40px));
+  max-width: 1200px;
+}
+
 .groupUsersManager {
   gap: 18px;
 }
@@ -1182,21 +1187,50 @@
   background: var(--color-surface-glass);
 }
 
-.groupUsersManager__actions {
+.groupUsersManager__toolbar {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 12px;
+  flex-wrap: nowrap;
+}
+
+.groupUsersManager__label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.groupUsersManager__search {
+  flex: 1 1 320px;
+  min-width: 260px;
 }
 
 .groupUsersManager__select {
-  flex: 1 1 260px;
+  flex: 0 0 240px;
+  min-width: 220px;
 }
 
 .groupUsersManager__addButton {
   min-height: 40px;
   padding: 10px 20px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1100px) {
+  .groupUsersManager__toolbar {
+    flex-wrap: wrap;
+  }
+
+  .groupUsersManager__label {
+    width: 100%;
+  }
+
+  .groupUsersManager__search {
+    min-width: 220px;
+  }
+
+  .groupUsersManager__select {
+    flex: 1 1 240px;
+  }
 }
 
 .groupUsersManager__list {

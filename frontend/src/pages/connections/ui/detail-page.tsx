@@ -3958,7 +3958,7 @@ export default function ConnectionDetailPage() {
             )}
             {groupUsersModal !== null && (
                 <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeGroupUsersModal}>
-                    <div className={clsx(groupModalStyles.modal__content, groupModalStyles.modal__content_wide)} onClick={(e) => e.stopPropagation()}>
+                    <div className={clsx(groupModalStyles.modal__content, groupModalStyles.modal__content_wide, styles.groupUsersManagerModal)} onClick={(e) => e.stopPropagation()}>
                         <button
                             className={clsx(groupModalStyles.modal__closeButton)}
                             onClick={closeGroupUsersModal}
@@ -3973,30 +3973,30 @@ export default function ConnectionDetailPage() {
                         </div>
                         <div className={clsx(groupModalStyles.modal__form, styles.groupUsersManager)}>
                             <div className={clsx(groupModalStyles.modal__formGroup, styles.groupUsersManager__controls)}>
-                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupUserSearch">Добавить пользователя</label>
-                                <div className={clsx(styles.usersSearchWrapper)}>
-                                    <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
-                                    <input
-                                        id="groupUserSearch"
-                                        type="text"
-                                        placeholder="Поиск пользователя..."
-                                        value={groupUserSearchQuery}
-                                        onChange={(e) => setGroupUserSearchQuery(e.target.value)}
-                                        className={clsx(styles.usersSearchInput)}
-                                        disabled={groupUsersLoading || groupUsersSaving || availableUsersForAdd.length === 0}
-                                    />
-                                    {groupUserSearchQuery && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setGroupUserSearchQuery('')}
-                                            className={clsx(styles.usersSearchClear)}
-                                            title="Очистить поиск"
-                                        >
-                                            <FontAwesomeIcon icon={faTimes}/>
-                                        </button>
-                                    )}
-                                </div>
-                                <div className={clsx(styles.groupUsersManager__actions)}>
+                                <div className={clsx(styles.groupUsersManager__toolbar)}>
+                                    <label className={clsx(groupModalStyles.modal__label, styles.groupUsersManager__label)} htmlFor="groupUserSearch">Добавить пользователя</label>
+                                    <div className={clsx(styles.usersSearchWrapper, styles.groupUsersManager__search)}>
+                                        <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                        <input
+                                            id="groupUserSearch"
+                                            type="text"
+                                            placeholder="Поиск пользователя..."
+                                            value={groupUserSearchQuery}
+                                            onChange={(e) => setGroupUserSearchQuery(e.target.value)}
+                                            className={clsx(styles.usersSearchInput)}
+                                            disabled={groupUsersLoading || groupUsersSaving || availableUsersForAdd.length === 0}
+                                        />
+                                        {groupUserSearchQuery && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setGroupUserSearchQuery('')}
+                                                className={clsx(styles.usersSearchClear)}
+                                                title="Очистить поиск"
+                                            >
+                                                <FontAwesomeIcon icon={faTimes}/>
+                                            </button>
+                                        )}
+                                    </div>
                                     <select
                                         id="groupUserSelect"
                                         className={clsx(styles.paginationSelect, styles.groupUsersManager__select)}
