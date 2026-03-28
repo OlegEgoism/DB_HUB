@@ -4266,10 +4266,10 @@ export default function ConnectionDetailPage() {
                                     </div>
                                 )}
                             </div>
-                            <div className={clsx(groupModalStyles.modal__actions)}>
-                                <button type="button" className={clsx(groupModalStyles.modal__button, groupModalStyles.modal__button_secondary)} onClick={closeViewEditModal} disabled={viewModalLoading}>Отмена</button>
-                                <button type="submit" className={clsx(groupModalStyles.modal__button, groupModalStyles.modal__button_primary)} disabled={viewModalLoading}>
-                                    {viewModalLoading ? 'Сохранение...' : 'Сохранить'}
+                            <div className={clsx(groupModalStyles.modal__formFooter)}>
+                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeViewEditModal} disabled={viewModalLoading}>Отмена</button>
+                                <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={viewModalLoading}>
+                                    {viewModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
                                 </button>
                             </div>
                         </form>
