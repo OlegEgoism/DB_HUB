@@ -4001,7 +4001,7 @@ export default function ConnectionDetailPage() {
                                     </div>
                                     <select
                                         id="groupUserSelect"
-                                        className={clsx(styles.paginationSelect, styles.groupUsersManager__select)}
+                                        className={clsx(styles.usersFilterSelect, styles.groupUsersManager__select)}
                                         value={selectedUserOid}
                                         onChange={(e) => setSelectedUserOid(e.target.value)}
                                         disabled={groupUsersLoading || groupUsersSaving || filteredAvailableUsersForAdd.length === 0}
