@@ -2824,7 +2824,7 @@ export default function ConnectionDetailPage() {
                                     <div className={clsx(styles.usersHeader)}>
                                         {viewsFilterType === 'views' ? (
                                             <form onSubmit={handleViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
-                                                <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.paginationSelect)}>
+                                                <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
                                                     <option value="views">Представления</option>
                                                     <option value="materialized_views">Материализованные представления</option>
                                                 </select>
@@ -2857,7 +2857,7 @@ export default function ConnectionDetailPage() {
                                             </form>
                                         ) : (
                                             <form onSubmit={handleMaterializedViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
-                                                <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.paginationSelect)}>
+                                                <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
                                                     <option value="views">Представления</option>
                                                     <option value="materialized_views">Материализованные представления</option>
                                                 </select>
