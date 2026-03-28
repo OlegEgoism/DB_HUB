@@ -76,7 +76,7 @@
 }
 
 .cardHeader {
-  padding: 32px;
+  padding: 20px;
   border-bottom: 1px solid var(--border-glass);
   display: flex;
   align-items: flex-start;
@@ -201,7 +201,7 @@
   font-size: 14px;
   color: var(--color-text-muted);
   display: flex;
-  align-items: flex-start;
+  //align-items: flex-start;
   gap: 8px;
   margin: 0;
   line-height: 1.6;
@@ -961,7 +961,8 @@
 }
 
 .userItemHeader {
-  padding: 16px;
+  margin-left: 10px;
+  padding: 8px;
   background: white;
   border-bottom: 1px solid var(--border-glass);
   display: grid;
@@ -1172,7 +1173,7 @@
 // Пагинация пользователей
 .pagination {
   margin-top: 24px;
-  padding: 20px;
+  padding: 8px;
   background: var(--color-surface-glass);
   border-radius: 12px;
   border: 1px solid var(--border-glass);
@@ -1207,10 +1208,10 @@
 }
 
 .paginationSelect {
-  padding: 8px 12px;
+  padding: 12px 16px;
   border: 1px solid $clr-gray-300;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--color-text-main);
   background: white;
   cursor: pointer;

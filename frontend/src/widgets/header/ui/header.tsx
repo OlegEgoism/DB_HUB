@@ -34,7 +34,6 @@ export function Header() {
         <div className={clsx(styles.header__body)}>
           <div className={clsx(styles.header__holder)}>
             <Logo />
-            <p className={clsx(styles.header__subtitle)}>Платформа для управления базами данных</p>
           </div>
 
           <div className={clsx(styles.header__actions)}>

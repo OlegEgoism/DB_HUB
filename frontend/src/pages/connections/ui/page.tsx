@@ -26,9 +26,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import {EditConnectionModal} from './EditConnectionModal';
 import {CreateConnectionModal} from './CreateConnectionModal';
-import { CONNECTIONS_PAGE_SIZES } from '@pages/connections/model/page-constants';
-import type { Connection, ConnectionsTab } from '@pages/connections/model/page-types';
-import { fetchConnections, patchConnectionFavorite, removeConnection } from '@pages/connections/lib/page-api';
+import {CONNECTIONS_PAGE_SIZES} from '@pages/connections/model/page-constants';
+import type {Connection, ConnectionsTab} from '@pages/connections/model/page-types';
+import {fetchConnections, patchConnectionFavorite, removeConnection} from '@pages/connections/lib/page-api';
 
 export default function ConnectionsPage() {
     const navigate = useNavigate();
@@ -196,7 +196,7 @@ export default function ConnectionsPage() {
         setConnections((prev) =>
             prev.map((conn) =>
                 conn.id === connectionId
-                    ? { ...conn, is_favorite: !isFavorite }
+                    ? {...conn, is_favorite: !isFavorite}
                     : conn,
             ),
         );
@@ -207,7 +207,7 @@ export default function ConnectionsPage() {
             setConnections((prev) =>
                 prev.map((conn) =>
                     conn.id === connectionId
-                        ? { ...conn, is_favorite: isFavorite }
+                        ? {...conn, is_favorite: isFavorite}
                         : conn,
                 ),
             );
@@ -505,7 +505,7 @@ export default function ConnectionsPage() {
                                                 className={clsx(styles.cardIconContainer)}
                                                 role="button"
                                                 tabIndex={0}
-                                                title="Перейти к подключению"
+                                                title="Постмотреть подключению"
                                                 onClick={() => handleConnectionClick(connection.id)}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter' || e.key === ' ') {

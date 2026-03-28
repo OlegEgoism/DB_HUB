@@ -181,7 +181,7 @@
     gap: 8px;
     background: var(--color-surface-glass);
     border-radius: 12px;
-    padding: 4px;
+    padding: 8px;
     border: 1px solid var(--border-glass);
   }
 
@@ -531,9 +531,9 @@
   // Пагинация
   .pagination {
     margin-top: 24px;
-    padding: 20px;
+    padding: 10px;
     background: var(--color-surface-glass);
-    border-radius: 12px;
+    border-radius: 8px;
     border: 1px solid var(--border-glass);
     display: flex;
     justify-content: space-between;
