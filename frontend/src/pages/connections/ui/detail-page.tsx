@@ -4341,49 +4341,64 @@ export default function ConnectionDetailPage() {
                                     TRUNCATE
                                 </button>
                             </div>
-                            <div className={clsx(styles.usersSearchWrapper)}>
-                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
-                                <input
-                                    type="text"
-                                    placeholder="Поиск группы"
-                                    value={tableGroupSearchQuery}
-                                    onChange={(e) => setTableGroupSearchQuery(e.target.value)}
-                                    className={clsx(styles.usersSearchInput)}
-                                    disabled={tableModalLoading}
-                                />
-                                {tableGroupSearchQuery && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setTableGroupSearchQuery('')}
-                                        className={clsx(styles.usersSearchClear)}
-                                        title="Очистить поиск групп"
+                            <div className={clsx(styles.tableGroupsSearchPanel)}>
+                                <div className={clsx(styles.tableGroupsSearchHeader)}>
+                                    <label className={clsx(styles.tableGroupsSearchLabel)} htmlFor="tableGroupsSearch">Поиск групп</label>
+                                    <span className={clsx(styles.tableGroupsSearchMeta)}>
+                                        Найдено: {filteredTableGroupsForm.length} из {tableGroupsForm.length}
+                                    </span>
+                                </div>
+                                <div className={clsx(styles.usersSearchWrapper)}>
+                                    <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                    <input
+                                        id="tableGroupsSearch"
+                                        type="text"
+                                        placeholder="Введите название группы"
+                                        value={tableGroupSearchQuery}
+                                        onChange={(e) => setTableGroupSearchQuery(e.target.value)}
+                                        className={clsx(styles.usersSearchInput)}
                                         disabled={tableModalLoading}
-                                    >
-                                        <FontAwesomeIcon icon={faTimes}/>
-                                    </button>
-                                )}
+                                    />
+                                    {tableGroupSearchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setTableGroupSearchQuery('')}
+                                            className={clsx(styles.usersSearchClear)}
+                                            title="Очистить поиск групп"
+                                            disabled={tableModalLoading}
+                                        >
+                                            <FontAwesomeIcon icon={faTimes}/>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div className={clsx(styles.schemasPrivilegesList)}>
-                                {filteredTableGroupsForm.map((group) => (
-                                    <div key={group.group} className={clsx(styles.tablePrivilegeRow)}>
-                                        <div className={clsx(styles.tablePrivilegeRole)}>{group.group}</div>
-                                        <label className={clsx(styles.tablePrivilegeCell)}>
-                                            <input type="checkbox" checked={group.select} onChange={() => toggleTableGroupPrivilege(group.group, 'select')} disabled={tableModalLoading}/>
-                                        </label>
-                                        <label className={clsx(styles.tablePrivilegeCell)}>
-                                            <input type="checkbox" checked={group.insert} onChange={() => toggleTableGroupPrivilege(group.group, 'insert')} disabled={tableModalLoading}/>
-                                        </label>
-                                        <label className={clsx(styles.tablePrivilegeCell)}>
-                                            <input type="checkbox" checked={group.update} onChange={() => toggleTableGroupPrivilege(group.group, 'update')} disabled={tableModalLoading}/>
-                                        </label>
-                                        <label className={clsx(styles.tablePrivilegeCell)}>
-                                            <input type="checkbox" checked={group.delete} onChange={() => toggleTableGroupPrivilege(group.group, 'delete')} disabled={tableModalLoading}/>
-                                        </label>
-                                        <label className={clsx(styles.tablePrivilegeCell)}>
-                                            <input type="checkbox" checked={group.truncate} onChange={() => toggleTableGroupPrivilege(group.group, 'truncate')} disabled={tableModalLoading}/>
-                                        </label>
+                                {filteredTableGroupsForm.length > 0 ? (
+                                    filteredTableGroupsForm.map((group) => (
+                                        <div key={group.group} className={clsx(styles.tablePrivilegeRow)}>
+                                            <div className={clsx(styles.tablePrivilegeRole)}>{group.group}</div>
+                                            <label className={clsx(styles.tablePrivilegeCell)}>
+                                                <input type="checkbox" checked={group.select} onChange={() => toggleTableGroupPrivilege(group.group, 'select')} disabled={tableModalLoading}/>
+                                            </label>
+                                            <label className={clsx(styles.tablePrivilegeCell)}>
+                                                <input type="checkbox" checked={group.insert} onChange={() => toggleTableGroupPrivilege(group.group, 'insert')} disabled={tableModalLoading}/>
+                                            </label>
+                                            <label className={clsx(styles.tablePrivilegeCell)}>
+                                                <input type="checkbox" checked={group.update} onChange={() => toggleTableGroupPrivilege(group.group, 'update')} disabled={tableModalLoading}/>
+                                            </label>
+                                            <label className={clsx(styles.tablePrivilegeCell)}>
+                                                <input type="checkbox" checked={group.delete} onChange={() => toggleTableGroupPrivilege(group.group, 'delete')} disabled={tableModalLoading}/>
+                                            </label>
+                                            <label className={clsx(styles.tablePrivilegeCell)}>
+                                                <input type="checkbox" checked={group.truncate} onChange={() => toggleTableGroupPrivilege(group.group, 'truncate')} disabled={tableModalLoading}/>
+                                            </label>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className={clsx(styles.tableGroupsSearchEmpty)}>
+                                        Группы по указанному фильтру не найдены
                                     </div>
-                                ))}
+                                )}
                             </div>
                             <div className={clsx(groupModalStyles.modal__formFooter)}>
                                 <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeTableEditModal} disabled={tableModalLoading}>Отмена</button>

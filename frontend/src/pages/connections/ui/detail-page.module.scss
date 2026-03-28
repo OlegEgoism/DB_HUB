@@ -1547,6 +1547,45 @@
   }
 }
 
+.tableGroupsSearchPanel {
+  background: var(--color-surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.tableGroupsSearchHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.tableGroupsSearchLabel {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.tableGroupsSearchMeta {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.tableGroupsSearchEmpty {
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  padding: 24px 12px;
+  border: 1px dashed var(--border-glass);
+  border-radius: 10px;
+  background: rgba($clr-indigo-500, 0.03);
+}
+
 .sqlQueryPanel {
   background: white;
   border: 1px solid var(--border-glass);
