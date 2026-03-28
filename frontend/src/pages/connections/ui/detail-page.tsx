@@ -3971,8 +3971,8 @@ export default function ConnectionDetailPage() {
                             <h2 className={clsx(groupModalStyles.modal__title)}>Управление пользователями группы</h2>
                             <p className={clsx(groupModalStyles.modal__subtitle)}>{groupUsersModal.name}</p>
                         </div>
-                        <div className={clsx(groupModalStyles.modal__form)}>
-                            <div className={clsx(groupModalStyles.modal__formGroup)}>
+                        <div className={clsx(groupModalStyles.modal__form, styles.groupUsersManager)}>
+                            <div className={clsx(groupModalStyles.modal__formGroup, styles.groupUsersManager__controls)}>
                                 <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupUserSearch">Добавить пользователя</label>
                                 <div className={clsx(styles.usersSearchWrapper)}>
                                     <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
@@ -3996,10 +3996,10 @@ export default function ConnectionDetailPage() {
                                         </button>
                                     )}
                                 </div>
-                                <div className={clsx(styles.paginationControls)}>
+                                <div className={clsx(styles.groupUsersManager__actions)}>
                                     <select
                                         id="groupUserSelect"
-                                        className={clsx(styles.paginationSelect)}
+                                        className={clsx(styles.paginationSelect, styles.groupUsersManager__select)}
                                         value={selectedUserOid}
                                         onChange={(e) => setSelectedUserOid(e.target.value)}
                                         disabled={groupUsersLoading || groupUsersSaving || filteredAvailableUsersForAdd.length === 0}
@@ -4011,7 +4011,7 @@ export default function ConnectionDetailPage() {
                                     </select>
                                     <button
                                         type="button"
-                                        className={clsx(styles.createUserButton)}
+                                        className={clsx(styles.createUserButton, styles.groupUsersManager__addButton)}
                                         onClick={addUserToGroup}
                                         disabled={!selectedUserOid || groupUsersSaving || groupUsersLoading}
                                     >
@@ -4028,28 +4028,25 @@ export default function ConnectionDetailPage() {
                                     <p>Загрузка пользователей группы...</p>
                                 </div>
                             ) : (
-                                <div className={clsx(styles.usersList)}>
+                                <div className={clsx(styles.groupUsersManager__list)}>
                                     {groupUsers.length > 0 ? groupUsers.map((user) => (
-                                        <div key={user.oid} className={clsx(styles.userItem)}>
-                                            <div className={clsx(styles.userItemHeader)}>
-                                                <div className={clsx(styles.userItemHeaderLeft)}>
-                                                    <h3 className={clsx(styles.userItemTitle)}>{user.name}</h3>
-                                                </div>
-                                                <div className={clsx(styles.userActions)}>
-                                                    <button
-                                                        type="button"
-                                                        className={clsx(styles.userActionButton, styles.userActionButton_delete)}
-                                                        onClick={() => removeUserFromGroup(user.oid)}
-                                                        disabled={groupUsersSaving}
-                                                        title={`Удалить ${user.name} из группы`}
-                                                    >
-                                                        <FontAwesomeIcon icon={faUserMinus}/>
-                                                    </button>
-                                                </div>
+                                        <div key={user.oid} className={clsx(styles.groupUsersManager__memberRow)}>
+                                            <div className={clsx(styles.groupUsersManager__memberInfo)}>
+                                                <h3 className={clsx(styles.groupUsersManager__memberName)}>{user.name}</h3>
+                                                <span className={clsx(styles.groupUsersManager__memberMeta)}>OID: {user.oid}</span>
                                             </div>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.userActionButton, styles.userActionButton_delete, styles.groupUsersManager__memberRemove)}
+                                                onClick={() => removeUserFromGroup(user.oid)}
+                                                disabled={groupUsersSaving}
+                                                title={`Удалить ${user.name} из группы`}
+                                            >
+                                                <FontAwesomeIcon icon={faUserMinus}/>
+                                            </button>
                                         </div>
                                     )) : (
-                                        <div className={clsx(styles.usersEmpty)}>
+                                        <div className={clsx(styles.usersEmpty, styles.groupUsersManager__empty)}>
                                             <FontAwesomeIcon icon={faUsers} size="2x"/>
                                             <p>В группе пока нет пользователей</p>
                                         </div>
