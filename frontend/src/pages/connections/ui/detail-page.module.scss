@@ -1205,8 +1205,8 @@
 }
 
 .groupUsersManager__select {
-  flex: 0 0 240px;
-  min-width: 220px;
+  flex: 0 0 auto;
+  min-width: 140px;
 }
 
 .groupUsersManager__addButton {
@@ -1229,7 +1229,7 @@
   }
 
   .groupUsersManager__select {
-    flex: 1 1 240px;
+    flex: 0 0 auto;
   }
 }
 
