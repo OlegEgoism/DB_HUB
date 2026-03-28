@@ -1794,6 +1794,28 @@
   color: var(--color-text-muted);
 }
 
+.activityChartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  i {
+    width: 14px;
+    height: 2px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+}
+
 .activityChartSvgWrap {
   border: 1px solid var(--border-glass);
   border-radius: 12px;
@@ -1852,3 +1874,17 @@
   font-size: 11px;
   font-weight: 700;
 }
+
+.activityChartPolyline {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.activityChartLine_total { color: #4f46e5; stroke: #4f46e5; }
+.activityChartLine_select { color: #16a34a; stroke: #16a34a; }
+.activityChartLine_insert { color: #2563eb; stroke: #2563eb; }
+.activityChartLine_update { color: #f59e0b; stroke: #f59e0b; }
+.activityChartLine_delete { color: #dc2626; stroke: #dc2626; }
+.activityChartLine_other { color: #6b7280; stroke: #6b7280; }

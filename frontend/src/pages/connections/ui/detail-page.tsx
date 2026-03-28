@@ -60,6 +60,25 @@ import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navig
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+type ActivityChartPoint = {
+    timestamp: string;
+    total: number;
+    select: number;
+    insert: number;
+    update: number;
+    delete: number;
+    other: number;
+};
+
+const detectQueryOperation = (query: string | null | undefined): keyof Omit<ActivityChartPoint, 'timestamp' | 'total'> => {
+    const normalized = (query || '').trim().toUpperCase();
+    if (normalized.startsWith('SELECT')) return 'select';
+    if (normalized.startsWith('INSERT')) return 'insert';
+    if (normalized.startsWith('UPDATE')) return 'update';
+    if (normalized.startsWith('DELETE')) return 'delete';
+    return 'other';
+};
+
 export default function ConnectionDetailPage() {
     const {id} = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -190,7 +209,7 @@ export default function ConnectionDetailPage() {
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
     const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
     const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
-    const [activityChartPoints, setActivityChartPoints] = useState<Array<{ timestamp: string; value: number }>>([]);
+    const [activityChartPoints, setActivityChartPoints] = useState<ActivityChartPoint[]>([]);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
 
@@ -420,12 +439,13 @@ export default function ConnectionDetailPage() {
     );
 
     const {
+        activeQueries: chartActiveQueries,
         total: chartTotalActiveQueries,
         loading: chartLoadingActiveQueries,
     } = useConnectionActiveQueries(
         id ? parseInt(id) : 0,
         1,
-        1,
+        200,
         null,
         null,
         null,
@@ -452,13 +472,23 @@ export default function ConnectionDetailPage() {
     useEffect(() => {
         if (!isActivityChartModalOpen || chartLoadingActiveQueries) return;
 
-        const point = {
+        const point: ActivityChartPoint = {
             timestamp: new Date().toLocaleTimeString('ru-RU'),
-            value: chartTotalActiveQueries,
+            total: chartTotalActiveQueries,
+            select: 0,
+            insert: 0,
+            update: 0,
+            delete: 0,
+            other: 0,
         };
 
+        chartActiveQueries.forEach((queryInfo) => {
+            const op = detectQueryOperation(queryInfo.query);
+            point[op] += 1;
+        });
+
         setActivityChartPoints((prev) => [...prev.slice(-59), point]);
-    }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen]);
+    }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen, chartActiveQueries]);
 
     const activityChartModel = useMemo(() => {
         const width = 860;
@@ -472,7 +502,14 @@ export default function ConnectionDetailPage() {
                 width,
                 height,
                 axis,
-                polylinePoints: '',
+                lines: {
+                    total: '',
+                    select: '',
+                    insert: '',
+                    update: '',
+                    delete: '',
+                    other: '',
+                },
                 yTicks: [0, 1, 2, 3, 4],
                 xTickLabels: [] as Array<{ x: number; label: string }>,
                 minValue: 0,
@@ -481,19 +518,20 @@ export default function ConnectionDetailPage() {
             };
         }
 
-        const values = activityChartPoints.map((p) => p.value);
+        const values = activityChartPoints.flatMap((p) => [p.total, p.select, p.insert, p.update, p.delete, p.other]);
         const minValue = Math.min(...values);
         const maxValue = Math.max(...values);
         const avgValue = Math.round((values.reduce((sum, val) => sum + val, 0) / values.length) * 10) / 10;
         const topValue = Math.max(maxValue, 1);
 
-        const polylinePoints = activityChartPoints
-            .map((point, index) => {
-                const x = axis.left + (index / Math.max(activityChartPoints.length - 1, 1)) * innerWidth;
-                const y = axis.top + innerHeight - (point.value / topValue) * innerHeight;
-                return `${x},${y}`;
-            })
-            .join(' ');
+        const buildPolyline = (key: keyof Omit<ActivityChartPoint, 'timestamp'>) =>
+            activityChartPoints
+                .map((point, index) => {
+                    const x = axis.left + (index / Math.max(activityChartPoints.length - 1, 1)) * innerWidth;
+                    const y = axis.top + innerHeight - ((point[key] as number) / topValue) * innerHeight;
+                    return `${x},${y}`;
+                })
+                .join(' ');
 
         const yTicks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(topValue * part));
 
@@ -510,7 +548,14 @@ export default function ConnectionDetailPage() {
             width,
             height,
             axis,
-            polylinePoints,
+            lines: {
+                total: buildPolyline('total'),
+                select: buildPolyline('select'),
+                insert: buildPolyline('insert'),
+                update: buildPolyline('update'),
+                delete: buildPolyline('delete'),
+                other: buildPolyline('other'),
+            },
             yTicks,
             xTickLabels,
             minValue,
@@ -3626,8 +3671,16 @@ export default function ConnectionDetailPage() {
                         </div>
                         <div className={clsx(styles.activityChartBody)}>
                             <p className={clsx(styles.activityChartMeta)}>
-                                Текущее количество активных подключений: <b>{chartTotalActiveQueries}</b>
+                                Текущее количество активных пользовательских транзакций: <b>{chartTotalActiveQueries}</b>
                             </p>
+                            <div className={clsx(styles.activityChartLegend)}>
+                                <span><i className={clsx(styles.activityChartLine_total)}/> Всего</span>
+                                <span><i className={clsx(styles.activityChartLine_select)}/> SELECT</span>
+                                <span><i className={clsx(styles.activityChartLine_insert)}/> INSERT</span>
+                                <span><i className={clsx(styles.activityChartLine_update)}/> UPDATE</span>
+                                <span><i className={clsx(styles.activityChartLine_delete)}/> DELETE</span>
+                                <span><i className={clsx(styles.activityChartLine_other)}/> Прочее</span>
+                            </div>
                             <div className={clsx(styles.activityChartSvgWrap)}>
                                 {activityChartPoints.length > 1 ? (
                                     <svg
@@ -3677,14 +3730,12 @@ export default function ConnectionDetailPage() {
                                             className={clsx(styles.activityChartAxisLine)}
                                         />
 
-                                        <polyline
-                                            points={activityChartModel.polylinePoints}
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="3"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
+                                        <polyline points={activityChartModel.lines.total} className={clsx(styles.activityChartPolyline, styles.activityChartLine_total)}/>
+                                        <polyline points={activityChartModel.lines.select} className={clsx(styles.activityChartPolyline, styles.activityChartLine_select)}/>
+                                        <polyline points={activityChartModel.lines.insert} className={clsx(styles.activityChartPolyline, styles.activityChartLine_insert)}/>
+                                        <polyline points={activityChartModel.lines.update} className={clsx(styles.activityChartPolyline, styles.activityChartLine_update)}/>
+                                        <polyline points={activityChartModel.lines.delete} className={clsx(styles.activityChartPolyline, styles.activityChartLine_delete)}/>
+                                        <polyline points={activityChartModel.lines.other} className={clsx(styles.activityChartPolyline, styles.activityChartLine_other)}/>
 
                                         {activityChartModel.xTickLabels.map((tick) => (
                                             <text
@@ -3713,7 +3764,7 @@ export default function ConnectionDetailPage() {
                                             transform={`rotate(-90 16 ${activityChartModel.height / 2})`}
                                             className={clsx(styles.activityChartAxisTitle)}
                                         >
-                                            Активные подключения
+                                            Количество транзакций
                                         </text>
                                     </svg>
                                 ) : (
@@ -3729,6 +3780,10 @@ export default function ConnectionDetailPage() {
                                     <span>Мин: {activityChartModel.minValue}</span>
                                     <span>Среднее: {activityChartModel.avgValue}</span>
                                     <span>Пик: {activityChartModel.maxValue}</span>
+                                    <span>SELECT: {activityChartPoints[activityChartPoints.length - 1].select}</span>
+                                    <span>INSERT: {activityChartPoints[activityChartPoints.length - 1].insert}</span>
+                                    <span>UPDATE: {activityChartPoints[activityChartPoints.length - 1].update}</span>
+                                    <span>DELETE: {activityChartPoints[activityChartPoints.length - 1].delete}</span>
                                 </div>
                             )}
                         </div>
