@@ -109,9 +109,10 @@ export default function ConnectionDetailPage() {
     const [groupDeleteTarget, setGroupDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
     const [deletingGroupOid, setDeletingGroupOid] = useState<number | null>(null);
     const [groupDeleteErrorModal, setGroupDeleteErrorModal] = useState<string | null>(null);
-    const [groupUsersModal, setGroupUsersModal] = useState<{ oid: number; name: string } | null>(null);
+    const [groupUsersModal, setGroupUsersModal] = useState<{ oid: number; name: string; userCount: number } | null>(null);
     const [groupUsers, setGroupUsers] = useState<GroupUser[]>([]);
     const [allUsersForGroup, setAllUsersForGroup] = useState<GroupUser[]>([]);
+    const [groupUserCountOverrides, setGroupUserCountOverrides] = useState<Record<number, number>>({});
     const [selectedUserOid, setSelectedUserOid] = useState('');
     const [groupUserSearchQuery, setGroupUserSearchQuery] = useState('');
     const [groupUsersLoading, setGroupUsersLoading] = useState(false);
@@ -794,8 +795,8 @@ export default function ConnectionDetailPage() {
         }
     };
 
-    const openGroupUsersModal = async (group: { oid: number; name: string }) => {
-        setGroupUsersModal(group);
+    const openGroupUsersModal = async (group: { oid: number; name: string; user_count: number }) => {
+        setGroupUsersModal({oid: group.oid, name: group.name, userCount: groupUserCountOverrides[group.oid] ?? group.user_count});
         setSelectedUserOid('');
         setGroupUserSearchQuery('');
         setGroupUsers([]);
@@ -838,9 +839,16 @@ export default function ConnectionDetailPage() {
             }
 
             const addedUserOid = Number(selectedUserOid);
+            const alreadyInGroup = groupUsers.some((user) => user.oid === addedUserOid);
             const addedUser = allUsersForGroup.find((user) => user.oid === addedUserOid);
             if (addedUser) {
                 setGroupUsers((prev) => (prev.some((user) => user.oid === addedUserOid) ? prev : [...prev, addedUser]));
+            }
+            if (!alreadyInGroup) {
+                setGroupUserCountOverrides((prev) => {
+                    const currentCount = prev[groupUsersModal.oid] ?? groupUsersModal.userCount;
+                    return {...prev, [groupUsersModal.oid]: currentCount + 1};
+                });
             }
             setSelectedUserOid('');
         } catch (err) {
@@ -876,7 +884,14 @@ export default function ConnectionDetailPage() {
                 throw new Error(errData?.detail || 'Не удалось удалить пользователя из группы');
             }
 
+            const userExists = groupUsers.some((user) => user.oid === userOid);
             setGroupUsers((prev) => prev.filter((user) => user.oid !== userOid));
+            if (userExists) {
+                setGroupUserCountOverrides((prev) => {
+                    const currentCount = prev[groupUsersModal.oid] ?? groupUsersModal.userCount;
+                    return {...prev, [groupUsersModal.oid]: Math.max(0, currentCount - 1)};
+                });
+            }
         } catch (err) {
             console.error('Ошибка при удалении пользователя из группы:', err);
             setError(err instanceof Error ? err.message : 'Не удалось удалить пользователя из группы');
@@ -2461,7 +2476,7 @@ export default function ConnectionDetailPage() {
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
                                                                     <span className={clsx(styles.userItemInfoLabel)}>Пользователей:</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{group.user_count}</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
                                                                 </div>
                                                                 {group.description && (
                                                                     <div className={clsx(styles.userItemInfo)}>
