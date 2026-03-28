@@ -60,25 +60,6 @@ import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navig
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-type TransactionMonitorPoint = {
-    timestamp: string;
-    total: number;
-    select: number;
-    insert: number;
-    update: number;
-    delete: number;
-    other: number;
-};
-
-const detectQueryOperation = (query: string | null | undefined): keyof Omit<TransactionMonitorPoint, 'timestamp' | 'total'> => {
-    const normalized = (query || '').trim().toUpperCase();
-    if (normalized.startsWith('SELECT')) return 'select';
-    if (normalized.startsWith('INSERT')) return 'insert';
-    if (normalized.startsWith('UPDATE')) return 'update';
-    if (normalized.startsWith('DELETE')) return 'delete';
-    return 'other';
-};
-
 export default function ConnectionDetailPage() {
     const {id} = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -210,7 +191,6 @@ export default function ConnectionDetailPage() {
     const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
     const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
     const [activityChartPoints, setActivityChartPoints] = useState<Array<{ timestamp: string; value: number }>>([]);
-    const [transactionMonitorPoints, setTransactionMonitorPoints] = useState<TransactionMonitorPoint[]>([]);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
 
@@ -480,38 +460,6 @@ export default function ConnectionDetailPage() {
         setActivityChartPoints((prev) => [...prev.slice(-59), point]);
     }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen]);
 
-    useEffect(() => {
-        if (activeTab !== 'active_sql') return;
-
-        setActiveSqlReloadTrigger((prev) => prev + 1);
-        const intervalId = window.setInterval(() => {
-            setActiveSqlReloadTrigger((prev) => prev + 1);
-        }, 2000);
-
-        return () => window.clearInterval(intervalId);
-    }, [activeTab]);
-
-    useEffect(() => {
-        if (activeTab !== 'active_sql' || loadingActiveQueries) return;
-
-        const point: TransactionMonitorPoint = {
-            timestamp: new Date().toLocaleTimeString('ru-RU'),
-            total: totalActiveQueries,
-            select: 0,
-            insert: 0,
-            update: 0,
-            delete: 0,
-            other: 0,
-        };
-
-        activeQueries.forEach((item) => {
-            const op = detectQueryOperation(item.query);
-            point[op] += 1;
-        });
-
-        setTransactionMonitorPoints((prev) => [...prev.slice(-44), point]);
-    }, [activeQueries, totalActiveQueries, loadingActiveQueries, activeTab]);
-
     const activityChartModel = useMemo(() => {
         const width = 860;
         const height = 280;
@@ -570,44 +518,6 @@ export default function ConnectionDetailPage() {
             avgValue,
         };
     }, [activityChartPoints]);
-
-    const transactionMonitorChartModel = useMemo(() => {
-        const width = 860;
-        const height = 250;
-        const axis = {left: 42, right: 12, top: 14, bottom: 28};
-        const innerWidth = width - axis.left - axis.right;
-        const innerHeight = height - axis.top - axis.bottom;
-        const latest = transactionMonitorPoints.slice(-30);
-
-        const values = latest.flatMap((point) => [point.total, point.select, point.insert, point.update, point.delete, point.other]);
-        const maxValue = Math.max(1, ...values);
-
-        const toPolyline = (key: keyof Omit<TransactionMonitorPoint, 'timestamp'>) =>
-            latest
-                .map((point, index) => {
-                    const x = axis.left + (index / Math.max(latest.length - 1, 1)) * innerWidth;
-                    const y = axis.top + innerHeight - ((point[key] as number) / maxValue) * innerHeight;
-                    return `${x.toFixed(1)},${y.toFixed(1)}`;
-                })
-                .join(' ');
-
-        return {
-            width,
-            height,
-            axis,
-            maxValue,
-            hasData: latest.length > 1,
-            points: latest,
-            lines: {
-                total: toPolyline('total'),
-                select: toPolyline('select'),
-                insert: toPolyline('insert'),
-                update: toPolyline('update'),
-                delete: toPolyline('delete'),
-                other: toPolyline('other'),
-            },
-        };
-    }, [transactionMonitorPoints]);
 
     const closeActivityChartModal = () => {
         setIsActivityChartModalOpen(false);
@@ -3620,57 +3530,6 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faChartLine}/> График активности
                                             </button>
                                         </form>
-                                    </div>
-
-                                    <div className={clsx(styles.transactionsMonitorPanel)}>
-                                        <div className={clsx(styles.transactionsMonitorHeader)}>
-                                            <h3 className={clsx(styles.transactionsMonitorTitle)}>Мониторинг транзакций (онлайн)</h3>
-                                            <div className={clsx(styles.transactionsMonitorLegend)}>
-                                                <span><i className={clsx(styles.transactionsLine_total)}/> Всего</span>
-                                                <span><i className={clsx(styles.transactionsLine_select)}/> SELECT</span>
-                                                <span><i className={clsx(styles.transactionsLine_insert)}/> INSERT</span>
-                                                <span><i className={clsx(styles.transactionsLine_update)}/> UPDATE</span>
-                                                <span><i className={clsx(styles.transactionsLine_delete)}/> DELETE</span>
-                                                <span><i className={clsx(styles.transactionsLine_other)}/> Прочее</span>
-                                            </div>
-                                        </div>
-                                        <div className={clsx(styles.transactionsMonitorChartWrap)}>
-                                            {transactionMonitorChartModel.hasData ? (
-                                                <svg viewBox={`0 0 ${transactionMonitorChartModel.width} ${transactionMonitorChartModel.height}`} className={clsx(styles.transactionsMonitorChart)}>
-                                                    <line
-                                                        x1={transactionMonitorChartModel.axis.left}
-                                                        y1={transactionMonitorChartModel.axis.top}
-                                                        x2={transactionMonitorChartModel.axis.left}
-                                                        y2={transactionMonitorChartModel.height - transactionMonitorChartModel.axis.bottom}
-                                                        className={clsx(styles.activityChartAxisLine)}
-                                                    />
-                                                    <line
-                                                        x1={transactionMonitorChartModel.axis.left}
-                                                        y1={transactionMonitorChartModel.height - transactionMonitorChartModel.axis.bottom}
-                                                        x2={transactionMonitorChartModel.width - transactionMonitorChartModel.axis.right}
-                                                        y2={transactionMonitorChartModel.height - transactionMonitorChartModel.axis.bottom}
-                                                        className={clsx(styles.activityChartAxisLine)}
-                                                    />
-                                                    <polyline points={transactionMonitorChartModel.lines.total} className={clsx(styles.transactionsPolyline, styles.transactionsLine_total)}/>
-                                                    <polyline points={transactionMonitorChartModel.lines.select} className={clsx(styles.transactionsPolyline, styles.transactionsLine_select)}/>
-                                                    <polyline points={transactionMonitorChartModel.lines.insert} className={clsx(styles.transactionsPolyline, styles.transactionsLine_insert)}/>
-                                                    <polyline points={transactionMonitorChartModel.lines.update} className={clsx(styles.transactionsPolyline, styles.transactionsLine_update)}/>
-                                                    <polyline points={transactionMonitorChartModel.lines.delete} className={clsx(styles.transactionsPolyline, styles.transactionsLine_delete)}/>
-                                                    <polyline points={transactionMonitorChartModel.lines.other} className={clsx(styles.transactionsPolyline, styles.transactionsLine_other)}/>
-                                                </svg>
-                                            ) : (
-                                                <div className={clsx(styles.transactionsMonitorEmpty)}>
-                                                    <FontAwesomeIcon icon={faSpinner} spin={loadingActiveQueries}/>
-                                                    <span>Сбор данных для мониторинга...</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        {transactionMonitorChartModel.points.length > 0 && (
-                                            <div className={clsx(styles.transactionsMonitorMeta)}>
-                                                <span>Последнее обновление: {transactionMonitorChartModel.points[transactionMonitorChartModel.points.length - 1].timestamp}</span>
-                                                <span>Активных транзакций: {transactionMonitorChartModel.points[transactionMonitorChartModel.points.length - 1].total}</span>
-                                            </div>
-                                        )}
                                     </div>
 
                                     {loadingActiveQueries ? (
