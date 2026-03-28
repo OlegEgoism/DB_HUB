@@ -501,7 +501,19 @@ export default function ConnectionsPage() {
                                         className={clsx(styles.connectionCard)}
                                     >
                                         <div className={clsx(styles.cardHeader)}>
-                                            <div className={clsx(styles.cardIconContainer)}>
+                                            <div
+                                                className={clsx(styles.cardIconContainer)}
+                                                role="button"
+                                                tabIndex={0}
+                                                title="Перейти к подключению"
+                                                onClick={() => handleConnectionClick(connection.id)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.preventDefault();
+                                                        handleConnectionClick(connection.id);
+                                                    }
+                                                }}
+                                            >
                                                 <FontAwesomeIcon
                                                     icon={faDatabase}
                                                     className={clsx(styles.cardIcon)}
