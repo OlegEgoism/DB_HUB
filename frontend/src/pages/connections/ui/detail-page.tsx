@@ -4204,52 +4204,67 @@ export default function ConnectionDetailPage() {
                                     USAGE
                                 </button>
                             </div>
-                            <div className={clsx(styles.usersSearchWrapper)}>
-                                <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
-                                <input
-                                    type="text"
-                                    placeholder="Поиск группы"
-                                    value={viewGroupSearchQuery}
-                                    onChange={(e) => setViewGroupSearchQuery(e.target.value)}
-                                    className={clsx(styles.usersSearchInput)}
-                                    disabled={viewModalLoading}
-                                />
-                                {viewGroupSearchQuery && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setViewGroupSearchQuery('')}
-                                        className={clsx(styles.usersSearchClear)}
-                                        title="Очистить поиск групп"
+                            <div className={clsx(styles.tableGroupsSearchPanel)}>
+                                <div className={clsx(styles.tableGroupsSearchHeader)}>
+                                    <label className={clsx(styles.tableGroupsSearchLabel)} htmlFor="viewGroupsSearch">Поиск групп</label>
+                                    <span className={clsx(styles.tableGroupsSearchMeta)}>
+                                        Найдено: {filteredViewGroupsForm.length} из {viewGroupsForm.length}
+                                    </span>
+                                </div>
+                                <div className={clsx(styles.usersSearchWrapper)}>
+                                    <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
+                                    <input
+                                        id="viewGroupsSearch"
+                                        type="text"
+                                        placeholder="Введите название группы"
+                                        value={viewGroupSearchQuery}
+                                        onChange={(e) => setViewGroupSearchQuery(e.target.value)}
+                                        className={clsx(styles.usersSearchInput)}
                                         disabled={viewModalLoading}
-                                    >
-                                        <FontAwesomeIcon icon={faTimes}/>
-                                    </button>
-                                )}
+                                    />
+                                    {viewGroupSearchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setViewGroupSearchQuery('')}
+                                            className={clsx(styles.usersSearchClear)}
+                                            title="Очистить поиск групп"
+                                            disabled={viewModalLoading}
+                                        >
+                                            <FontAwesomeIcon icon={faTimes}/>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div className={clsx(styles.schemasPrivilegesList)}>
-                                {filteredViewGroupsForm.map((group) => (
-                                    <div key={group.role} className={clsx(styles.schemasPrivilegeRow)}>
-                                        <div className={clsx(styles.schemasPrivilegeRole)}>{group.role}</div>
-                                        <div className={clsx(styles.schemasPrivilegeCell)}>
-                                            <input
-                                                type="checkbox"
-                                                className={clsx(styles.schemasPrivilegeCheckbox)}
-                                                checked={group.create}
-                                                onChange={() => toggleViewGroupPrivilege(group.role, 'create')}
-                                                disabled={viewModalLoading}
-                                            />
+                                {filteredViewGroupsForm.length > 0 ? (
+                                    filteredViewGroupsForm.map((group) => (
+                                        <div key={group.role} className={clsx(styles.schemasPrivilegeRow)}>
+                                            <div className={clsx(styles.schemasPrivilegeRole)}>{group.role}</div>
+                                            <div className={clsx(styles.schemasPrivilegeCell)}>
+                                                <input
+                                                    type="checkbox"
+                                                    className={clsx(styles.schemasPrivilegeCheckbox)}
+                                                    checked={group.create}
+                                                    onChange={() => toggleViewGroupPrivilege(group.role, 'create')}
+                                                    disabled={viewModalLoading}
+                                                />
+                                            </div>
+                                            <div className={clsx(styles.schemasPrivilegeCell)}>
+                                                <input
+                                                    type="checkbox"
+                                                    className={clsx(styles.schemasPrivilegeCheckbox)}
+                                                    checked={group.usage}
+                                                    onChange={() => toggleViewGroupPrivilege(group.role, 'usage')}
+                                                    disabled={viewModalLoading}
+                                                />
+                                            </div>
                                         </div>
-                                        <div className={clsx(styles.schemasPrivilegeCell)}>
-                                            <input
-                                                type="checkbox"
-                                                className={clsx(styles.schemasPrivilegeCheckbox)}
-                                                checked={group.usage}
-                                                onChange={() => toggleViewGroupPrivilege(group.role, 'usage')}
-                                                disabled={viewModalLoading}
-                                            />
-                                        </div>
+                                    ))
+                                ) : (
+                                    <div className={clsx(styles.tableGroupsSearchEmpty)}>
+                                        Группы по указанному фильтру не найдены
                                     </div>
-                                ))}
+                                )}
                             </div>
                             <div className={clsx(groupModalStyles.modal__actions)}>
                                 <button type="button" className={clsx(groupModalStyles.modal__button, groupModalStyles.modal__button_secondary)} onClick={closeViewEditModal} disabled={viewModalLoading}>Отмена</button>
