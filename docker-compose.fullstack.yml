@@ -13,9 +13,13 @@ services:
       FRONTEND_PORT: 8099
       VITE_API_BASE_URL: http://localhost:8088
       APP_DATABASE_URL: sqlite+aiosqlite:////app/data/db_hub.sqlite3
+      DBHUB_MAP_LOCALHOST_TO_HOST: "1"
+      DOCKER_HOST_GATEWAY_HOSTNAME: host.docker.internal
     ports:
       - "8088:8088"
       - "8099:8099"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - db_hub_data:/app/data
 

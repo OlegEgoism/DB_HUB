@@ -144,6 +144,16 @@ docker compose logs -f app
 docker compose down
 ```
 
+
+### Подключение к локальной внешней PostgreSQL/Greenplum
+
+Если в форме нового подключения указать `host=localhost`, то внутри Docker это означает сам контейнер.
+В проекте добавлена автоматическая подмена `localhost/127.0.0.1/::1` на `host.docker.internal`
+(можно отключить через `DBHUB_MAP_LOCALHOST_TO_HOST=0`).
+
+Для Linux в compose добавлен `extra_hosts: host.docker.internal:host-gateway`,
+поэтому подключение к БД на хост-машине работает через `host.docker.internal`.
+
 ### Важно
 
 При старте контейнера автоматически выполняется `python3 -m backend.docker_init`, поэтому:
