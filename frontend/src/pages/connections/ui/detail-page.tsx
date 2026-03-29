@@ -57,6 +57,7 @@ import type { Connection, EditingUser, GroupUser, TabType, TablesFilterType, Vie
 import { formatDateTime, formatStartTime, formatUptime } from '@pages/connections/lib/detail-page/formatters';
 import { useConnectionDetailCore } from '@pages/connections/lib/detail-page/useConnectionDetailCore';
 import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navigation';
+import { getConnectionTabsVisibility, getVisibleConnectionTabs } from '@shared/config';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -93,6 +94,7 @@ export default function ConnectionDetailPage() {
         loadMetrics,
     } = useConnectionDetailCore(id);
     const [activeTab, setActiveTab] = useState<TabType>('metrics');
+    const [visibleTabs, setVisibleTabs] = useState(getConnectionTabsVisibility);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [confirmDeleteName, setConfirmDeleteName] = useState<string>('');
@@ -457,6 +459,21 @@ export default function ConnectionDetailPage() {
             loadMetrics();
         }
     }, [activeTab, metrics, loadMetrics]);
+
+    useEffect(() => {
+        const nextVisibleTabs = getConnectionTabsVisibility();
+        setVisibleTabs(nextVisibleTabs);
+
+        const visibleTabKeys = getVisibleConnectionTabs();
+        if (visibleTabKeys.length === 0) {
+            setActiveTab('metrics');
+            return;
+        }
+
+        if (!visibleTabKeys.includes(activeTab)) {
+            setActiveTab(visibleTabKeys[0] as TabType);
+        }
+    }, [activeTab]);
 
     useEffect(() => {
         if (!isActivityChartModalOpen) return;
@@ -1999,9 +2016,10 @@ export default function ConnectionDetailPage() {
                             setProceduresPage={setProceduresPage}
                             setActiveSqlPage={setActiveSqlPage}
                             setSqlQueryError={setSqlQueryError}
+                            visibleTabs={visibleTabs}
                         />
                         <div className={clsx(styles.tabContent)}>
-                            {activeTab === 'metrics' && (
+                            {visibleTabs.metrics && activeTab === 'metrics' && (
                                 <div className={clsx(styles.metricsContent)}>
                                     {loadingMetrics ? (
                                         <div className={clsx(styles.metricsLoading)}>
@@ -2221,7 +2239,7 @@ export default function ConnectionDetailPage() {
                                                 </div>
                                             </div>
                                             {/* Кнопки действий - отображаются ТОЛЬКО на вкладке "Информация" */}
-                                            {activeTab === 'metrics' && (
+                                            {visibleTabs.metrics && activeTab === 'metrics' && (
                                                 <div className={clsx(styles.cardFooter)}>
                                                     <div className={clsx(styles.cardFooterRight)}>
                                                         <button
@@ -2261,7 +2279,7 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'users' && (
+                            {visibleTabs.users && activeTab === 'users' && (
                                 <div className={clsx(styles.usersContent)}>
                                     {/* Панель поиска */}
                                     <div className={clsx(styles.usersHeader)}>
@@ -2455,7 +2473,7 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'groups' && (
+                            {visibleTabs.groups && activeTab === 'groups' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleGroupsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
@@ -2619,7 +2637,7 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'schemas' && (
+                            {visibleTabs.schemas && activeTab === 'schemas' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleSchemasSearchSubmit} className={clsx(styles.usersSearchContainer)}>
@@ -2739,7 +2757,7 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'tables' && (
+                            {visibleTabs.tables && activeTab === 'tables' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleTablesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
@@ -2864,7 +2882,7 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'views' && (
+                            {visibleTabs.views && activeTab === 'views' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         {viewsFilterType === 'views' ? (
@@ -3102,7 +3120,7 @@ export default function ConnectionDetailPage() {
                                 </div>
                             )}
 
-                            {activeTab === 'indexes' && (
+                            {visibleTabs.indexes && activeTab === 'indexes' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleIndexesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
@@ -3227,7 +3245,7 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'functions' && (
+                            {visibleTabs.functions && activeTab === 'functions' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleFunctionsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
@@ -3338,7 +3356,7 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'procedures' && (
+                            {visibleTabs.procedures && activeTab === 'procedures' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleProceduresSearchSubmit} className={clsx(styles.usersSearchContainer)}>
@@ -3449,7 +3467,7 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'sql_query' && (
+                            {visibleTabs.sql_query && activeTab === 'sql_query' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.sqlQueryPanel)}>
                                         <div className={clsx(styles.sqlQueryPanelHeader)}>
@@ -3524,7 +3542,7 @@ export default function ConnectionDetailPage() {
                                     )}
                                 </div>
                             )}
-                            {activeTab === 'active_sql' && (
+                            {visibleTabs.active_sql && activeTab === 'active_sql' && (
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleActiveSqlFilterSubmit} className={clsx(styles.usersSearchContainer)}>

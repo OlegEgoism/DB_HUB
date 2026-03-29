@@ -9,6 +9,7 @@ export default [
         route(ROUTES.USERS, "../pages/users/ui/page.tsx"),
         route(`${ROUTES.CONNECTIONS}/:id`, "../pages/connections/ui/detail-page.tsx"),
         route(ROUTES.PROFILE, "../pages/profile/ui/page.tsx"),
+        route(ROUTES.SETTINGS, "../pages/settings/ui/page.tsx"),
     ]),
     route(ROUTES.LOGIN, "../pages/auth/ui/login-page.tsx"),
     route("*", "./routes/not-found.tsx"),

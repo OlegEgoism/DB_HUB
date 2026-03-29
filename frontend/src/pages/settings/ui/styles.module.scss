@@ -1,0 +1,81 @@
+@use "@shared/styles/_palette" as *;
+
+.settings {
+  &__section {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid var(--gray-200);
+    padding: 20px;
+    width: 100%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+    }
+  }
+
+  &__title {
+    margin: 0 0 8px;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-text-main);
+  }
+
+  &__description {
+    margin: 0 0 24px;
+    color: var(--color-text-muted);
+  }
+
+  &__card {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    background: var(--color-surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    color: var(--color-text-main);
+
+    input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--color-primary);
+      cursor: pointer;
+    }
+  }
+
+  &__actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__resetButton {
+    border: none;
+    border-radius: 8px;
+    background: var(--color-primary);
+    color: white;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-primary-dark);
+    }
+  }
+}
