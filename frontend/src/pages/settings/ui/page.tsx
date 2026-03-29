@@ -39,14 +39,18 @@ export default function SettingsPage() {
         [tabKey]: !prev[tabKey],
       };
 
-      void connectionTabsSettingsModel.saveVisibility(next);
+      void connectionTabsSettingsModel.saveVisibility(next).then((saved) => {
+        setVisibility(saved);
+      });
       return next;
     });
   };
 
   const handleReset = () => {
     setVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY);
-    void connectionTabsSettingsModel.saveVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY);
+    void connectionTabsSettingsModel.saveVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY).then((saved) => {
+      setVisibility(saved);
+    });
   };
 
   return (
