@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import styles from '../detail-page.module.scss';
 import type { TabType } from '@pages/connections/model/detail-page-types';
-import type { ConnectionTabsVisibility } from '@shared/config';
+import type { ConnectionTabsVisibility } from '@entities/settings/model';
 
 interface Props {
   activeTab: TabType;

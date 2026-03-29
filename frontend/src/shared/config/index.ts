@@ -9,4 +9,3 @@ config.autoAddCss = false
 
 // === Exports === /
 export * from "./routes"
-export * from "./connection-tabs"

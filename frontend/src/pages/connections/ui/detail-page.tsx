@@ -57,7 +57,7 @@ import type { Connection, EditingUser, GroupUser, TabType, TablesFilterType, Vie
 import { formatDateTime, formatStartTime, formatUptime } from '@pages/connections/lib/detail-page/formatters';
 import { useConnectionDetailCore } from '@pages/connections/lib/detail-page/useConnectionDetailCore';
 import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navigation';
-import { getConnectionTabsVisibility, getVisibleConnectionTabs } from '@shared/config';
+import { connectionTabsSettingsModel } from '@entities/settings/model';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -94,7 +94,7 @@ export default function ConnectionDetailPage() {
         loadMetrics,
     } = useConnectionDetailCore(id);
     const [activeTab, setActiveTab] = useState<TabType>('metrics');
-    const [visibleTabs, setVisibleTabs] = useState(getConnectionTabsVisibility);
+    const [visibleTabs, setVisibleTabs] = useState(connectionTabsSettingsModel.getVisibility);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [confirmDeleteName, setConfirmDeleteName] = useState<string>('');
@@ -461,10 +461,10 @@ export default function ConnectionDetailPage() {
     }, [activeTab, metrics, loadMetrics]);
 
     useEffect(() => {
-        const nextVisibleTabs = getConnectionTabsVisibility();
+        const nextVisibleTabs = connectionTabsSettingsModel.getVisibility();
         setVisibleTabs(nextVisibleTabs);
 
-        const visibleTabKeys = getVisibleConnectionTabs();
+        const visibleTabKeys = connectionTabsSettingsModel.getVisibleTabs();
         if (visibleTabKeys.length === 0) {
             setActiveTab('metrics');
             return;

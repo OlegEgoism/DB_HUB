@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router';
 import clsx from 'clsx';
 import styles from './styles.module.scss';
 import { useSession } from '@features/auth';
-import { ROUTES, CONNECTION_TAB_OPTIONS, DEFAULT_CONNECTION_TABS_VISIBILITY, getConnectionTabsVisibility, setConnectionTabsVisibility, type ConnectionTabsVisibility, type ConnectionTabKey } from '@shared/config';
+import { ROUTES } from '@shared/config';
+import { CONNECTION_TAB_OPTIONS, DEFAULT_CONNECTION_TABS_VISIBILITY, connectionTabsSettingsModel, type ConnectionTabsVisibility, type ConnectionTabKey } from '@entities/settings/model';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { checkAuth } = useSession();
-  const [visibility, setVisibility] = useState<ConnectionTabsVisibility>(getConnectionTabsVisibility);
+  const [visibility, setVisibility] = useState<ConnectionTabsVisibility>(connectionTabsSettingsModel.getVisibility);
 
   useEffect(() => {
     if (!checkAuth()) {
@@ -28,14 +29,14 @@ export default function SettingsPage() {
         return prev;
       }
 
-      setConnectionTabsVisibility(next);
+      connectionTabsSettingsModel.setVisibility(next);
       return next;
     });
   };
 
   const handleReset = () => {
     setVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY);
-    setConnectionTabsVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY);
+    connectionTabsSettingsModel.setVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY);
   };
 
   return (
