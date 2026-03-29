@@ -113,139 +113,52 @@ cd frontend
 npm run dev
 ```
 
-## Запуск DB HUB в Docker (полный вариант)
+## Запуск DB HUB в Docker (один контейнер приложения)
 
-- Проверить, что Docker установлен
+Теперь стандартный `docker-compose.yml` запускает **одно цельное приложение** в контейнере `db_hub_app`:
 
-```bash
-docker --version
-docker compose version
-```
+- frontend (Vite) — `http://localhost:8099`
+- backend (FastAPI) — `http://localhost:8088`
+- SQLite БД — файл `/app/data/db_hub.sqlite3` внутри контейнера (сохранение через volume)
 
-Если команды не найдены — установите Docker Desktop (Windows/macOS) или Docker Engine + Docker Compose Plugin (Linux).
+### Подготовка
 
-- Создать и заполнить `.env` в корне проекта
+В корне проекта создайте `.env` и заполните обязательные переменные приложения (`ENCRYPTION_KEY`, `SECRET_KEY` и т.д.).
 
-> В Docker Compose БД для backend берется по имени сервиса `db` (это уже задано в `docker-compose.yml`).
-> Для frontend в Docker уже задан `VITE_API_BASE_URL=http://localhost:8088`, а сам dev-сервер frontend слушает порт `8099`.
-
-- Собрать и поднять контейнеры
-
-Из корня проекта выполните:
+### Запуск
 
 ```bash
 docker compose up --build -d
 ```
 
-Будут подняты сервисы: `db` (PostgreSQL), `backend` (FastAPI), `frontend` (React)
-
-Проверить, что всё запустилось
+### Проверка
 
 ```bash
 docker compose ps
+docker compose logs -f app
 ```
 
-Посмотреть логи backend:
-
-```bash
-docker compose logs -f backend
-```
-
-Посмотреть логи БД:
-
-```bash
-docker compose logs -f db
-```
-
-- При запуске контейнера backend автоматически:
-
-1. создаются таблицы (если их нет),
-2. создается пользователь `admin` с паролем `admin1234` (если еще не существует).
-
-- Остановить контейнеры
+### Остановка
 
 ```bash
 docker compose down
 ```
 
-С удалением тома БД (полный сброс данных):
+### Важно
 
-```bash
-docker compose down -v
-```
+При старте контейнера автоматически выполняется `python3 -m backend.docker_init`, поэтому:
+1. таблицы создаются автоматически,
+2. пользователь `admin` создается автоматически (если его еще нет).
 
-### Проблема `failed to bind host port 0.0.0.0:5432`
+> Отдельный контейнер PostgreSQL (`db_hub_db`) для этого режима **не нужен**.
+> Если он уже запущен из старой схемы, остановите его через `docker compose down` в том проекте, где вы его поднимали.
 
-Если на хосте уже занят порт `5432` (локальный PostgreSQL), Docker не сможет поднять сервис `db`.
-Поэтому в текущем `docker-compose.yml` порт БД наружу по умолчанию не публикуется.
-
-Если нужен доступ к БД с хоста, включите публикацию порта в `docker-compose.yml` и используйте, например, `5433:5432`.
-
-### Если `docker compose ps` показывает пусто
-
-Чаще всего это происходит, если команды запускались в разных контекстах (`sudo docker ...` и `docker ...` без sudo).
-Используйте один и тот же способ для всех команд:
-
-```bash
-sudo docker compose up -d --build
-sudo docker compose ps
-sudo docker compose logs -f backend
-```
-
-### Если backend падает при старте
-
-- В проекте добавлены повторные попытки подключения к БД при старте FastAPI, чтобы пережить задержку DNS/готовности postgres внутри Docker-сети.
-- Проверка логов:
-
-```bash
-sudo docker compose logs --tail=200 db
-sudo docker compose logs --tail=200 backend
-```
-
-### Что добавлено для Docker
-
-- `docker-compose.yml` — оркестрация `db` + `backend` + `frontend`.
-- `Dockerfile.backend` — контейнер FastAPI.
-- `Dockerfile.frontend` — запуск фронтенда через Vite dev server в контейнере.
-- `nginx.conf` — сохранен в репозитории, но в текущей Docker-схеме не используется.
-- `.dockerignore` — исключение лишних файлов из контекста сборки.
-
-### После сборки контейнера открываем браузер
-
-- http://localhost:8099/ или http://127.0.0.1:8099
-- http://localhost:8088/docs или http://127.0.0.1:8088/docs
-- http://localhost:8088/redoc или http://127.0.0.1:8088/redoc
 ## Запуск DB HUB в одном контейнере (frontend + backend + SQLite)
 
-Добавлены отдельные файлы для запуска DB HUB как единого приложения в одном контейнере:
+Этот режим эквивалентен стандартному `docker-compose.yml`.
 
-- `Dockerfile.fullstack`
-- `docker-compose.fullstack.yml`
-- `scripts/start_fullstack.sh`
-
-В этом варианте:
-- backend (FastAPI) доступен на `http://localhost:8088`
-- frontend (Vite dev server) доступен на `http://localhost:8099`
-- используется SQLite (`/app/data/db_hub.sqlite3`) вместо PostgreSQL
-- при старте контейнера автоматически выполняется `backend.docker_init`, который:
-  1. создает таблицы,
-  2. создает пользователя `admin` (если его еще нет)
-
-Запуск:
+Можно использовать и явный файл:
 
 ```bash
 docker compose -f docker-compose.fullstack.yml up --build -d
-```
-
-Проверка:
-
-```bash
-docker compose -f docker-compose.fullstack.yml ps
-docker compose -f docker-compose.fullstack.yml logs -f app
-```
-
-Остановка:
-
-```bash
-docker compose -f docker-compose.fullstack.yml down
 ```

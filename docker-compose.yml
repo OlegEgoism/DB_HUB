@@ -1,56 +1,23 @@
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: db_hub_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    # Порт БД наружу по умолчанию не публикуем, чтобы не конфликтовать
-    # с локальным PostgreSQL на хосте (ошибка: address already in use).
-    # Для внешнего доступа раскомментируйте строки ниже или задайте DB_EXTERNAL_PORT.
-    # ports:
-    #   - "${DB_EXTERNAL_PORT:-5433}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  backend:
+  app:
     build:
       context: .
-      dockerfile: Dockerfile.backend
-    container_name: db_hub_backend
+      dockerfile: Dockerfile.fullstack
+    container_name: db_hub_app
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
       HOST: 0.0.0.0
       PORT: 8088
-    depends_on:
-      db:
-        condition: service_healthy
+      FRONTEND_PORT: 8099
+      VITE_API_BASE_URL: http://localhost:8088
+      APP_DATABASE_URL: sqlite+aiosqlite:////app/data/db_hub.sqlite3
     ports:
       - "8088:8088"
-
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    container_name: db_hub_frontend
-    restart: unless-stopped
-    depends_on:
-      - backend
-    environment:
-      VITE_API_BASE_URL: http://localhost:8088
-    ports:
       - "8099:8099"
+    volumes:
+      - db_hub_data:/app/data
 
 volumes:
-  postgres_data:
+  db_hub_data:
