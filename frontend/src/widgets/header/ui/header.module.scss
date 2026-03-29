@@ -123,6 +123,28 @@
     }
   }
 
+
+  &__navMenu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 999px;
+    background: var(--color-surface-glass);
+    border: 1px solid var(--border-glass);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .header__profileButton {
+      border-radius: 999px;
+      padding: 10px 18px;
+    }
+  }
+
   // Стили для меню пользователя после авторизации
   &__userMenu {
     display: flex;

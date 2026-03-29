@@ -48,17 +48,19 @@ export function Header() {
               </>
             ) : (
               <>
-                <NavLink to={ROUTES.CONNECTIONS} className={clsx(styles.header__profileButton)}>
-                  Подключения
-                </NavLink>
-                {user?.is_superuser && (
-                  <NavLink to={ROUTES.USERS} className={clsx(styles.header__profileButton)}>
-                    Пользователи
+                <div className={clsx(styles.header__navMenu)}>
+                  <NavLink to={ROUTES.CONNECTIONS} className={clsx(styles.header__profileButton)}>
+                    Подключения
                   </NavLink>
-                )}
-                <NavLink to={ROUTES.PROFILE} className={clsx(styles.header__profileButton)}>
-                  Профиль
-                </NavLink>
+                  {user?.is_superuser && (
+                    <NavLink to={ROUTES.USERS} className={clsx(styles.header__profileButton)}>
+                      Пользователи
+                    </NavLink>
+                  )}
+                  <NavLink to={ROUTES.PROFILE} className={clsx(styles.header__profileButton)}>
+                    Профиль
+                  </NavLink>
+                </div>
                 <div className={clsx(styles.header__userMenu)}>
                   <div className={clsx(styles.header__userInfo)}>
                     <span className={clsx(styles.header__username)}>{user?.username || 'User'}</span>
