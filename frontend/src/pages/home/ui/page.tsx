@@ -1,71 +1,81 @@
-// frontend/src/pages/home/ui/page.tsx
 import clsx from 'clsx';
 import styles from './styles.module.scss';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faBolt,
     faChartLine,
     faUsers,
     faCode,
+    faShieldAlt,
+    faDatabase,
 } from '@fortawesome/free-solid-svg-icons';
+
+const FEATURES = [
+    {
+        icon: faBolt,
+        title: 'Быстрый старт',
+        description: 'Подключайтесь к рабочим базам за минуты и экономьте время команды.',
+    },
+    {
+        icon: faChartLine,
+        title: 'Единый мониторинг',
+        description: 'Следите за состоянием и нагрузкой без переключения между сервисами.',
+    },
+    {
+        icon: faUsers,
+        title: 'Контроль доступа',
+        description: 'Гибкое управление ролями и пользователями для безопасной работы.',
+    },
+    {
+        icon: faCode,
+        title: 'Интеграции и API',
+        description: 'Встраивайте DB HUB в ваши процессы и автоматизируйте рутину.',
+    },
+];
 
 export default function HomePage() {
     return (
-        <section className={clsx(styles.home)}>
+        <section className={styles.home}>
             <div className="container">
-                <div className={clsx(styles.home__section)}>
-                    <div className={clsx(styles.home__header)}>
-                        <div className={clsx(styles.home__logo)}>
+                <div className={styles.home__heroCard}>
+                    <div className={styles.home__heroBackdrop} aria-hidden="true" />
 
-                            <div className={clsx(styles.home__logoText)}>
-                                <h1 className={clsx(styles.home__title)}>Добро пожаловать в DB HUB</h1>
-                                <p className={clsx(styles.home__subtitle)}>
-                                    Платформа объединяет в едином интерфейсе все необходимые инструменты для работы с базами данных, без использования сторонних утилит.
-                                </p>
+                    <div className={styles.home__header}>
+                        <span className={styles.home__badge}>Новая версия интерфейса</span>
+                        <h1 className={styles.home__title}>DB HUB — современный центр управления базами данных</h1>
+                        <p className={styles.home__subtitle}>
+                            Платформа объединяет подключение, мониторинг, аналитику и контроль доступа в одном
+                            понятном интерфейсе.
+                        </p>
+                    </div>
+
+                    <div className={styles.home__metrics}>
+                        <article className={styles.home__metricCard}>
+                            <FontAwesomeIcon icon={faDatabase} />
+                            <div>
+                                <strong>Все подключения</strong>
+                                <span>В одном рабочем пространстве</span>
                             </div>
-                        </div>
+                        </article>
+                        <article className={styles.home__metricCard}>
+                            <FontAwesomeIcon icon={faShieldAlt} />
+                            <div>
+                                <strong>Безопасный доступ</strong>
+                                <span>Роли, права и аудит изменений</span>
+                            </div>
+                        </article>
                     </div>
 
                     <div className={clsx(styles.home__features)}>
-                        <div className={clsx(styles.home__feature)}>
-                            <div className={clsx(styles.home__featureIcon)}>
-                                <FontAwesomeIcon icon={faBolt}/>
-                            </div>
-                            <h3 className={clsx(styles.home__featureTitle)}>Производительность</h3>
-                            <p className={clsx(styles.home__featureDescription)}>
-                                Минимальная задержка подключения.
-                            </p>
-                        </div>
-
-                        <div className={clsx(styles.home__feature)}>
-                            <div className={clsx(styles.home__featureIcon)}>
-                                <FontAwesomeIcon icon={faChartLine}/>
-                            </div>
-                            <h3 className={clsx(styles.home__featureTitle)}>Мониторинг</h3>
-                            <p className={clsx(styles.home__featureDescription)}>
-                                Детальная аналитика.
-                            </p>
-                        </div>
-
-                        <div className={clsx(styles.home__feature)}>
-                            <div className={clsx(styles.home__featureIcon)}>
-                                <FontAwesomeIcon icon={faUsers}/>
-                            </div>
-                            <h3 className={clsx(styles.home__featureTitle)}>Управление доступом</h3>
-                            <p className={clsx(styles.home__featureDescription)}>
-                                Система ролевой модели и доступа.
-                            </p>
-                        </div>
-
-                        <div className={clsx(styles.home__feature)}>
-                            <div className={clsx(styles.home__featureIcon)}>
-                                <FontAwesomeIcon icon={faCode}/>
-                            </div>
-                            <h3 className={clsx(styles.home__featureTitle)}>API</h3>
-                            <p className={clsx(styles.home__featureDescription)}>
-                                Интеграции с другими системами.
-                            </p>
-                        </div>
+                        {FEATURES.map((feature) => (
+                            <article key={feature.title} className={styles.home__feature}>
+                                <div className={styles.home__featureIcon}>
+                                    <FontAwesomeIcon icon={feature.icon} />
+                                </div>
+                                <h3 className={styles.home__featureTitle}>{feature.title}</h3>
+                                <p className={styles.home__featureDescription}>{feature.description}</p>
+                            </article>
+                        ))}
                     </div>
                 </div>
             </div>

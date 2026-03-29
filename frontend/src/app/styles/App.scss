@@ -1,57 +1,53 @@
-// frontend/src/app/styles/App.scss
-
 @use "@shared/styles/_palette" as *;
 
-html {
-  height: 100%;
+html,
+body,
+#root {
+  min-height: 100%;
 }
 
 :root {
-  // Brand
   --color-primary: #{$clr-indigo-500};
   --color-primary-light: #{$clr-indigo-400};
   --color-primary-dark: #{$clr-indigo-700};
   --color-secondary: #{$clr-gray-500};
 
-  // Status
   --color-status-danger: #{$clr-red-500};
   --color-status-warning: #{$clr-amber-500};
   --color-status-success: #{$clr-emerald-500};
 
-  // Text
   --color-text-main: #{$clr-gray-900};
   --color-text-muted: #{$clr-gray-500};
 
-  // Surfaces & Glass
   --color-surface-glass: #{$clr-white-90};
   --border-glass: #{$clr-gray-200-50};
-  --bg-main-gradient: #{$clr-gradient-slate};
+  --bg-main-gradient: radial-gradient(circle at 0% 0%, rgba(99, 106, 241, 0.15), transparent 30%),
+  radial-gradient(circle at 100% 0%, rgba(58, 89, 213, 0.12), transparent 24%),
+  #f3f7ff;
 }
 
 body {
-  min-height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 20px 0 0; /* Убираем нижний отступ, оставляем верхний */
-  font-family: sans-serif;
-  background-color: var(--bg-main-gradient);
+  padding: 20px 0 0;
+  margin: 0;
+  background: var(--bg-main-gradient);
+  color: var(--color-text-main);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 .container {
-  max-width: 1600px;
+  width: min(100%, 1640px);
   margin: 0 auto;
+  padding-inline: clamp(12px, 2vw, 24px);
   flex: 1;
-  width: 100%;
 }
 
 main {
-  flex: 1 0 auto; /* Растягиваем основной контент */
-  padding-bottom: 40px; /* Отступ снизу для визуального разделения с футером */
+  flex: 1 0 auto;
+  padding-bottom: 40px;
 }
