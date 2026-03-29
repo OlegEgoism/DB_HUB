@@ -152,7 +152,8 @@ docker compose down
 1. `host.docker.internal`
 2. `172.17.0.1` (резервный bridge IP для Linux)
 
-Подмену можно отключить через `DBHUB_MAP_LOCALHOST_TO_HOST=0`.
+Подмена по умолчанию включается только в Docker.
+При необходимости можно принудительно управлять через `DBHUB_MAP_LOCALHOST_TO_HOST` (`1`/`0`).
 
 Для Linux в compose добавлен `extra_hosts: host.docker.internal:host-gateway`,
 поэтому подключение к БД на хост-машине работает через `host.docker.internal`.

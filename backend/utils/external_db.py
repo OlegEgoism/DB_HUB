@@ -12,10 +12,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 LOCALHOST_ALIASES = {"localhost", "127.0.0.1", "::1"}
 
 
+def _is_running_in_docker() -> bool:
+    return os.path.exists("/.dockerenv")
+
+
+def _should_map_localhost() -> bool:
+    env_override = os.getenv("DBHUB_MAP_LOCALHOST_TO_HOST")
+    if env_override is not None:
+        return env_override == "1"
+    # По умолчанию включаем подмену только в Docker.
+    return _is_running_in_docker()
+
+
 def resolve_external_hosts(host: str) -> list[str]:
     """Возвращает список хостов-кандидатов для подключения к внешней БД."""
     normalized_host = host.strip()
-    map_localhost = os.getenv("DBHUB_MAP_LOCALHOST_TO_HOST", "1") == "1"
+    map_localhost = _should_map_localhost()
 
     if not map_localhost or normalized_host.lower() not in LOCALHOST_ALIASES:
         return [normalized_host]
