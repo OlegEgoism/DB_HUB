@@ -465,22 +465,25 @@ export default function ConnectionDetailPage() {
         }
     }, [activeTab, metrics, loadMetrics]);
 
+    const tabFromUrl = searchParams.get('tab');
+
     useEffect(() => {
-        const tabFromUrl = searchParams.get('tab');
         if (isTabType(tabFromUrl) && tabFromUrl !== activeTab) {
             setActiveTab(tabFromUrl);
         }
-    }, [searchParams, activeTab]);
+    }, [tabFromUrl, activeTab]);
 
     useEffect(() => {
-        if (searchParams.get('tab') === activeTab) {
+        if (tabFromUrl === activeTab) {
             return;
         }
 
-        const nextParams = new URLSearchParams(searchParams);
-        nextParams.set('tab', activeTab);
-        setSearchParams(nextParams, { replace: true });
-    }, [activeTab, searchParams, setSearchParams]);
+        setSearchParams((prev) => {
+            const nextParams = new URLSearchParams(prev);
+            nextParams.set('tab', activeTab);
+            return nextParams;
+        }, { replace: true });
+    }, [activeTab, tabFromUrl, setSearchParams]);
 
     useEffect(() => {
         const loadVisibleTabs = async () => {
