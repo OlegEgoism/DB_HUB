@@ -9,7 +9,7 @@ from backend.models.db import DB_Connection
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-LOCALHOST_ALIASES = {"localhost", "127.0.0.1", "::1"}
+LOCALHOST_ALIASES = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
 
 
 def _is_running_in_docker() -> bool:
@@ -27,6 +27,8 @@ def _should_map_localhost() -> bool:
 def resolve_external_hosts(host: str) -> list[str]:
     """Возвращает список хостов-кандидатов для подключения к внешней БД."""
     normalized_host = host.strip()
+    if normalized_host == "0.0.0.0":
+        normalized_host = "localhost"
     map_localhost = _should_map_localhost()
 
     if not map_localhost or normalized_host.lower() not in LOCALHOST_ALIASES:
