@@ -775,8 +775,8 @@
   gap: 12px;
   flex: 1;
   min-width: min(420px, 100%);
-  margin-left: 0;
-  justify-content: flex-start;
+  margin-left: auto;
+  justify-content: flex-end;
   flex-wrap: wrap;
 
   @media (max-width: 1024px) {

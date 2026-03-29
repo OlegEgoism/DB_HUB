@@ -86,6 +86,7 @@
   &__searchContainer {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 12px;
     flex: 1;
     min-width: 350px;
