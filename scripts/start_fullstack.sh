@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export APP_DATABASE_URL="${APP_DATABASE_URL:-sqlite+aiosqlite:////app/data/db_hub.sqlite3}"
+mkdir -p /app/data
+
 python3 -m backend.docker_init
 
 python3 -m uvicorn backend.main:app --host 0.0.0.0 --port "${PORT:-8088}" &

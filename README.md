@@ -215,18 +215,21 @@ sudo docker compose logs --tail=200 backend
 - http://localhost:8099/ или http://127.0.0.1:8099
 - http://localhost:8088/docs или http://127.0.0.1:8088/docs
 - http://localhost:8088/redoc или http://127.0.0.1:8088/redoc
-## Запуск DB HUB в одном контейнере (frontend + backend)
+## Запуск DB HUB в одном контейнере (frontend + backend + SQLite)
 
-Добавлены отдельные файлы для запуска фронта и бэка в одном контейнере:
+Добавлены отдельные файлы для запуска DB HUB как единого приложения в одном контейнере:
 
 - `Dockerfile.fullstack`
 - `docker-compose.fullstack.yml`
+- `scripts/start_fullstack.sh`
 
 В этом варианте:
 - backend (FastAPI) доступен на `http://localhost:8088`
 - frontend (Vite dev server) доступен на `http://localhost:8099`
-- оба сервиса запускаются внутри одного контейнера `app`
-- PostgreSQL остается отдельным сервисом `db`
+- используется SQLite (`/app/data/db_hub.sqlite3`) вместо PostgreSQL
+- при старте контейнера автоматически выполняется `backend.docker_init`, который:
+  1. создает таблицы,
+  2. создает пользователя `admin` (если его еще нет)
 
 Запуск:
 
