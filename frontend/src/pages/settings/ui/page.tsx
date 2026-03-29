@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import clsx from 'clsx';
 import styles from './styles.module.scss';
@@ -9,9 +9,16 @@ import { CONNECTION_TAB_OPTIONS, DEFAULT_CONNECTION_TABS_VISIBILITY, connectionT
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { checkAuth } = useSession();
+  const isInitializedRef = useRef(false);
   const [visibility, setVisibility] = useState<ConnectionTabsVisibility>(DEFAULT_CONNECTION_TABS_VISIBILITY);
 
   useEffect(() => {
+    if (isInitializedRef.current) {
+      return;
+    }
+
+    isInitializedRef.current = true;
+
     if (!checkAuth()) {
       navigate(ROUTES.LOGIN);
       return;
