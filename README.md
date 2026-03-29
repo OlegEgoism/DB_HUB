@@ -148,11 +148,17 @@ docker compose down
 ### Подключение к локальной внешней PostgreSQL/Greenplum
 
 Если в форме нового подключения указать `host=localhost`, то внутри Docker это означает сам контейнер.
-В проекте добавлена автоматическая подмена `localhost/127.0.0.1/::1` на `host.docker.internal`
-(можно отключить через `DBHUB_MAP_LOCALHOST_TO_HOST=0`).
+В проекте добавлена автоматическая подмена `localhost/127.0.0.1/::1` на список хостов:
+1. `host.docker.internal`
+2. `172.17.0.1` (резервный bridge IP для Linux)
+
+Подмену можно отключить через `DBHUB_MAP_LOCALHOST_TO_HOST=0`.
 
 Для Linux в compose добавлен `extra_hosts: host.docker.internal:host-gateway`,
 поэтому подключение к БД на хост-машине работает через `host.docker.internal`.
+
+Важно: на локальном PostgreSQL/Greenplum должны быть разрешены внешние подключения
+(`listen_addresses`, `pg_hba.conf`) для docker-сети.
 
 ### Важно
 
