@@ -56,6 +56,14 @@ class User(Base, DateTimeMixin):
         Index("idx_users_is_superuser_search", "is_superuser"),
         Index("idx_users_role_search", "role"),
     )
+    connection_tab_settings = relationship(
+        "ConnectionTabSettings",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
+        lazy="selectin",
+    )
+
     db_connection = relationship(
         "DB_Connection",
         back_populates="owner",

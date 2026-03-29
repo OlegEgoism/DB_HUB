@@ -1,4 +1,4 @@
-export const CONNECTION_TABS_STORAGE_KEY = 'dbhub_connection_tabs_visibility';
+import { apiRequest } from '@shared/api/http';
 
 export const CONNECTION_TAB_OPTIONS = [
   { key: 'metrics', label: 'Информация' },
@@ -17,6 +17,10 @@ export const CONNECTION_TAB_OPTIONS = [
 export type ConnectionTabKey = (typeof CONNECTION_TAB_OPTIONS)[number]['key'];
 export type ConnectionTabsVisibility = Record<ConnectionTabKey, boolean>;
 
+interface ConnectionTabSettingsResponse {
+  tabs_visibility: Partial<ConnectionTabsVisibility>;
+}
+
 export const DEFAULT_CONNECTION_TABS_VISIBILITY: ConnectionTabsVisibility = CONNECTION_TAB_OPTIONS.reduce(
   (acc, tab) => {
     acc[tab.key] = true;
@@ -25,42 +29,36 @@ export const DEFAULT_CONNECTION_TABS_VISIBILITY: ConnectionTabsVisibility = CONN
   {} as ConnectionTabsVisibility,
 );
 
-function canUseStorage() {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+function normalizeVisibility(partial?: Partial<ConnectionTabsVisibility>): ConnectionTabsVisibility {
+  return CONNECTION_TAB_OPTIONS.reduce((acc, tab) => {
+    acc[tab.key] = partial?.[tab.key] ?? true;
+    return acc;
+  }, {} as ConnectionTabsVisibility);
 }
 
 export const connectionTabsSettingsModel = {
-  getVisibility(): ConnectionTabsVisibility {
-    if (!canUseStorage()) {
-      return DEFAULT_CONNECTION_TABS_VISIBILITY;
-    }
+  getVisibleTabs(visibility: ConnectionTabsVisibility): ConnectionTabKey[] {
+    return CONNECTION_TAB_OPTIONS.filter((tab) => visibility[tab.key]).map((tab) => tab.key);
+  },
 
-    const raw = window.localStorage.getItem(CONNECTION_TABS_STORAGE_KEY);
-    if (!raw) {
-      return DEFAULT_CONNECTION_TABS_VISIBILITY;
-    }
-
+  async fetchVisibility(): Promise<ConnectionTabsVisibility> {
     try {
-      const parsed = JSON.parse(raw) as Partial<ConnectionTabsVisibility>;
-      return CONNECTION_TAB_OPTIONS.reduce((acc, tab) => {
-        acc[tab.key] = parsed[tab.key] ?? true;
-        return acc;
-      }, {} as ConnectionTabsVisibility);
+      const response = await apiRequest<ConnectionTabSettingsResponse>('/api/v1/app_settings/connection-tabs', {
+        withAuth: true,
+      });
+      return normalizeVisibility(response.tabs_visibility);
     } catch {
       return DEFAULT_CONNECTION_TABS_VISIBILITY;
     }
   },
 
-  setVisibility(visibility: ConnectionTabsVisibility) {
-    if (!canUseStorage()) {
-      return;
-    }
+  async saveVisibility(visibility: ConnectionTabsVisibility): Promise<ConnectionTabsVisibility> {
+    const response = await apiRequest<ConnectionTabSettingsResponse>('/api/v1/app_settings/connection-tabs', {
+      method: 'PUT',
+      withAuth: true,
+      body: JSON.stringify({ tabs_visibility: visibility }),
+    });
 
-    window.localStorage.setItem(CONNECTION_TABS_STORAGE_KEY, JSON.stringify(visibility));
-  },
-
-  getVisibleTabs(): ConnectionTabKey[] {
-    const visibility = this.getVisibility();
-    return CONNECTION_TAB_OPTIONS.filter((tab) => visibility[tab.key]).map((tab) => tab.key);
+    return normalizeVisibility(response.tabs_visibility);
   },
 };

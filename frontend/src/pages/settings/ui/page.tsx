@@ -9,12 +9,20 @@ import { CONNECTION_TAB_OPTIONS, DEFAULT_CONNECTION_TABS_VISIBILITY, connectionT
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { checkAuth } = useSession();
-  const [visibility, setVisibility] = useState<ConnectionTabsVisibility>(connectionTabsSettingsModel.getVisibility);
+  const [visibility, setVisibility] = useState<ConnectionTabsVisibility>(DEFAULT_CONNECTION_TABS_VISIBILITY);
 
   useEffect(() => {
     if (!checkAuth()) {
       navigate(ROUTES.LOGIN);
+      return;
     }
+
+    const loadSettings = async () => {
+      const nextVisibility = await connectionTabsSettingsModel.fetchVisibility();
+      setVisibility(nextVisibility);
+    };
+
+    void loadSettings();
   }, [checkAuth, navigate]);
 
   const handleToggle = (tabKey: ConnectionTabKey) => {
@@ -29,14 +37,14 @@ export default function SettingsPage() {
         return prev;
       }
 
-      connectionTabsSettingsModel.setVisibility(next);
+      void connectionTabsSettingsModel.saveVisibility(next);
       return next;
     });
   };
 
   const handleReset = () => {
     setVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY);
-    connectionTabsSettingsModel.setVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY);
+    void connectionTabsSettingsModel.saveVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY);
   };
 
   return (

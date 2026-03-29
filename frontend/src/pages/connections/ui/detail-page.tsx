@@ -57,7 +57,7 @@ import type { Connection, EditingUser, GroupUser, TabType, TablesFilterType, Vie
 import { formatDateTime, formatStartTime, formatUptime } from '@pages/connections/lib/detail-page/formatters';
 import { useConnectionDetailCore } from '@pages/connections/lib/detail-page/useConnectionDetailCore';
 import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navigation';
-import { connectionTabsSettingsModel } from '@entities/settings/model';
+import { connectionTabsSettingsModel, DEFAULT_CONNECTION_TABS_VISIBILITY } from '@entities/settings/model';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -94,7 +94,7 @@ export default function ConnectionDetailPage() {
         loadMetrics,
     } = useConnectionDetailCore(id);
     const [activeTab, setActiveTab] = useState<TabType>('metrics');
-    const [visibleTabs, setVisibleTabs] = useState(connectionTabsSettingsModel.getVisibility);
+    const [visibleTabs, setVisibleTabs] = useState(DEFAULT_CONNECTION_TABS_VISIBILITY);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [confirmDeleteName, setConfirmDeleteName] = useState<string>('');
@@ -461,10 +461,16 @@ export default function ConnectionDetailPage() {
     }, [activeTab, metrics, loadMetrics]);
 
     useEffect(() => {
-        const nextVisibleTabs = connectionTabsSettingsModel.getVisibility();
-        setVisibleTabs(nextVisibleTabs);
+        const loadVisibleTabs = async () => {
+            const nextVisibleTabs = await connectionTabsSettingsModel.fetchVisibility();
+            setVisibleTabs(nextVisibleTabs);
+        };
 
-        const visibleTabKeys = connectionTabsSettingsModel.getVisibleTabs();
+        void loadVisibleTabs();
+    }, []);
+
+    useEffect(() => {
+        const visibleTabKeys = connectionTabsSettingsModel.getVisibleTabs(visibleTabs);
         if (visibleTabKeys.length === 0) {
             setActiveTab('metrics');
             return;
@@ -473,7 +479,7 @@ export default function ConnectionDetailPage() {
         if (!visibleTabKeys.includes(activeTab)) {
             setActiveTab(visibleTabKeys[0] as TabType);
         }
-    }, [activeTab]);
+    }, [activeTab, visibleTabs]);
 
     useEffect(() => {
         if (!isActivityChartModalOpen) return;
