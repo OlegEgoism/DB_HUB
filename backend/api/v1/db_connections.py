@@ -198,16 +198,16 @@ async def update_connection(connection_id: int, connection: ConnectionUpdate, db
     await db.refresh(db_connection)
     _, _, db_description, is_connected = await get_db_info(db_connection)
     effective_description = db_connection.description
-    if is_connected:
+    if is_connected and "description" in update_data:
+        try:
+            async with external_db_connection(db_connection, timeout=10) as ext_conn:
+                quoted_db = asyncpg.utils._quote_ident(db_connection.database_name)
+                comment_value = update_data["description"] or ""
+                await ext_conn.execute(f"COMMENT ON DATABASE {quoted_db} IS $${comment_value}$$")
+        except Exception:
+            pass
+    elif is_connected:
         effective_description = await sync_description_if_needed(db, db_connection, db_description)
-        if "description" in update_data:
-            try:
-                async with external_db_connection(db_connection, timeout=10) as ext_conn:
-                    quoted_db = asyncpg.utils._quote_ident(db_connection.database_name)
-                    comment_value = update_data["description"] or ""
-                    await ext_conn.execute(f"COMMENT ON DATABASE {quoted_db} IS $${comment_value}$$")
-            except Exception:
-                pass
     owner_username = (await db.execute(select(User.username).where(User.id == db_connection.owner_id))).scalar_one()
     return build_connection_out(
         db_connection,
