@@ -98,7 +98,7 @@ export default function ConnectionDetailPage() {
         loadConnection,
         loadMetrics,
     } = useConnectionDetailCore(id);
-    const [activeTab, setActiveTab] = useState<TabType>('metrics');
+    const [activeTab, setActiveTabState] = useState<TabType>('metrics');
     const [visibleTabs, setVisibleTabs] = useState(DEFAULT_CONNECTION_TABS_VISIBILITY);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -465,25 +465,31 @@ export default function ConnectionDetailPage() {
         }
     }, [activeTab, metrics, loadMetrics]);
 
-    const tabFromUrl = searchParams.get('tab');
-
     useEffect(() => {
-        if (isTabType(tabFromUrl) && tabFromUrl !== activeTab) {
-            setActiveTab(tabFromUrl);
-        }
-    }, [tabFromUrl, activeTab]);
+        const tabFromUrl = searchParams.get('tab');
 
-    useEffect(() => {
-        if (tabFromUrl === activeTab) {
+        if (isTabType(tabFromUrl)) {
+            if (tabFromUrl !== activeTab) {
+                setActiveTabState(tabFromUrl);
+            }
             return;
         }
 
         setSearchParams((prev) => {
             const nextParams = new URLSearchParams(prev);
-            nextParams.set('tab', activeTab);
+            nextParams.set('tab', 'metrics');
             return nextParams;
         }, { replace: true });
-    }, [activeTab, tabFromUrl, setSearchParams]);
+    }, [searchParams, setSearchParams, activeTab]);
+
+    const handleTabChange = (tab: TabType) => {
+        setActiveTabState(tab);
+        setSearchParams((prev) => {
+            const nextParams = new URLSearchParams(prev);
+            nextParams.set('tab', tab);
+            return nextParams;
+        }, { replace: true });
+    };
 
     useEffect(() => {
         const loadVisibleTabs = async () => {
@@ -497,14 +503,27 @@ export default function ConnectionDetailPage() {
     useEffect(() => {
         const visibleTabKeys = connectionTabsSettingsModel.getVisibleTabs(visibleTabs);
         if (visibleTabKeys.length === 0) {
-            setActiveTab('metrics');
+            if (activeTab !== 'metrics') {
+                setActiveTabState('metrics');
+                setSearchParams((prev) => {
+                    const nextParams = new URLSearchParams(prev);
+                    nextParams.set('tab', 'metrics');
+                    return nextParams;
+                }, { replace: true });
+            }
             return;
         }
 
         if (!visibleTabKeys.includes(activeTab)) {
-            setActiveTab(visibleTabKeys[0] as TabType);
+            const fallbackTab = visibleTabKeys[0] as TabType;
+            setActiveTabState(fallbackTab);
+            setSearchParams((prev) => {
+                const nextParams = new URLSearchParams(prev);
+                nextParams.set('tab', fallbackTab);
+                return nextParams;
+            }, { replace: true });
         }
-    }, [activeTab, visibleTabs]);
+    }, [activeTab, visibleTabs, setSearchParams]);
 
     useEffect(() => {
         if (!isActivityChartModalOpen) return;
@@ -2020,7 +2039,7 @@ export default function ConnectionDetailPage() {
                         </div>
                         <DetailTabNavigation
                             activeTab={activeTab}
-                            setActiveTab={setActiveTab}
+                            setActiveTab={handleTabChange}
                             setUsersSearchQuery={setUsersSearchQuery}
                             setUsersSearchTerm={setUsersSearchTerm}
                             setUsersPage={setUsersPage}
