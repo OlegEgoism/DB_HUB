@@ -193,16 +193,26 @@ export default function ConnectionsPage() {
 
     // Переключение избранного с оптимистичным обновлением UI
     const toggleFavorite = async (connectionId: number, isFavorite: boolean) => {
-        setConnections((prev) =>
-            prev.map((conn) =>
+        const nextFavoriteState = !isFavorite;
+
+        setConnections((prev) => {
+            if (activeTab === 'Избранные' && !nextFavoriteState) {
+                return prev.filter((conn) => conn.id !== connectionId);
+            }
+
+            return prev.map((conn) =>
                 conn.id === connectionId
-                    ? {...conn, is_favorite: !isFavorite}
+                    ? {...conn, is_favorite: nextFavoriteState}
                     : conn,
-            ),
-        );
+            );
+        });
 
         try {
-            await patchConnectionFavorite(connectionId, !isFavorite);
+            await patchConnectionFavorite(connectionId, nextFavoriteState);
+
+            if (activeTab === 'Избранные') {
+                await loadConnections();
+            }
         } catch (err) {
             setConnections((prev) =>
                 prev.map((conn) =>
