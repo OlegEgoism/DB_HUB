@@ -1,6 +1,6 @@
 // frontend/src/pages/connections/ui/detail-page.tsx
 import React, {useEffect, useMemo, useState} from 'react';
-import {useParams, useNavigate} from 'react-router';
+import {useParams, useNavigate, useSearchParams} from 'react-router';
 import clsx from 'clsx';
 import styles from './detail-page.module.scss';
 import groupModalStyles from './edit-group-modal.module.scss';
@@ -61,6 +61,10 @@ import { connectionTabsSettingsModel, DEFAULT_CONNECTION_TABS_VISIBILITY } from 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query'];
+
+const isTabType = (value: string | null): value is TabType => value !== null && TAB_TYPE_VALUES.includes(value as TabType);
+
 type ActivityChartPoint = {
     timestamp: string;
     total: number;
@@ -83,6 +87,7 @@ const detectQueryOperation = (query: string | null | undefined): keyof Omit<Acti
 export default function ConnectionDetailPage() {
     const {id} = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const {
         connection,
         metrics,
@@ -459,6 +464,23 @@ export default function ConnectionDetailPage() {
             loadMetrics();
         }
     }, [activeTab, metrics, loadMetrics]);
+
+    useEffect(() => {
+        const tabFromUrl = searchParams.get('tab');
+        if (isTabType(tabFromUrl) && tabFromUrl !== activeTab) {
+            setActiveTab(tabFromUrl);
+        }
+    }, [searchParams, activeTab]);
+
+    useEffect(() => {
+        if (searchParams.get('tab') === activeTab) {
+            return;
+        }
+
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set('tab', activeTab);
+        setSearchParams(nextParams, { replace: true });
+    }, [activeTab, searchParams, setSearchParams]);
 
     useEffect(() => {
         const loadVisibleTabs = async () => {
