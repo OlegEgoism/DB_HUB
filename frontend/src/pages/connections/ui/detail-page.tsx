@@ -3673,14 +3673,6 @@ export default function ConnectionDetailPage() {
                             <p className={clsx(styles.activityChartMeta)}>
                                 Текущее количество активных пользовательских транзакций: <b>{chartTotalActiveQueries}</b>
                             </p>
-                            <div className={clsx(styles.activityChartLegend)}>
-                                <span><i className={clsx(styles.activityChartLine_total)}/> Всего</span>
-                                <span><i className={clsx(styles.activityChartLine_select)}/> SELECT</span>
-                                <span><i className={clsx(styles.activityChartLine_insert)}/> INSERT</span>
-                                <span><i className={clsx(styles.activityChartLine_update)}/> UPDATE</span>
-                                <span><i className={clsx(styles.activityChartLine_delete)}/> DELETE</span>
-                                <span><i className={clsx(styles.activityChartLine_other)}/> Прочее</span>
-                            </div>
                             <div className={clsx(styles.activityChartSvgWrap)}>
                                 {activityChartPoints.length > 1 ? (
                                     <svg
@@ -3776,6 +3768,7 @@ export default function ConnectionDetailPage() {
                             </div>
                             {activityChartPoints.length > 0 && (
                                 <div className={clsx(styles.activityChartTicks)}>
+                                    <span>Информация</span>
                                     <span>Период: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
                                     <span>Мин: {activityChartModel.minValue}</span>
                                     <span>Среднее: {activityChartModel.avgValue}</span>
@@ -4047,7 +4040,7 @@ export default function ConnectionDetailPage() {
                         <div className={clsx(groupModalStyles.modal__form, styles.groupUsersManager)}>
                             <div className={clsx(groupModalStyles.modal__formGroup, styles.groupUsersManager__controls)}>
                                 <div className={clsx(styles.groupUsersManager__toolbar)}>
-                                    <label className={clsx(groupModalStyles.modal__label, styles.groupUsersManager__label)} htmlFor="groupUserSearch">Добавить пользователя</label>
+                                    {/*<label className={clsx(groupModalStyles.modal__label, styles.groupUsersManager__label)} htmlFor="groupUserSearch">Добавить пользователя</label>*/}
                                     <div className={clsx(styles.usersSearchWrapper, styles.groupUsersManager__search)}>
                                         <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                         <input
