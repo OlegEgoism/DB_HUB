@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import type { CSSProperties } from 'react';
 import styles from './styles.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -8,6 +9,8 @@ import {
     faCode,
     faShieldAlt,
     faDatabase,
+    faWandMagicSparkles,
+    faGears,
 } from '@fortawesome/free-solid-svg-icons';
 
 const FEATURES = [
@@ -33,19 +36,26 @@ const FEATURES = [
     },
 ];
 
+const STAGES = [
+    { icon: faDatabase, title: 'Подключение', text: 'Добавьте источник данных и сохраните безопасные параметры доступа.' },
+    { icon: faGears, title: 'Управление', text: 'Редактируйте структуры, пользователей и права в одном окне.' },
+    { icon: faWandMagicSparkles, title: 'Аналитика', text: 'Получайте метрики и быстрее принимайте технические решения.' },
+];
+
 export default function HomePage() {
     return (
         <section className={styles.home}>
             <div className="container">
                 <div className={styles.home__heroCard}>
-                    <div className={styles.home__heroBackdrop} aria-hidden="true" />
+                    <div className={styles.home__orbA} aria-hidden="true" />
+                    <div className={styles.home__orbB} aria-hidden="true" />
 
                     <div className={styles.home__header}>
-                        <span className={styles.home__badge}>Новая версия интерфейса</span>
+                        <span className={styles.home__badge}>Новый вариант страницы</span>
                         <h1 className={styles.home__title}>DB HUB — современный центр управления базами данных</h1>
                         <p className={styles.home__subtitle}>
                             Платформа объединяет подключение, мониторинг, аналитику и контроль доступа в одном
-                            понятном интерфейсе.
+                            интерфейсе с плавными анимациями и акцентом на читаемость данных.
                         </p>
                     </div>
 
@@ -67,13 +77,30 @@ export default function HomePage() {
                     </div>
 
                     <div className={clsx(styles.home__features)}>
-                        {FEATURES.map((feature) => (
-                            <article key={feature.title} className={styles.home__feature}>
+                        {FEATURES.map((feature, index) => (
+                            <article
+                                key={feature.title}
+                                className={styles.home__feature}
+                                style={{ '--feature-delay': `${index * 90}ms` } as CSSProperties}
+                            >
                                 <div className={styles.home__featureIcon}>
                                     <FontAwesomeIcon icon={feature.icon} />
                                 </div>
                                 <h3 className={styles.home__featureTitle}>{feature.title}</h3>
                                 <p className={styles.home__featureDescription}>{feature.description}</p>
+                            </article>
+                        ))}
+                    </div>
+
+                    <div className={styles.home__stageList}>
+                        {STAGES.map((stage, index) => (
+                            <article key={stage.title} className={styles.home__stage}>
+                                <span className={styles.home__stageCounter}>0{index + 1}</span>
+                                <FontAwesomeIcon icon={stage.icon} />
+                                <div>
+                                    <h4>{stage.title}</h4>
+                                    <p>{stage.text}</p>
+                                </div>
                             </article>
                         ))}
                     </div>
