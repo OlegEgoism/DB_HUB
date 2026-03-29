@@ -93,8 +93,8 @@
 
   &__searchWrapper {
     position: relative;
-    flex: 1;
-    max-width: 450px;
+    flex: 0 1 450px;
+    width: min(100%, 450px);
   }
 
   &__searchIcon {
