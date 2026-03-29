@@ -8,21 +8,19 @@ from sqlalchemy.orm import declarative_base
 
 load_dotenv()
 
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "name")
-DB_USER = os.getenv("DB_USER", "user")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "pass")
-
-DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-print(f"🔗 Подключение к базе данных: {DB_HOST}:{DB_PORT}/{DB_NAME}")
+DATABASE_URL = os.getenv("APP_DATABASE_URL", "sqlite+aiosqlite:///./db_hub.sqlite3")
+print(f"🔗 Подключение к базе данных приложения: {DATABASE_URL}")
 
 try:
-    engine = create_async_engine(DATABASE_URL, echo=True)
+    engine_kwargs: dict = {"echo": True}
+    if DATABASE_URL.startswith("sqlite+"):
+        engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+    engine = create_async_engine(DATABASE_URL, **engine_kwargs)
     AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    print("✅ Движок базы данных успешно создан")
+    print("✅ Движок базы данных приложения успешно создан")
 except Exception as e:
-    print(f"❌ Ошибка при создании движка базы данных: {e}")
+    print(f"❌ Ошибка при создании движка базы данных приложения: {e}")
     raise
 
 Base = declarative_base()

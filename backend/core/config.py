@@ -7,13 +7,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """PostgreSQL приложения"""
+    """SQLite приложения"""
 
-    DB_HOST: str = Field(env="DB_HOST")
-    DB_PORT: int = Field(env="DB_PORT")
-    DB_NAME: str = Field(env="DB_NAME")
-    DB_USER: str = Field(env="DB_USER")
-    DB_PASSWORD: str = Field(env="DB_PASSWORD")
+    APP_DATABASE_URL: str = Field("sqlite+aiosqlite:///./db_hub.sqlite3", env="APP_DATABASE_URL")
 
     """Ключ шифрования для паролей подключений"""
     ENCRYPTION_KEY: str = Field(env="ENCRYPTION_KEY")
