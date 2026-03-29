@@ -39,7 +39,9 @@ def resolve_external_hosts(host: str) -> list[str]:
     # Резервный адрес docker bridge на Linux.
     fallback_ip = os.getenv("DOCKER_HOST_GATEWAY_IP", "172.17.0.1")
 
-    candidates = [primary_host, fallback_ip]
+    secondary_host = os.getenv("DOCKER_ALT_GATEWAY_HOSTNAME", "host.containers.internal")
+
+    candidates = [primary_host, secondary_host, fallback_ip]
     # Убираем дубликаты, сохраняя порядок.
     unique_candidates: list[str] = []
     for candidate in candidates:

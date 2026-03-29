@@ -181,3 +181,16 @@ docker compose down
 ```bash
 docker compose -f docker-compose.fullstack.yml up --build -d
 ```
+
+
+### Если локальная БД слушает только `127.0.0.1` (Linux)
+
+В этом случае bridge-сеть Docker может не подойти, и подключение к `localhost` из контейнера будет падать.
+Используйте режим host-network:
+
+```bash
+docker compose -f docker-compose.hostnet.yml up --build -d
+```
+
+В этом режиме контейнер использует сеть хоста, поэтому `localhost` в настройке подключения
+указывает на локальную БД хост-машины напрямую.
