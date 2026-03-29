@@ -1833,7 +1833,7 @@
 .activityChartTicks {
   margin-top: 8px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   font-size: 12px;
   color: var(--color-text-muted);
@@ -1849,6 +1849,10 @@
       text-align: left;
     }
   }
+}
+
+.activityChartValueItem {
+  font-weight: 700;
 }
 
 
@@ -1880,12 +1884,6 @@
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.activityChartSeriesLabel {
-  font-size: 10px;
-  font-weight: 700;
-  fill: currentColor;
 }
 
 .activityChartLine_total { color: #4f46e5; stroke: #4f46e5; }

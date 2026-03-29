@@ -515,8 +515,6 @@ export default function ConnectionDetailPage() {
                 minValue: 0,
                 maxValue: 0,
                 avgValue: 0,
-                topValue: 1,
-                latestPoint: null as ActivityChartPoint | null,
             };
         }
 
@@ -563,8 +561,6 @@ export default function ConnectionDetailPage() {
             minValue,
             maxValue,
             avgValue,
-            topValue,
-            latestPoint: activityChartPoints[activityChartPoints.length - 1],
         };
     }, [activityChartPoints]);
 
@@ -3741,36 +3737,6 @@ export default function ConnectionDetailPage() {
                                         <polyline points={activityChartModel.lines.delete} className={clsx(styles.activityChartPolyline, styles.activityChartLine_delete)}/>
                                         <polyline points={activityChartModel.lines.other} className={clsx(styles.activityChartPolyline, styles.activityChartLine_other)}/>
 
-                                        {activityChartModel.latestPoint && (
-                                            <>
-                                                {[
-                                                    {key: 'total', label: 'Всего', className: styles.activityChartLine_total},
-                                                    {key: 'select', label: 'SELECT', className: styles.activityChartLine_select},
-                                                    {key: 'insert', label: 'INSERT', className: styles.activityChartLine_insert},
-                                                    {key: 'update', label: 'UPDATE', className: styles.activityChartLine_update},
-                                                    {key: 'delete', label: 'DELETE', className: styles.activityChartLine_delete},
-                                                    {key: 'other', label: 'Прочее', className: styles.activityChartLine_other},
-                                                ].map((line, index) => {
-                                                    const value = activityChartModel.latestPoint?.[line.key as keyof Omit<ActivityChartPoint, 'timestamp'>] as number;
-                                                    const y = activityChartModel.axis.top
-                                                        + (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom)
-                                                        - (value / Math.max(activityChartModel.topValue, 1))
-                                                        * (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom);
-                                                    return (
-                                                        <text
-                                                            key={`line-label-${line.key}`}
-                                                            x={activityChartModel.width - activityChartModel.axis.right - 2}
-                                                            y={y - (index % 2 === 0 ? 4 : -8)}
-                                                            textAnchor="end"
-                                                            className={clsx(styles.activityChartSeriesLabel, line.className)}
-                                                        >
-                                                            {line.label}
-                                                        </text>
-                                                    );
-                                                })}
-                                            </>
-                                        )}
-
                                         {activityChartModel.xTickLabels.map((tick) => (
                                             <text
                                                 key={`x-${tick.x}`}
@@ -3814,10 +3780,11 @@ export default function ConnectionDetailPage() {
                                     <span>Мин: {activityChartModel.minValue}</span>
                                     <span>Среднее: {activityChartModel.avgValue}</span>
                                     <span>Пик: {activityChartModel.maxValue}</span>
-                                    <span>SELECT: {activityChartPoints[activityChartPoints.length - 1].select}</span>
-                                    <span>INSERT: {activityChartPoints[activityChartPoints.length - 1].insert}</span>
-                                    <span>UPDATE: {activityChartPoints[activityChartPoints.length - 1].update}</span>
-                                    <span>DELETE: {activityChartPoints[activityChartPoints.length - 1].delete}</span>
+                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_select)}>SELECT: {activityChartPoints[activityChartPoints.length - 1].select}</span>
+                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_insert)}>INSERT: {activityChartPoints[activityChartPoints.length - 1].insert}</span>
+                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_update)}>UPDATE: {activityChartPoints[activityChartPoints.length - 1].update}</span>
+                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_delete)}>DELETE: {activityChartPoints[activityChartPoints.length - 1].delete}</span>
+                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_other)}>ПРОЧЕЕ: {activityChartPoints[activityChartPoints.length - 1].other}</span>
                                 </div>
                             )}
                         </div>
