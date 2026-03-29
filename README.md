@@ -23,13 +23,6 @@ DB_HUB/
 - В папке проекта DB_HUB создайте файл .env и заполните настройки
 
 ```
-# PostgreSQL
-DB_HOST=...
-DB_PORT=...
-DB_NAME=...
-DB_USER=...
-DB_PASSWORD=...
-
 # APP
 ENCRYPTION_KEY=your_32_byte_base64_encryption_key
 
@@ -53,7 +46,7 @@ python3 backend/generate_app_key.py
 - Установите зависимости requirements.txt
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
 ## Команды Ruff
