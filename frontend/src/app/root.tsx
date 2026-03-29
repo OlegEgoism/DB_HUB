@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // frontend/src/app/root.tsx
 
 import {
@@ -7,10 +8,17 @@ import {
     Scripts,
     ScrollRestoration,
 } from "react-router";
-
+import type { LinksFunction, MetaFunction } from "react-router";
 
 import '@shared/styles/normalize.css';
 
+export const meta: MetaFunction = () => [
+    { title: 'DB HUB' },
+];
+
+export const links: LinksFunction = () => [
+    { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+];
 
 export function Layout({children}: { children: React.ReactNode }) {
     return (
