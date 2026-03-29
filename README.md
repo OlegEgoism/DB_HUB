@@ -53,10 +53,6 @@ python3 backend/generate_app_key.py
 - Установите зависимости requirements.txt
 
 ```bash
-cd backend
-```
-
-```bash
 pip install -r requirements.txt
 ```
 
@@ -96,21 +92,13 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 - Установите все необходимые зависимости
 
 ```bash
-cd frontend
-```
-
-```bash
-npm install
+npm --prefix frontend install
 ```
 
 - Запуск frontend приложения DB_HUB
 
 ```bash
-cd frontend
-```
-
-```bash
-npm run dev
+npm --prefix frontend run dev
 ```
 
 ## Запуск DB HUB в Docker (один контейнер приложения)
@@ -123,7 +111,9 @@ npm run dev
 
 ### Подготовка
 
-В корне проекта создайте `.env` и заполните обязательные переменные приложения (`ENCRYPTION_KEY`, `SECRET_KEY` и т.д.).
+> В Docker Compose БД для backend берется по имени сервиса `db` (это уже задано в `docker-compose.yml`).
+> backend `http://localhost:8088/docs` или `http://0.0.0.0:8088/docs`.
+> frontend `http://localhost:8099` или `http://0.0.0.0:8099`.
 
 ### Запуск
 

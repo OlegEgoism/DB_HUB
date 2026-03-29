@@ -28,10 +28,7 @@ type Pages = {
   "/profile": {
     params: {};
   };
-  "/documentations": {
-    params: {};
-  };
-  "/agreements": {
+  "/settings": {
     params: {};
   };
   "/login": {
@@ -47,11 +44,11 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/connections" | "/users" | "/connections/:id" | "/profile" | "/documentations" | "/agreements" | "/login" | "/*";
+    page: "/" | "/connections" | "/users" | "/connections/:id" | "/profile" | "/settings" | "/login" | "/*";
   };
   "./layout/base-layout.tsx": {
     id: "layout/base-layout";
-    page: "/" | "/connections" | "/users" | "/connections/:id" | "/profile" | "/documentations" | "/agreements";
+    page: "/" | "/connections" | "/users" | "/connections/:id" | "/profile" | "/settings";
   };
   "../pages/home/ui/page.tsx": {
     id: "../pages/home/ui/page";
@@ -73,13 +70,9 @@ type RouteFiles = {
     id: "../pages/profile/ui/page";
     page: "/profile";
   };
-  "../pages/documentations/ui/page.tsx": {
-    id: "../pages/documentations/ui/page";
-    page: "/documentations";
-  };
-  "../pages/agreements/ui/page.tsx": {
-    id: "../pages/agreements/ui/page";
-    page: "/agreements";
+  "../pages/settings/ui/page.tsx": {
+    id: "../pages/settings/ui/page";
+    page: "/settings";
   };
   "../pages/auth/ui/login-page.tsx": {
     id: "../pages/auth/ui/login-page";
@@ -99,8 +92,7 @@ type RouteModules = {
   "../pages/users/ui/page": unknown;
   "../pages/connections/ui/detail-page": unknown;
   "../pages/profile/ui/page": unknown;
-  "../pages/documentations/ui/page": unknown;
-  "../pages/agreements/ui/page": unknown;
+  "../pages/settings/ui/page": unknown;
   "../pages/auth/ui/login-page": unknown;
   "routes/not-found": typeof import("./src/app/./routes/not-found.tsx");
 };
