@@ -215,3 +215,34 @@ sudo docker compose logs --tail=200 backend
 - http://localhost:8099/ или http://127.0.0.1:8099
 - http://localhost:8088/docs или http://127.0.0.1:8088/docs
 - http://localhost:8088/redoc или http://127.0.0.1:8088/redoc
+## Запуск DB HUB в одном контейнере (frontend + backend)
+
+Добавлены отдельные файлы для запуска фронта и бэка в одном контейнере:
+
+- `Dockerfile.fullstack`
+- `docker-compose.fullstack.yml`
+
+В этом варианте:
+- backend (FastAPI) доступен на `http://localhost:8088`
+- frontend (Vite dev server) доступен на `http://localhost:8099`
+- оба сервиса запускаются внутри одного контейнера `app`
+- PostgreSQL остается отдельным сервисом `db`
+
+Запуск:
+
+```bash
+docker compose -f docker-compose.fullstack.yml up --build -d
+```
+
+Проверка:
+
+```bash
+docker compose -f docker-compose.fullstack.yml ps
+docker compose -f docker-compose.fullstack.yml logs -f app
+```
+
+Остановка:
+
+```bash
+docker compose -f docker-compose.fullstack.yml down
+```
