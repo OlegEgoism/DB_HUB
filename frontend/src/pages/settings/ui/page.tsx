@@ -32,11 +32,6 @@ export default function SettingsPage() {
         [tabKey]: !prev[tabKey],
       };
 
-      const enabledTabs = Object.values(next).filter(Boolean).length;
-      if (enabledTabs === 0) {
-        return prev;
-      }
-
       void connectionTabsSettingsModel.saveVisibility(next);
       return next;
     });

@@ -2025,6 +2025,12 @@ export default function ConnectionDetailPage() {
                             visibleTabs={visibleTabs}
                         />
                         <div className={clsx(styles.tabContent)}>
+                            {connectionTabsSettingsModel.getVisibleTabs(visibleTabs).length === 0 && (
+                                <div className={clsx(styles.usersEmpty)}>
+                                    <FontAwesomeIcon icon={faInfoCircle} size="2x"/>
+                                    <p>Все вкладки скрыты. Включите нужные вкладки в разделе «Настройки».</p>
+                                </div>
+                            )}
                             {visibleTabs.metrics && activeTab === 'metrics' && (
                                 <div className={clsx(styles.metricsContent)}>
                                     {loadingMetrics ? (
