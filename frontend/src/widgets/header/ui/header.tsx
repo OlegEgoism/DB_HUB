@@ -48,6 +48,7 @@ export function Header() {
               </>
             ) : (
               <>
+                <div className={clsx(styles.header__userMenu)}>
                 <NavLink to={ROUTES.CONNECTIONS} className={clsx(styles.header__profileButton)}>
                   Подключения
                 </NavLink>
@@ -59,6 +60,7 @@ export function Header() {
                 <NavLink to={ROUTES.PROFILE} className={clsx(styles.header__profileButton)}>
                   Профиль
                 </NavLink>
+                </div>
                 <div className={clsx(styles.header__userMenu)}>
                   <div className={clsx(styles.header__userInfo)}>
                     <span className={clsx(styles.header__username)}>{user?.username || 'User'}</span>
