@@ -46,15 +46,17 @@ async def get_db_info(
 
 
 async def sync_description_if_needed(db: AsyncSession, connection: DB_Connection, external_description: str | None) -> str:
-    """Сравнивает локальное и внешнее описание в базе данных, если отличаются — обновляет локальное поле description в базе данных"""
-    local_desc = connection.description or ""
-    external_desc = external_description or ""
-    if local_desc != external_desc:
+    """Синхронизирует локальное описание из внешней БД только если локальное пустое."""
+    local_desc = (connection.description or "").strip()
+    external_desc = (external_description or "").strip()
+
+    if not local_desc and external_desc:
         connection.description = external_description
         db.add(connection)
         await db.commit()
         await db.refresh(connection)
-    return external_description if external_description is not None else connection.description
+
+    return connection.description
 
 
 def build_connection_out(
