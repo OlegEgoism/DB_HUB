@@ -5,3 +5,4 @@ __pycache__/
 .env
 backend/collect_backend.txt
 frontend/collect_frontend.txt
+db_hub.sqlite3
