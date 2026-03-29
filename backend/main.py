@@ -16,6 +16,7 @@ from sqlalchemy import select
 
 from backend.database.session import AsyncSessionLocal, Base, engine
 from backend.models.user import User
+from backend.models.connection_tab_settings import ConnectionTabSettings
 
 """Настройка логирования"""
 logging.basicConfig(level=logging.INFO)
