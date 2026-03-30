@@ -155,42 +155,114 @@ const PREFIX_RU_TO_EN: Array<[string, string]> = [
   ['Не удалось ', 'Failed to '],
 ];
 
+const PHRASE_RU_TO_EN: Array<[string, string]> = [
+  ['Подключение', 'Connection'],
+  ['подключение', 'connection'],
+  ['подключений', 'connections'],
+  ['Пользователь', 'User'],
+  ['пользователь', 'user'],
+  ['Пользователи', 'Users'],
+  ['Группа', 'Group'],
+  ['группа', 'group'],
+  ['Группы', 'Groups'],
+  ['Схема', 'Schema'],
+  ['схема', 'schema'],
+  ['Схемы', 'Schemas'],
+  ['Таблица', 'Table'],
+  ['таблица', 'table'],
+  ['Таблицы', 'Tables'],
+  ['Представление', 'View'],
+  ['представление', 'view'],
+  ['Представления', 'Views'],
+  ['Функции', 'Functions'],
+  ['Процедуры', 'Procedures'],
+  ['Индексы', 'Indexes'],
+  ['Метрики', 'Metrics'],
+  ['Транзакции', 'Transactions'],
+  ['Настройки', 'Settings'],
+  ['Профиль', 'Profile'],
+  ['Окружение', 'Environment'],
+  ['Описание', 'Description'],
+  ['Ошибка', 'Error'],
+  ['ошибка', 'error'],
+  ['Не удалось', 'Failed to'],
+  ['Сохранить', 'Save'],
+  ['Сохранение', 'Saving'],
+  ['Создать', 'Create'],
+  ['Создание', 'Creation'],
+  ['Редактировать', 'Edit'],
+  ['Редактирование', 'Editing'],
+  ['Удалить', 'Delete'],
+  ['Удаление', 'Deleting'],
+  ['Поиск', 'Search'],
+  ['Очистить', 'Clear'],
+  ['Обновить', 'Refresh'],
+  ['Активен', 'Active'],
+  ['Неактивен', 'Inactive'],
+  ['Неверные учетные данные', 'Invalid credentials'],
+  ['Сервер недоступен', 'Server unavailable'],
+  ['Выполнить', 'Run'],
+  ['Выполнение', 'Running'],
+  ['Да', 'Yes'],
+  ['Нет', 'No'],
+];
+
 const textOriginalMap = new WeakMap<Text, string>();
 const attrOriginalMap = new WeakMap<Element, Record<string, string>>();
 
 const EXACT_EN_TO_RU = Object.fromEntries(Object.entries(EXACT_RU_TO_EN).map(([ru, en]) => [en, ru]));
 const PREFIX_EN_TO_RU = PREFIX_RU_TO_EN.map(([ru, en]) => [en, ru] as const);
+const PHRASE_EN_TO_RU = PHRASE_RU_TO_EN.map(([ru, en]) => [en, ru] as const);
+
+function replacePhrases(value: string, language: Language): string {
+  const dictionary = language === 'en' ? PHRASE_RU_TO_EN : PHRASE_EN_TO_RU;
+  let output = value;
+
+  for (const [from, to] of dictionary) {
+    output = output.replaceAll(from, to);
+  }
+
+  return output;
+}
+
+function preserveSpaces(original: string, translated: string): string {
+  const leading = original.match(/^\s*/)?.[0] ?? '';
+  const trailing = original.match(/\s*$/)?.[0] ?? '';
+  return `${leading}${translated}${trailing}`;
+}
 
 function translateValue(value: string, language: Language): string {
   if (!value.trim()) {
     return value;
   }
 
+  const normalized = value.trim();
+
   if (language === 'ru') {
-    if (EXACT_EN_TO_RU[value]) {
-      return EXACT_EN_TO_RU[value];
+    if (EXACT_EN_TO_RU[normalized]) {
+      return preserveSpaces(value, EXACT_EN_TO_RU[normalized]);
     }
 
     for (const [enPrefix, ruPrefix] of PREFIX_EN_TO_RU) {
-      if (value.startsWith(enPrefix)) {
-        return `${ruPrefix}${value.slice(enPrefix.length)}`;
+      if (normalized.startsWith(enPrefix)) {
+        return preserveSpaces(value, `${ruPrefix}${normalized.slice(enPrefix.length)}`);
       }
     }
 
-    return value;
+    return preserveSpaces(value, replacePhrases(normalized, 'ru'));
   }
 
-  if (EXACT_RU_TO_EN[value]) {
-    return EXACT_RU_TO_EN[value];
+  if (EXACT_RU_TO_EN[normalized]) {
+    return preserveSpaces(value, EXACT_RU_TO_EN[normalized]);
   }
 
   for (const [ruPrefix, enPrefix] of PREFIX_RU_TO_EN) {
-    if (value.startsWith(ruPrefix)) {
-      return `${enPrefix}${value.slice(ruPrefix.length)}`;
+    if (normalized.startsWith(ruPrefix)) {
+      return preserveSpaces(value, `${enPrefix}${normalized.slice(ruPrefix.length)}`);
     }
   }
 
-  return value;
+  return preserveSpaces(value, replacePhrases(normalized, 'en'));
 }
 
 function translateTextNode(node: Text, language: Language) {
