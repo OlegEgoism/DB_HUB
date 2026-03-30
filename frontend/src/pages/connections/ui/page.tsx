@@ -788,16 +788,16 @@ export default function ConnectionsPage() {
                                 className={clsx(styles.modalIcon)}
                             />
                             <h2 className={clsx(styles.modalTitle)}>
-                                Подтверждение удаления
+                                {t('connections.delete.title')}
                             </h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
                             <p className={clsx(styles.modalText)}>
-                                Удалить подключение <strong>{confirmDeleteName}</strong>?
+                                {t('connections.delete.text')} <strong>{confirmDeleteName}</strong>?
                             </p>
                             <p className={clsx(styles.modalWarning)}>
                                 <FontAwesomeIcon icon={faExclamationCircle}/>
-                                Все данные будут удалены безвозвратно.
+                                {t('connections.delete.warning')}
                             </p>
                         </div>
                         <div className={clsx(styles.modalFooter)}>
@@ -806,7 +806,7 @@ export default function ConnectionsPage() {
                                 onClick={closeDeleteConfirm}
                                 disabled={deletingId !== null}
                             >
-                                Отмена
+                                {t('login.cancel')}
                             </button>
                             <button
                                 className={clsx(
@@ -819,12 +819,12 @@ export default function ConnectionsPage() {
                                 {deletingId !== null ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Удаление...
+                                        {t('connections.delete.loading')}
                                     </>
                                 ) : (
                                     <>
                                         <FontAwesomeIcon icon={faTrashAlt}/>
-                                        Удалить
+                                        {t('users.delete')}
                                     </>
                                 )}
                             </button>
