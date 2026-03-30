@@ -11,6 +11,7 @@ import {
     faEye,
     faEyeSlash,
 } from '@fortawesome/free-solid-svg-icons';
+import { useI18n } from '@shared/i18n';
 
 export function CreateUserModal({
                                     connectionId,
@@ -21,6 +22,7 @@ export function CreateUserModal({
     onClose: () => void;
     onSuccess: () => void;
 }) {
+    const { t } = useI18n();
     const [formData, setFormData] = useState({
         username: '',
         password: '',
@@ -35,26 +37,26 @@ export function CreateUserModal({
 
 // Валидация обязательных полей
         if (!formData.username.trim()) {
-            alert('Пожалуйста, введите имя пользователя');
+            alert(t('users.create.alert.username_required'));
             return;
         }
         if (!formData.password.trim()) {
-            alert('Пожалуйста, введите пароль');
+            alert(t('users.create.alert.password_required'));
             return;
         }
         if (formData.password.length < 4) {
-            alert('Пароль должен быть не менее 4 символов');
+            alert(t('password.min'));
             return;
         }
 // ✅ ПРОВЕРКА: Email должен быть заполнен
         if (!formData.email.trim()) {
-            alert('Пожалуйста, введите Email');
+            alert(t('users.create.alert.email_required'));
             return;
         }
 // Дополнительная проверка формата Email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email.trim())) {
-            alert('Пожалуйста, введите корректный Email');
+            alert(t('users.create.alert.email_invalid'));
             return;
         }
 
@@ -92,19 +94,19 @@ export function CreateUserModal({
     const getErrorMessage = () => {
         if (!error) return null;
         if (error.includes('400') || error.includes('Invalid') || error.includes('Неверный')) {
-            return 'Неверные данные. Проверьте введенные значения.';
+            return t('password.error.invalid');
         }
         if (error.includes('403')) {
-            return 'Доступ запрещен. Проверьте ваши права доступа.';
+            return t('password.error.forbidden');
         }
         if (error.includes('404')) {
-            return 'Пользователь не найден.';
+            return t('users.create.error.not_found');
         }
         if (error.includes('500') || error.includes('Internal Server Error')) {
-            return 'Внутренняя ошибка сервера. Попробуйте позже.';
+            return t('password.error.server');
         }
         if (error.includes('Network Error') || error.includes('Failed to fetch')) {
-            return 'Ошибка сети. Проверьте подключение к интернету.';
+            return t('password.error.network');
         }
         return error;
     };
@@ -116,13 +118,13 @@ export function CreateUserModal({
                     className={clsx(styles.modal__closeButton)}
                     onClick={handleClose}
                     disabled={loading}
-                    aria-label="Закрыть окно создания"
+                    aria-label={t('users.create.close')}
                 >
                     <FontAwesomeIcon icon={faTimes}/>
                 </button>
                 <div className={clsx(styles.modal__header)}>
                     <h2 className={clsx(styles.modal__title)}>
-                        {success ? 'Пользователь создан!' : 'Создание пользователя'}
+                        {success ? t('users.create.success_title') : t('users.create.title')}
                     </h2>
                 </div>
                 {success ? (
@@ -135,10 +137,10 @@ export function CreateUserModal({
                                     color: 'var(--color-status-success)',
                                 }}
                             />
-                            Пользователь успешно создан!
+                            {t('users.create.success_title')}
                         </div>
                         <div className={clsx(styles.modal__successHint)}>
-                            Новый пользователь добавлен в базу данных
+                            {t('users.create.success_hint')}
                         </div>
                         <button className={clsx(styles.modal__successButton)} onClick={onClose}>
                             OK
@@ -149,7 +151,7 @@ export function CreateUserModal({
                         {error && <div className={clsx(styles.modal__error)}>{getErrorMessage()}</div>}
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="username" className={clsx(styles.modal__label)}>
-                                Имя пользователя *
+                                {t('login.username')} *
                             </label>
                             <input
                                 type="text"
@@ -159,14 +161,14 @@ export function CreateUserModal({
                                 onChange={handleChange}
                                 required
                                 className={clsx(styles.modal__input)}
-                                placeholder="Введите имя пользователя"
+                                placeholder={t('login.username.placeholder')}
                                 disabled={loading}
                                 maxLength={50}
                             />
                         </div>
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="email" className={clsx(styles.modal__label)}>
-                                Email *
+                                {t('register.email')} *
                             </label>
                             <input
                                 type="email"
@@ -182,7 +184,7 @@ export function CreateUserModal({
                         </div>
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="password" className={clsx(styles.modal__label)}>
-                                Пароль *
+                                {t('login.password')} *
                             </label>
                             <div className={clsx(styles.modal__passwordWrapper)}>
                                 <input
@@ -193,7 +195,7 @@ export function CreateUserModal({
                                     onChange={handleChange}
                                     required
                                     className={clsx(styles.modal__input)}
-                                    placeholder="Минимум 4 символа"
+                                    placeholder={t('register.placeholder.password')}
                                     disabled={loading}
                                 />
                                 <button
@@ -208,7 +210,7 @@ export function CreateUserModal({
                         </div>
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="description" className={clsx(styles.modal__label)}>
-                                Описание
+                                {t('users.create.description')}
                             </label>
                             <textarea
                                 id="description"
@@ -216,7 +218,7 @@ export function CreateUserModal({
                                 value={formData.description}
                                 onChange={handleChange}
                                 className={clsx(styles.modal__textarea)}
-                                placeholder="Описание пользователя"
+                                placeholder={t('users.create.description_placeholder')}
                                 disabled={loading}
                                 rows={3}
                             />
@@ -228,7 +230,7 @@ export function CreateUserModal({
                                 onClick={handleClose}
                                 disabled={loading}
                             >
-                                Отмена
+                                {t('login.cancel')}
                             </button>
                             <button
                                 type="submit"
@@ -238,10 +240,10 @@ export function CreateUserModal({
                                 {loading ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Создание...
+                                        {t('users.create.loading')}
                                     </>
                                 ) : (
-                                    'Создать пользователя'
+                                    t('users.create_user')
                                 )}
                             </button>
                         </div>
