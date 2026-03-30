@@ -58,6 +58,7 @@ import { formatDateTime, formatStartTime, formatUptime } from '@pages/connection
 import { useConnectionDetailCore } from '@pages/connections/lib/detail-page/useConnectionDetailCore';
 import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navigation';
 import { connectionTabsSettingsModel, DEFAULT_CONNECTION_TABS_VISIBILITY } from '@entities/settings/model';
+import { useI18n } from '@shared/i18n';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -85,6 +86,7 @@ const detectQueryOperation = (query: string | null | undefined): keyof Omit<Acti
 };
 
 export default function ConnectionDetailPage() {
+    const { t } = useI18n();
     const {id} = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -2463,8 +2465,8 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((usersPage - 1) * usersPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(usersPage * usersPageSize, totalUsers)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalUsers}</span> пользователей
+{t('users.shown')} <span className={clsx(styles.paginationHighlight)}>{((usersPage - 1) * usersPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(usersPage * usersPageSize, totalUsers)}</span> {t('users.of')} <span className={clsx(styles.paginationHighlight)}>{totalUsers}</span> {t('users.users')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
@@ -2475,7 +2477,7 @@ export default function ConnectionDetailPage() {
                                                         >
                                                             {PAGE_SIZES.map((size) => (
                                                                 <option key={size} value={size}>
-                                                                    {size} на странице
+                                                                    {size} {t('users.per_page')}
                                                                 </option>
                                                             ))}
                                                         </select>
@@ -2484,7 +2486,7 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleUsersFirstPage}
                                                                 disabled={usersPage === 1 || !usersHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('users.page.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
@@ -2492,18 +2494,18 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton)}
                                                                 onClick={() => handleUsersPageChange(usersPage - 1)}
                                                                 disabled={usersPage === 1 || !usersHasPrev}
-                                                                title="Предыдущая страница"
+                                                                title={t('users.page.prev')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>
-Страница {usersPage} из {totalUsersPages}
+<span className={clsx(styles.pageInfo)}>
+{t('users.page.label')} {usersPage} {t('users.of')} {totalUsersPages}
 </span>
                                                             <button
                                                                 className={clsx(styles.paginationButton)}
                                                                 onClick={() => handleUsersPageChange(usersPage + 1)}
                                                                 disabled={usersPage === totalUsersPages || !usersHasNext}
-                                                                title="Следующая страница"
+                                                                title={t('users.page.next')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
@@ -2511,7 +2513,7 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleUsersLastPage}
                                                                 disabled={usersPage === totalUsersPages || !usersHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('users.page.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
