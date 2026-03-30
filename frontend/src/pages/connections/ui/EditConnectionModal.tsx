@@ -11,6 +11,7 @@ import {
     faEye,
     faEyeSlash,
 } from '@fortawesome/free-solid-svg-icons';
+import { useI18n } from '@shared/i18n';
 
 interface Connection {
     id: number;
@@ -52,6 +53,7 @@ export function EditConnectionModal({
     const [showPassword, setShowPassword] = useState(false);
     const [initialData] = useState({ ...formData });
     const {updateConnection, loading, error, success} = useEditConnection(connection.id);
+    const { t } = useI18n();
 
 
 
@@ -63,7 +65,7 @@ export function EditConnectionModal({
             (key) => formData[key as keyof typeof formData] !== initialData[key as keyof typeof initialData]
         );
         if (!hasChanges && !formData.password) {
-            alert('Нет изменений для сохранения');
+            alert(t('profile.no_changes'));
             return;
         }
         try {
@@ -120,19 +122,19 @@ export function EditConnectionModal({
     const getErrorMessage = () => {
         if (!error) return null;
         if (error.includes('400') || error.includes('Invalid') || error.includes('Неверный')) {
-            return 'Неверные данные. Проверьте введенные значения.';
+            return t('password.error.invalid');
         }
         if (error.includes('403')) {
-            return 'Доступ запрещен. Проверьте ваши права доступа.';
+            return t('password.error.forbidden');
         }
         if (error.includes('404')) {
-            return 'Подключение не найдено.';
+            return t('connections.not_found');
         }
         if (error.includes('500') || error.includes('Internal Server Error')) {
-            return 'Внутренняя ошибка сервера. Попробуйте позже.';
+            return t('password.error.server');
         }
         if (error.includes('Network Error') || error.includes('Failed to fetch')) {
-            return 'Ошибка сети. Проверьте подключение к интернету.';
+            return t('password.error.network');
         }
         return error;
     };
@@ -144,13 +146,13 @@ export function EditConnectionModal({
                     className={clsx(styles.modal__closeButton)}
                     onClick={handleClose}
                     disabled={loading}
-                    aria-label="Закрыть окно редактирования"
+                    aria-label={t('connections.edit.title')}
                 >
                     <FontAwesomeIcon icon={faTimes}/>
                 </button>
                 <div className={clsx(styles.modal__header)}>
                     <h2 className={clsx(styles.modal__title)}>
-                        {success ? 'Подключение обновлено!' : 'Редактирование подключения'}
+                        {success ? t('connections.edit.updated') : t('connections.edit.title')}
                     </h2>
                 </div>
                 {success ? (
@@ -163,10 +165,10 @@ export function EditConnectionModal({
                                     color: 'var(--color-status-success)',
                                 }}
                             />
-                            Подключение успешно обновлено!
+                            {t('connections.edit.updated_success')}
                         </div>
                         <div className={clsx(styles.modal__successHint)}>
-                            Ваши изменения сохранены
+                            {t('profile.saved_hint')}
                         </div>
                         <button className={clsx(styles.modal__successButton)} onClick={onClose}>
                             OK
@@ -178,7 +180,7 @@ export function EditConnectionModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="name" className={clsx(styles.modal__label)}>
-                                Название подключения *
+                                {t('connections.edit.name')}
                             </label>
                             <input
                                 type="text"
@@ -188,7 +190,7 @@ export function EditConnectionModal({
                                 onChange={handleChange}
                                 required
                                 className={clsx(styles.modal__input)}
-                                placeholder="Введите название подключения"
+                                placeholder={t('connections.edit.name_placeholder')}
                                 disabled={loading}
                                 maxLength={30}
                             />
@@ -196,7 +198,7 @@ export function EditConnectionModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="description" className={clsx(styles.modal__label)}>
-                                Описание
+                                {t('connections.edit.description')}
                             </label>
                             <input
                                 type="text"
@@ -205,7 +207,7 @@ export function EditConnectionModal({
                                 value={formData.description}
                                 onChange={handleChange}
                                 className={clsx(styles.modal__input)}
-                                placeholder="Описание подключения"
+                                placeholder={t('connections.edit.description_placeholder')}
                                 disabled={loading}
                                 maxLength={100}
                             />
@@ -216,7 +218,7 @@ export function EditConnectionModal({
                             <div className={clsx(styles.modal__dualRow)}>
                                 <div className={clsx(styles.modal__dualColumn)}>
                                     <label htmlFor="database_type" className={clsx(styles.modal__label)}>
-                                        Тип базы данных *
+                                        {t('connections.edit.db_type')}
                                     </label>
                                     <select
                                         id="database_type"
@@ -232,7 +234,7 @@ export function EditConnectionModal({
                                 </div>
                                 <div className={clsx(styles.modal__dualColumn)}>
                                     <label htmlFor="environment" className={clsx(styles.modal__label)}>
-                                        Окружение *
+                                        {t('connections.edit.environment')}
                                     </label>
                                     <select
                                         id="environment"
@@ -242,10 +244,10 @@ export function EditConnectionModal({
                                         className={clsx(styles.modal__select)}
                                         disabled={loading}
                                     >
-                                        <option value="development">Разработка</option>
-                                        <option value="testing">Тестирование</option>
-                                        <option value="production">Продакшн</option>
-                                        <option value="analytics">Аналитика</option>
+                                        <option value="development">{t('connections.env.development')}</option>
+                                        <option value="testing">{t('connections.env.testing')}</option>
+                                        <option value="production">{t('connections.env.production')}</option>
+                                        <option value="analytics">{t('connections.env.analytics')}</option>
                                     </select>
                                 </div>
                             </div>
@@ -253,7 +255,7 @@ export function EditConnectionModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="database_name" className={clsx(styles.modal__label)}>
-                                Имя базы данных *
+                                {t('connections.edit.db_name')}
                             </label>
                             <input
                                 type="text"
@@ -273,7 +275,7 @@ export function EditConnectionModal({
                             <div className={clsx(styles.modal__dualRow)}>
                                 <div className={clsx(styles.modal__dualColumn)}>
                                     <label htmlFor="username" className={clsx(styles.modal__label)}>
-                                        Имя пользователя *
+                                        {t('connections.edit.username')}
                                     </label>
                                     <input
                                         type="text"
@@ -289,7 +291,7 @@ export function EditConnectionModal({
                                 </div>
                                 <div className={clsx(styles.modal__dualColumn)}>
                                     <label htmlFor="password" className={clsx(styles.modal__label)}>
-                                        Пароль
+                                        {t('connections.edit.password')}
                                     </label>
                                     <div className={clsx(styles.modal__passwordWrapper)}>
                                         <input
@@ -299,7 +301,7 @@ export function EditConnectionModal({
                                             value={formData.password}
                                             onChange={handleChange}
                                             className={clsx(styles.modal__input)}
-                                            placeholder="Оставьте пустым"
+                                            placeholder={t('connections.edit.password_placeholder')}
                                             disabled={loading}
                                         />
                                         <button
@@ -317,7 +319,7 @@ export function EditConnectionModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="host" className={clsx(styles.modal__label)}>
-                                Хост *
+                                {t('connections.edit.host')}
                             </label>
                             <input
                                 type="text"
@@ -334,7 +336,7 @@ export function EditConnectionModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="port" className={clsx(styles.modal__label)}>
-                                Порт *
+                                {t('connections.edit.port')}
                             </label>
                             <input
                                 type="number"
@@ -359,7 +361,7 @@ export function EditConnectionModal({
                                     disabled={loading}
                                     style={{marginRight: '8px'}}
                                 />
-                                Добавить в избранное
+                                {t('connections.edit.favorite')}
                             </label>
                         </div>
 
@@ -370,7 +372,7 @@ export function EditConnectionModal({
                                 onClick={handleClose}
                                 disabled={loading}
                             >
-                                Отмена
+                                {t('login.cancel')}
                             </button>
                             <button
                                 type="submit"
@@ -380,10 +382,10 @@ export function EditConnectionModal({
                                 {loading ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Сохранение...
+                                        {t('profile.saving')}
                                     </>
                                 ) : (
-                                    'Сохранить'
+                                    t('profile.save')
                                 )}
                             </button>
                         </div>
