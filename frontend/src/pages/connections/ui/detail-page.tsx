@@ -2703,25 +2703,25 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск схем"
+                                                    placeholder={t('schemas.search')}
                                                     value={schemasSearchQuery}
                                                     onChange={handleSchemasSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
                                                 />
                                                 {schemasSearchQuery && (
-                                                    <button type="button" onClick={handleSchemasSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                    <button type="button" onClick={handleSchemasSearchClear} className={clsx(styles.usersSearchClear)} title={t('schemas.search_clear')}>
                                                         <FontAwesomeIcon icon={faTimes}/>
                                                     </button>
                                                 )}
                                             </div>
-                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title={t('schemas.search')}>{t('schemas.search')}</button>
                                             <button
                                                 type="button"
                                                 className={clsx(styles.refreshButton)}
                                                 onClick={refreshSchemas}
                                                 disabled={loadingSchemas}
-                                                aria-label="Обновить список схем"
-                                                title="Обновить список схем"
+                                                aria-label={t('schemas.refresh')}
+                                                title={t('schemas.refresh')}
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingSchemas}/>
                                             </button>
@@ -2733,7 +2733,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка схем...</p>
+                                            <p>{t('schemas.loading')}</p>
                                         </div>
                                     ) : schemas && schemas.length > 0 ? (
                                         <>
@@ -2746,11 +2746,11 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Владелец:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('schemas.owner')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{schema.owner}</span>
                                                                 </div>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Ролей:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('schemas.roles')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{schema.role_privileges.length}</span>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
@@ -2767,14 +2767,14 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((schemasPage - 1) * schemasPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(schemasPage * schemasPageSize, totalSchemas)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalSchemas}</span> схем
+{t('schemas.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((schemasPage - 1) * schemasPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(schemasPage * schemasPageSize, totalSchemas)}</span> {t('schemas.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalSchemas}</span> {t('schemas.pagination.schemas')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select value={schemasPageSize} onChange={handleSchemasPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                             {PAGE_SIZES.map((size) => (
-                                                                <option key={size} value={size}>{size} на странице</option>
+                                                                <option key={size} value={size}>{size} {t('schemas.pagination.per_page')}</option>
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
@@ -2782,22 +2782,22 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleSchemasFirstPage}
                                                                 disabled={schemasPage === 1 || !schemasHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('schemas.pagination.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage - 1)} disabled={schemasPage === 1 || !schemasHasPrev} title="Предыдущая страница">
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage - 1)} disabled={schemasPage === 1 || !schemasHasPrev} title={t('schemas.pagination.prev')}>
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {schemasPage} из {totalSchemasPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage + 1)} disabled={schemasPage === totalSchemasPages || !schemasHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>{t('schemas.pagination.page')} {schemasPage} {t('schemas.pagination.of')} {totalSchemasPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage + 1)} disabled={schemasPage === totalSchemasPages || !schemasHasNext} title={t('schemas.pagination.next')}>
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleSchemasLastPage}
                                                                 disabled={schemasPage === totalSchemasPages || !schemasHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('schemas.pagination.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
@@ -4105,12 +4105,12 @@ export default function ConnectionDetailPage() {
                             className={clsx(groupModalStyles.modal__closeButton)}
                             onClick={closeGroupUsersModal}
                             disabled={groupUsersSaving}
-                            aria-label="Закрыть окно управления пользователями"
+                            aria-label={t('groups.users_manager.close')}
                         >
                             <FontAwesomeIcon icon={faTimes}/>
                         </button>
                         <div className={clsx(groupModalStyles.modal__header)}>
-                            <h2 className={clsx(groupModalStyles.modal__title)}>Управление пользователями группы</h2>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>{t('groups.users_manager.title')}</h2>
                             <p className={clsx(groupModalStyles.modal__subtitle)}>{groupUsersModal.name}</p>
                         </div>
                         <div className={clsx(groupModalStyles.modal__form, styles.groupUsersManager)}>
@@ -4122,7 +4122,7 @@ export default function ConnectionDetailPage() {
                                         <input
                                             id="groupUserSearch"
                                             type="text"
-                                            placeholder="Поиск пользователя..."
+                                            placeholder={t('groups.users_manager.search_user')}
                                             value={groupUserSearchQuery}
                                             onChange={(e) => setGroupUserSearchQuery(e.target.value)}
                                             className={clsx(styles.usersSearchInput)}
@@ -4133,7 +4133,7 @@ export default function ConnectionDetailPage() {
                                                 type="button"
                                                 onClick={() => setGroupUserSearchQuery('')}
                                                 className={clsx(styles.usersSearchClear)}
-                                                title="Очистить поиск"
+                                                title={t('groups.search_clear')}
                                             >
                                                 <FontAwesomeIcon icon={faTimes}/>
                                             </button>
@@ -4146,7 +4146,7 @@ export default function ConnectionDetailPage() {
                                         onChange={(e) => setSelectedUserOid(e.target.value)}
                                         disabled={groupUsersLoading || groupUsersSaving || filteredAvailableUsersForAdd.length === 0}
                                     >
-                                        <option value="">Выберите пользователя</option>
+                                        <option value="">{t('groups.users_manager.select_user')}</option>
                                         {filteredAvailableUsersForAdd.map((user) => (
                                             <option key={user.oid} value={user.oid}>{user.name}</option>
                                         ))}
@@ -4157,7 +4157,7 @@ export default function ConnectionDetailPage() {
                                         onClick={addUserToGroup}
                                         disabled={!selectedUserOid || groupUsersSaving || groupUsersLoading}
                                     >
-                                        Добавить в группу
+                                        {t('groups.users_manager.add_to_group')}
                                     </button>
                                 </div>
                             </div>
@@ -4167,7 +4167,7 @@ export default function ConnectionDetailPage() {
                                     <div className={clsx(styles.spinner)}>
                                         <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                     </div>
-                                    <p>Загрузка пользователей группы...</p>
+                                    <p>{t('groups.users_manager.loading')}</p>
                                 </div>
                             ) : (
                                 <div className={clsx(styles.groupUsersManager__list)}>
@@ -4190,7 +4190,7 @@ export default function ConnectionDetailPage() {
                                     )) : (
                                         <div className={clsx(styles.usersEmpty, styles.groupUsersManager__empty)}>
                                             <FontAwesomeIcon icon={faUsers} size="2x"/>
-                                            <p>В группе пока нет пользователей</p>
+                                            <p>{t('groups.users_manager.empty')}</p>
                                         </div>
                                     )}
                                 </div>
