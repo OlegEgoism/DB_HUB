@@ -21,6 +21,7 @@ import { apiRequest } from '@shared/api/http';
 import { useSession } from '@features/auth';
 import type { User } from '@shared/types/user';
 import styles from './styles.module.scss';
+import { useI18n } from '@shared/i18n';
 
 interface PaginatedUsersResponse {
   items: User[];
@@ -71,6 +72,7 @@ const UPDATE_FORM_INITIAL: UserUpdatePayload = {
 export default function UsersPage() {
   const navigate = useNavigate();
   const { checkAuth, getUser } = useSession();
+  const { t } = useI18n();
 
   const isAuthenticated = checkAuth();
   const currentUser = getUser();
@@ -326,6 +328,20 @@ export default function UsersPage() {
   const shownFrom = users.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0;
   const shownTo = users.length > 0 ? shownFrom + users.length - 1 : 0;
 
+  const roleLabelMap: Record<string, string> = {
+    'Администратор БД': t('roles.admin'),
+    'Аналитик': t('roles.analyst'),
+    'Разработчик': t('roles.developer'),
+    'Тестировщик': t('roles.tester'),
+    'Пользователь': t('roles.user'),
+    Analyst: t('roles.analyst'),
+    Developer: t('roles.developer'),
+    Tester: t('roles.tester'),
+    User: t('roles.user'),
+  };
+
+  const getRoleLabel = (role: string) => roleLabelMap[role] ?? role;
+
 
   if (!isAuthenticated || !isSuperUser) {
     return null;
@@ -338,7 +354,7 @@ export default function UsersPage() {
       <div className={clsx(styles.users__header)}>
         <div className={clsx(styles.users__titleContainer)}>
           <h1 className={clsx(styles.users__title)}>
-            Пользователи
+            {t('users.title')}
             <span className={clsx(styles.users__countBadge)}>{users.length}</span>
           </h1>
         </div>
@@ -349,11 +365,11 @@ export default function UsersPage() {
               <input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Поиск"
+                placeholder={t('users.search')}
                 className={clsx(styles.users__searchInput)}
               />
               {searchQuery && (
-                <button type="button" className={clsx(styles.users__searchClear)} onClick={handleSearchClear} title="Очистить поиск">
+                <button type="button" className={clsx(styles.users__searchClear)} onClick={handleSearchClear} title={t('users.search_clear')}>
                   <FontAwesomeIcon icon={faTimes} />
                 </button>
               )}
@@ -367,9 +383,9 @@ export default function UsersPage() {
                 setCurrentPage(1);
               }}
             >
-              <option value="all">Активности</option>
-              <option value="true">Активные</option>
-              <option value="false">Неактивные</option>
+              <option value="all">{t('users.filter.activity')}</option>
+              <option value="true">{t('users.filter.active')}</option>
+              <option value="false">{t('users.filter.inactive')}</option>
             </select>
 
             <select
@@ -380,23 +396,23 @@ export default function UsersPage() {
                 setCurrentPage(1);
               }}
             >
-              <option value="all">Роли</option>
+              <option value="all">{t('users.filter.roles')}</option>
               {USER_ROLES.map((role) => (
                 <option key={role} value={role}>
-                  {role}
+                  {getRoleLabel(role)}
                 </option>
               ))}
             </select>
 
 
             <button type="submit" className={clsx(styles.users__searchButton)}>
-              Поиск
+              {t('users.search')}
             </button>
           </form>
 
           <button type="button" className={clsx(styles.users__createButton)} onClick={openCreateModal}>
             <FontAwesomeIcon icon={faPlus} />
-            Добавить пользователя
+            {t('users.add')}
           </button>
         </div>
       </div>
@@ -404,7 +420,7 @@ export default function UsersPage() {
       {loading ? (
         <div className={clsx(styles.users__state)}>
           <FontAwesomeIcon icon={faSpinner} spin />
-          <span>Загрузка пользователей...</span>
+          <span>{t('users.loading')}</span>
         </div>
       ) : error ? (
         <div className={clsx(styles.users__state, styles.users__state_error)}>
@@ -417,13 +433,13 @@ export default function UsersPage() {
             <table className={clsx(styles.users__table)}>
               <thead>
                 <tr>
-                  <th>Логин</th>
-                  <th>ФИО</th>
-                  <th>Email</th>
-                  <th>Роль</th>
-                  <th>Активен</th>
-                  <th>Суперпользователь</th>
-                  <th>Действия</th>
+                  <th>{t('users.login')}</th>
+                  <th>{t('users.fio')}</th>
+                  <th>{t('users.email')}</th>
+                  <th>{t('users.role')}</th>
+                  <th>{t('users.active')}</th>
+                  <th>{t('users.superuser')}</th>
+                  <th>{t('users.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -432,18 +448,18 @@ export default function UsersPage() {
                     <td>{user.username}</td>
                     <td>{user.fio?.trim() || '—'}</td>
                     <td>{user.email}</td>
-                    <td>{user.role}</td>
-                    <td>{user.is_active ? 'Да' : 'Нет'}</td>
-                    <td>{user.is_superuser ? 'Да' : 'Нет'}</td>
+                    <td>{getRoleLabel(user.role)}</td>
+                    <td>{user.is_active ? t('yes') : t('no')}</td>
+                    <td>{user.is_superuser ? t('yes') : t('no')}</td>
                     <td>
                       <div className={clsx(styles.users__rowActions)}>
-                        <button type="button" className={clsx(styles.users__iconButton)} title="Редактировать" onClick={() => openEditModal(user)}>
+                        <button type="button" className={clsx(styles.users__iconButton)} title={t('users.edit')} onClick={() => openEditModal(user)}>
                           <FontAwesomeIcon icon={faPen} />
                         </button>
                         <button
                           type="button"
                           className={clsx(styles.users__iconButton, styles.users__iconButton_delete)}
-                          title="Удалить"
+                          title={t('users.delete')}
                           onClick={() => {
                             resetActionError();
                             setDeletingUser(user);
@@ -461,7 +477,7 @@ export default function UsersPage() {
 
           {users.length === 0 && (
             <div className={clsx(styles.users__state)}>
-              <span>Пользователи не найдены.</span>
+              <span>{t('users.not_found')}</span>
             </div>
           )}
 
@@ -469,9 +485,9 @@ export default function UsersPage() {
             <div className={clsx(styles.users__pagination)}>
               <div className={clsx(styles.users__paginationInfo)}>
                 <span className={clsx(styles.users__paginationText)}>
-                  Показано <span className={clsx(styles.users__paginationHighlight)}>{shownFrom}</span>–
-                  <span className={clsx(styles.users__paginationHighlight)}>{shownTo}</span> из{' '}
-                  <span className={clsx(styles.users__paginationHighlight)}>{totalItems}</span> пользователей
+                  {t('users.shown')} <span className={clsx(styles.users__paginationHighlight)}>{shownFrom}</span>–
+                  <span className={clsx(styles.users__paginationHighlight)}>{shownTo}</span> {t('users.of')}{' '}
+                  <span className={clsx(styles.users__paginationHighlight)}>{totalItems}</span> {t('users.users')}
                 </span>
               </div>
 
@@ -479,23 +495,23 @@ export default function UsersPage() {
                 <select value={pageSize} onChange={handlePageSizeChange} className={clsx(styles.users__paginationSelect)}>
                   {PAGE_SIZES.map((size) => (
                     <option key={size} value={size}>
-                      {size} на странице
+                      {size} {t('users.per_page')}
                     </option>
                   ))}
                 </select>
 
                 <div className={clsx(styles.users__paginationButtons)}>
-                  <button className={clsx(styles.users__paginationButton, styles.users__paginationButton_first)} onClick={handleFirstPage} disabled={currentPage === 1 || !hasPrev} title="Первая страница">
+                  <button className={clsx(styles.users__paginationButton, styles.users__paginationButton_first)} onClick={handleFirstPage} disabled={currentPage === 1 || !hasPrev} title={t('users.page.first')}>
                     <FontAwesomeIcon icon={faChevronCircleLeft} />
                   </button>
-                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1 || !hasPrev} title="Предыдущая страница">
+                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1 || !hasPrev} title={t('users.page.prev')}>
                     <FontAwesomeIcon icon={faChevronLeft} />
                   </button>
-                  <span className={clsx(styles.users__pageInfo)}>Страница {currentPage} из {totalPages}</span>
-                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages || !hasNext} title="Следующая страница">
+                  <span className={clsx(styles.users__pageInfo)}>{t('users.page.label')} {currentPage} {t('users.of')} {totalPages}</span>
+                  <button className={clsx(styles.users__paginationButton)} onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages || !hasNext} title={t('users.page.next')}>
                     <FontAwesomeIcon icon={faChevronRight} />
                   </button>
-                  <button className={clsx(styles.users__paginationButton, styles.users__paginationButton_last)} onClick={handleLastPage} disabled={currentPage === totalPages || !hasNext} title="Последняя страница">
+                  <button className={clsx(styles.users__paginationButton, styles.users__paginationButton_last)} onClick={handleLastPage} disabled={currentPage === totalPages || !hasNext} title={t('users.page.last')}>
                     <FontAwesomeIcon icon={faChevronCircleRight} />
                   </button>
                 </div>
@@ -511,10 +527,10 @@ export default function UsersPage() {
             <button type="button" className={clsx(styles.modal__close)} onClick={closeModals} disabled={isSubmitting}>
               <FontAwesomeIcon icon={faXmark} />
             </button>
-            <h2 className={clsx(styles.modal__title)}>Создать пользователя</h2>
+            <h2 className={clsx(styles.modal__title)}>{t('users.create_user')}</h2>
             <form className={clsx(styles.modal__form)} onSubmit={handleCreateSubmit}>
               <label className={clsx(styles.modal__label)}>
-                Логин
+                {t('users.login')}
                 <input required minLength={3} maxLength={50} value={createForm.username} onChange={(event) => setCreateForm((prev) => ({ ...prev, username: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
@@ -522,21 +538,21 @@ export default function UsersPage() {
                 <input required type="email" value={createForm.email} onChange={(event) => setCreateForm((prev) => ({ ...prev, email: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
-                ФИО
+                {t('users.fio')}
                 <input maxLength={100} value={createForm.fio} onChange={(event) => setCreateForm((prev) => ({ ...prev, fio: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
-                Роль
+                {t('users.role')}
                 <select value={createForm.role} onChange={(event) => setCreateForm((prev) => ({ ...prev, role: event.target.value }))} className={clsx(styles.modal__input)}>
                   {USER_ROLES.map((role) => (
                     <option key={role} value={role}>
-                      {role}
+                      {getRoleLabel(role)}
                     </option>
                   ))}
                 </select>
               </label>
               <label className={clsx(styles.modal__label)}>
-                Пароль
+                {t('register.password')}
                 <input required type="password" minLength={4} value={createForm.password} onChange={(event) => setCreateForm((prev) => ({ ...prev, password: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
 
@@ -544,10 +560,10 @@ export default function UsersPage() {
 
               <div className={clsx(styles.modal__actions)}>
                 <button type="button" onClick={closeModals} className={clsx(styles.modal__button, styles.modal__button_cancel)} disabled={isSubmitting}>
-                  Отмена
+                  {t('login.cancel')}
                 </button>
                 <button type="submit" className={clsx(styles.modal__button, styles.modal__button_submit)} disabled={isSubmitting}>
-                  {isSubmitting ? 'Сохранение...' : 'Создать'}
+                  {isSubmitting ? t('profile.saving') : t('connections.button.create')}
                 </button>
               </div>
             </form>
@@ -561,22 +577,22 @@ export default function UsersPage() {
             <button type="button" className={clsx(styles.modal__close)} onClick={closeModals} disabled={isSubmitting}>
               <FontAwesomeIcon icon={faXmark} />
             </button>
-            <h2 className={clsx(styles.modal__title)}>Редактировать пользователя: {editingUser.username}</h2>
+            <h2 className={clsx(styles.modal__title)}>{t('users.edit_user')}: {editingUser.username}</h2>
             <form className={clsx(styles.modal__form)} onSubmit={handleUpdateSubmit}>
               <label className={clsx(styles.modal__label)}>
                 Email
                 <input required type="email" value={updateForm.email} onChange={(event) => setUpdateForm((prev) => ({ ...prev, email: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
-                ФИО
+                {t('users.fio')}
                 <input maxLength={100} value={updateForm.fio} onChange={(event) => setUpdateForm((prev) => ({ ...prev, fio: event.target.value }))} className={clsx(styles.modal__input)} />
               </label>
               <label className={clsx(styles.modal__label)}>
-                Роль
+                {t('users.role')}
                 <select value={updateForm.role} onChange={(event) => setUpdateForm((prev) => ({ ...prev, role: event.target.value }))} className={clsx(styles.modal__input)}>
                   {USER_ROLES.map((role) => (
                     <option key={role} value={role}>
-                      {role}
+                      {getRoleLabel(role)}
                     </option>
                   ))}
                 </select>
@@ -584,21 +600,21 @@ export default function UsersPage() {
 
               <label className={clsx(styles.modal__checkbox)}>
                 <input type="checkbox" checked={updateForm.is_active} onChange={(event) => setUpdateForm((prev) => ({ ...prev, is_active: event.target.checked }))} />
-                Активен
+                {t('users.active')}
               </label>
               <label className={clsx(styles.modal__checkbox)}>
                 <input type="checkbox" checked={updateForm.is_superuser} onChange={(event) => setUpdateForm((prev) => ({ ...prev, is_superuser: event.target.checked }))} />
-                Суперпользователь
+                {t('users.superuser')}
               </label>
 
               {actionError && <div className={clsx(styles.modal__error)}>{actionError}</div>}
 
               <div className={clsx(styles.modal__actions)}>
                 <button type="button" onClick={closeModals} className={clsx(styles.modal__button, styles.modal__button_cancel)} disabled={isSubmitting}>
-                  Отмена
+                  {t('login.cancel')}
                 </button>
                 <button type="submit" className={clsx(styles.modal__button, styles.modal__button_submit)} disabled={isSubmitting}>
-                  {isSubmitting ? 'Сохранение...' : 'Сохранить'}
+                  {isSubmitting ? t('profile.saving') : t('profile.save')}
                 </button>
               </div>
             </form>
@@ -612,15 +628,15 @@ export default function UsersPage() {
             <button type="button" className={clsx(styles.modal__close)} onClick={closeModals} disabled={isSubmitting}>
               <FontAwesomeIcon icon={faXmark} />
             </button>
-            <h2 className={clsx(styles.modal__title)}>Удалить пользователя</h2>
-            <p className={clsx(styles.modal__text)}>Вы уверены, что хотите удалить пользователя «{deletingUser.username}»?</p>
+            <h2 className={clsx(styles.modal__title)}>{t('users.delete_user')}</h2>
+            <p className={clsx(styles.modal__text)}>{t('users.delete_confirm')} «{deletingUser.username}»?</p>
             {actionError && <div className={clsx(styles.modal__error)}>{actionError}</div>}
             <div className={clsx(styles.modal__actions)}>
               <button type="button" onClick={closeModals} className={clsx(styles.modal__button, styles.modal__button_cancel)} disabled={isSubmitting}>
-                Отмена
+                {t('login.cancel')}
               </button>
               <button type="button" onClick={handleDelete} className={clsx(styles.modal__button, styles.modal__button_delete)} disabled={isSubmitting}>
-                {isSubmitting ? 'Удаление...' : 'Удалить'}
+                {isSubmitting ? t('users.deleting') : t('users.delete')}
               </button>
             </div>
           </div>
