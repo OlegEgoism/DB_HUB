@@ -10,6 +10,7 @@ import {
   faEye,
   faEyeSlash,
 } from '@fortawesome/free-solid-svg-icons';
+import { useI18n } from '@shared/i18n';
 
 // Тип для данных регистрации
 interface RegisterData {
@@ -32,15 +33,16 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, loading, error, success } = useRegister();
+  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      alert('Пароли не совпадают');
+      alert(t('register.alert.password_mismatch'));
       return;
     }
     if (formData.password.length < 4) {
-      alert('Пароль должен быть не менее 4 символов');
+      alert(t('register.alert.password_min'));
       return;
     }
     try {
@@ -82,19 +84,19 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
   const getErrorMessage = () => {
     if (!error) return null;
     if (error.includes('400') || error.includes('already exists') || error.includes('уже существует')) {
-      return 'Пользователь с таким именем или email уже существует.';
+      return t('register.error.exists');
     }
     if (error.includes('403')) {
-      return 'Доступ запрещен. Проверьте ваши права доступа.';
+      return t('register.error.forbidden');
     }
     if (error.includes('404')) {
-      return 'Сервер регистрации недоступен.';
+      return t('register.error.not_found');
     }
     if (error.includes('500') || error.includes('Internal Server Error')) {
-      return 'Внутренняя ошибка сервера. Попробуйте позже.';
+      return t('register.error.server');
     }
     if (error.includes('Network Error') || error.includes('Failed to fetch')) {
-      return 'Ошибка сети. Проверьте подключение к интернету.';
+      return t('register.error.network');
     }
     return error;
   };
@@ -106,33 +108,33 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
           className={clsx(styles.modal__closeButton)}
           onClick={handleClose}
           disabled={loading}
-          aria-label="Закрыть окно регистрации"
+          aria-label={t('register.close')}
         >
           <FontAwesomeIcon icon={faTimes} />
         </button>
         <div className={clsx(styles.modal__header)}>
           <h2 className={clsx(styles.modal__title)}>
-            {success ? 'Регистрация успешна!' : 'Регистрация'}
+            {success ? t('register.success') : t('register.title')}
           </h2>
         </div>
         {success ? (
           <div className={clsx(styles.modal__success)}>
             <div className={clsx(styles.modal__successMessage)}>
-              Дождитесь активации от администратора
+              {t('register.wait_activation')}
             </div>
             <div className={clsx(styles.modal__userInfo)}>
               <div>
-                <div className={clsx(styles.modal__userInfoLabel)}>Имя пользователя: <strong>{formData.username}</strong></div>
+                <div className={clsx(styles.modal__userInfoLabel)}>{t('login.username')}: <strong>{formData.username}</strong></div>
               </div>
               <div>
-                <div className={clsx(styles.modal__userInfoLabel)}>Email: <strong>{formData.email}</strong></div>
+                <div className={clsx(styles.modal__userInfoLabel)}>{t('register.email')}: <strong>{formData.email}</strong></div>
               </div>
               <div>
-                <div className={clsx(styles.modal__userInfoLabel)}>Роль: <strong>{formData.role}</strong></div>
+                <div className={clsx(styles.modal__userInfoLabel)}>{t('register.role')}: <strong>{formData.role}</strong></div>
               </div>
             </div>
             <button className={clsx(styles.modal__successButton)} onClick={onClose}>
-              Закрыть
+              {t('register.close_button')}
             </button>
           </div>
         ) : (
@@ -144,7 +146,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
             )}
             <div className={clsx(styles.modal__formGroup)}>
               <label htmlFor="username" className={clsx(styles.modal__label)}>
-                Имя пользователя *
+                {t('login.username')} *
               </label>
               <input
                 type="text"
@@ -154,14 +156,14 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                 onChange={handleChange}
                 required
                 className={clsx(styles.modal__input)}
-                placeholder="Введите имя пользователя"
+                placeholder={t('register.placeholder.username')}
                 disabled={loading}
                 autoComplete="username"
               />
             </div>
             <div className={clsx(styles.modal__formGroup)}>
               <label htmlFor="email" className={clsx(styles.modal__label)}>
-                Email *
+                {t('register.email')} *
               </label>
               <input
                 type="email"
@@ -178,7 +180,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
             </div>
             <div className={clsx(styles.modal__formGroup)}>
               <label htmlFor="fio" className={clsx(styles.modal__label)}>
-                ФИО
+                {t('register.fio')}
               </label>
               <input
                 type="text"
@@ -188,13 +190,13 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                 onChange={handleChange}
                 // required
                 className={clsx(styles.modal__input)}
-                placeholder="Иванов Иван Иванович"
+                placeholder={t('register.placeholder.fio')}
                 disabled={loading}
               />
             </div>
             <div className={clsx(styles.modal__formGroup)}>
               <label htmlFor="role" className={clsx(styles.modal__label)}>
-                Роль
+                {t('register.role')}
               </label>
               <select
                 id="role"
@@ -204,15 +206,15 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                 className={clsx(styles.modal__select)}
                 disabled={loading}
               >
-                <option value="Пользователь">Пользователь</option>
-                <option value="Аналитик">Аналитик</option>
-                <option value="Разработчик">Разработчик</option>
-                <option value="Тестировщик">Тестировщик</option>
+                <option value="Пользователь">{t('roles.user')}</option>
+                <option value="Аналитик">{t('roles.analyst')}</option>
+                <option value="Разработчик">{t('roles.developer')}</option>
+                <option value="Тестировщик">{t('roles.tester')}</option>
               </select>
             </div>
             <div className={clsx(styles.modal__formGroup)}>
               <label htmlFor="password" className={clsx(styles.modal__label)}>
-                Пароль *
+                {t('register.password')} *
               </label>
               <div className={clsx(styles.modal__passwordWrapper)}>
                 <input
@@ -223,7 +225,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                   onChange={handleChange}
                   required
                   className={clsx(styles.modal__input)}
-                  placeholder="Минимум 4 символа"
+                  placeholder={t('register.placeholder.password')}
                   disabled={loading}
                   autoComplete="new-password"
                 />
@@ -239,7 +241,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
             </div>
             <div className={clsx(styles.modal__formGroup)}>
               <label htmlFor="confirmPassword" className={clsx(styles.modal__label)}>
-                Подтвердите пароль *
+                {t('register.password.confirm')} *
               </label>
               <div className={clsx(styles.modal__passwordWrapper)}>
                 <input
@@ -250,7 +252,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                   onChange={handleChange}
                   required
                   className={clsx(styles.modal__input)}
-                  placeholder="Повторите пароль"
+                  placeholder={t('register.placeholder.password.confirm')}
                   disabled={loading}
                   autoComplete="new-password"
                 />
@@ -271,7 +273,7 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                 onClick={handleClose}
                 disabled={loading}
               >
-                Отмена
+                {t('register.cancel')}
               </button>
               <button
                 type="submit"
@@ -281,10 +283,10 @@ export function RegisterModal({ onClose }: { onClose: () => void }) {
                 {loading ? (
                   <>
                     <FontAwesomeIcon icon={faSpinner} spin />
-                    Регистрация...
+                    {t('register.loading')}
                   </>
                 ) : (
-                  'Зарегистрироваться'
+                  t('register.submit')
                 )}
               </button>
             </div>

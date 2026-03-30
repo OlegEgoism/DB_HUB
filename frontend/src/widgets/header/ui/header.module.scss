@@ -48,6 +48,22 @@
     align-items: center;
   }
 
+  &__langSwitcher {
+    display: flex;
+    align-items: center;
+  }
+
+  &__langSelect {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--gray-300);
+    background: #fff;
+    color: var(--color-text-main);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
   &__loginButton,
   &__registerButton,
   &__logoutButton,

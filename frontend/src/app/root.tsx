@@ -11,6 +11,7 @@ import {
 import type { LinksFunction, MetaFunction } from "react-router";
 
 import '@shared/styles/normalize.css';
+import { LanguageProvider } from '@shared/i18n';
 
 export const meta: MetaFunction = () => [
     { title: 'DB HUB' },
@@ -39,5 +40,9 @@ export function Layout({children}: { children: React.ReactNode }) {
 };
 
 export default function App() {
-    return <Outlet/>
+    return (
+        <LanguageProvider>
+            <Outlet/>
+        </LanguageProvider>
+    );
 }

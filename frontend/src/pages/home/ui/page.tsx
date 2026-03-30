@@ -8,8 +8,10 @@ import {
     faUsers,
     faCode,
 } from '@fortawesome/free-solid-svg-icons';
+import { useI18n } from '@shared/i18n';
 
 export default function HomePage() {
+    const { t } = useI18n();
     return (
         <section className={clsx(styles.home)}>
             <div className="container">
@@ -18,9 +20,9 @@ export default function HomePage() {
                         <div className={clsx(styles.home__logo)}>
 
                             <div className={clsx(styles.home__logoText)}>
-                                <h1 className={clsx(styles.home__title)}>Добро пожаловать в DB HUB</h1>
+                                <h1 className={clsx(styles.home__title)}>{t('home.title')}</h1>
                                 <p className={clsx(styles.home__subtitle)}>
-                                    Платформа объединяет в едином интерфейсе все необходимые инструменты для работы с базами данных, без использования сторонних утилит.
+                                    {t('home.subtitle')}
                                 </p>
                             </div>
                         </div>
@@ -31,9 +33,9 @@ export default function HomePage() {
                             <div className={clsx(styles.home__featureIcon)}>
                                 <FontAwesomeIcon icon={faBolt}/>
                             </div>
-                            <h3 className={clsx(styles.home__featureTitle)}>Производительность</h3>
+                            <h3 className={clsx(styles.home__featureTitle)}>{t('home.performance.title')}</h3>
                             <p className={clsx(styles.home__featureDescription)}>
-                                Минимальная задержка подключения.
+                                {t('home.performance.desc')}
                             </p>
                         </div>
 
@@ -41,9 +43,9 @@ export default function HomePage() {
                             <div className={clsx(styles.home__featureIcon)}>
                                 <FontAwesomeIcon icon={faChartLine}/>
                             </div>
-                            <h3 className={clsx(styles.home__featureTitle)}>Мониторинг</h3>
+                            <h3 className={clsx(styles.home__featureTitle)}>{t('home.monitoring.title')}</h3>
                             <p className={clsx(styles.home__featureDescription)}>
-                                Детальная аналитика.
+                                {t('home.monitoring.desc')}
                             </p>
                         </div>
 
@@ -51,9 +53,9 @@ export default function HomePage() {
                             <div className={clsx(styles.home__featureIcon)}>
                                 <FontAwesomeIcon icon={faUsers}/>
                             </div>
-                            <h3 className={clsx(styles.home__featureTitle)}>Управление доступом</h3>
+                            <h3 className={clsx(styles.home__featureTitle)}>{t('home.access.title')}</h3>
                             <p className={clsx(styles.home__featureDescription)}>
-                                Система ролевой модели и доступа.
+                                {t('home.access.desc')}
                             </p>
                         </div>
 
@@ -61,9 +63,9 @@ export default function HomePage() {
                             <div className={clsx(styles.home__featureIcon)}>
                                 <FontAwesomeIcon icon={faCode}/>
                             </div>
-                            <h3 className={clsx(styles.home__featureTitle)}>API</h3>
+                            <h3 className={clsx(styles.home__featureTitle)}>{t('home.api.title')}</h3>
                             <p className={clsx(styles.home__featureDescription)}>
-                                Интеграции с другими системами.
+                                {t('home.api.desc')}
                             </p>
                         </div>
                     </div>
