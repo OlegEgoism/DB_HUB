@@ -11,6 +11,7 @@ import {
     faEye,
     faEyeSlash,
 } from '@fortawesome/free-solid-svg-icons';
+import { useI18n } from '@shared/i18n';
 
 interface User {
     oid: number;
@@ -30,6 +31,7 @@ export function EditUserModal({
     onClose: () => void;
     onSuccess: () => void;
 }) {
+    const { t } = useI18n();
     const [formData, setFormData] = useState({
         email: user.email || '',
         description: user.description || '',
@@ -52,7 +54,7 @@ export function EditUserModal({
         );
 
         if (!hasChanges) {
-            alert('Нет изменений для сохранения');
+            alert(t('profile.no_changes'));
             return;
         }
 
@@ -104,19 +106,19 @@ export function EditUserModal({
     const getErrorMessage = () => {
         if (!error) return null;
         if (error.includes('400') || error.includes('Invalid') || error.includes('Неверный')) {
-            return 'Неверные данные. Проверьте введенные значения.';
+            return t('password.error.invalid');
         }
         if (error.includes('403')) {
-            return 'Доступ запрещен. Проверьте ваши права доступа.';
+            return t('password.error.forbidden');
         }
         if (error.includes('404')) {
-            return 'Пользователь не найден.';
+            return t('users.create.error.not_found');
         }
         if (error.includes('500') || error.includes('Internal Server Error')) {
-            return 'Внутренняя ошибка сервера. Попробуйте позже.';
+            return t('password.error.server');
         }
         if (error.includes('Network Error') || error.includes('Failed to fetch')) {
-            return 'Ошибка сети. Проверьте подключение к интернету.';
+            return t('password.error.network');
         }
         return error;
     };
@@ -128,13 +130,13 @@ export function EditUserModal({
                     className={clsx(styles.modal__closeButton)}
                     onClick={handleClose}
                     disabled={loading}
-                    aria-label="Закрыть окно редактирования"
+                    aria-label={t('users.edit.close')}
                 >
                     <FontAwesomeIcon icon={faTimes}/>
                 </button>
                 <div className={clsx(styles.modal__header)}>
                     <h2 className={clsx(styles.modal__title)}>
-                        {success ? 'Пользователь обновлен!' : 'Редактирование пользователя'}
+                        {success ? t('users.edit.updated_title') : t('users.edit_user')}
                     </h2>
                     <p className={clsx(styles.modal__subtitle)}>
                         {user.name}
@@ -150,10 +152,10 @@ export function EditUserModal({
                                     color: 'var(--color-status-success)',
                                 }}
                             />
-                            Пользователь успешно обновлен!
+                            {t('users.edit.updated_title')}
                         </div>
                         <div className={clsx(styles.modal__successHint)}>
-                            Ваши изменения сохранены
+                            {t('profile.saved_hint')}
                         </div>
                         <button className={clsx(styles.modal__successButton)} onClick={onClose}>
                             OK
@@ -181,7 +183,7 @@ export function EditUserModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="description" className={clsx(styles.modal__label)}>
-                                Описание
+                                {t('users.create.description')}
                             </label>
                             <textarea
                                 id="description"
@@ -189,7 +191,7 @@ export function EditUserModal({
                                 value={formData.description}
                                 onChange={handleChange}
                                 className={clsx(styles.modal__textarea)}
-                                placeholder="Описание пользователя"
+                                placeholder={t('users.create.description_placeholder')}
                                 disabled={loading}
                                 rows={3}
                             />
@@ -197,7 +199,7 @@ export function EditUserModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="password" className={clsx(styles.modal__label)}>
-                                Новый пароль (оставьте пустым, чтобы не менять)
+                                {t('users.edit.new_password_optional')}
                             </label>
                             <div className={clsx(styles.modal__passwordWrapper)}>
                                 <input
@@ -207,7 +209,7 @@ export function EditUserModal({
                                     value={formData.password}
                                     onChange={handleChange}
                                     className={clsx(styles.modal__input)}
-                                    placeholder="Минимум 4 символа"
+                                    placeholder={t('register.placeholder.password')}
                                     disabled={loading}
                                 />
                                 <button
@@ -228,7 +230,7 @@ export function EditUserModal({
                                 onClick={handleClose}
                                 disabled={loading}
                             >
-                                Отмена
+                                {t('login.cancel')}
                             </button>
                             <button
                                 type="submit"
@@ -238,10 +240,10 @@ export function EditUserModal({
                                 {loading ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Сохранение...
+                                        {t('profile.saving')}
                                     </>
                                 ) : (
-                                    'Сохранить'
+                                    t('profile.save')
                                 )}
                             </button>
                         </div>
