@@ -355,7 +355,7 @@ export default function UsersPage() {
         <div className={clsx(styles.users__titleContainer)}>
           <h1 className={clsx(styles.users__title)}>
             {t('users.title')}
-            <span className={clsx(styles.users__countBadge)}>{users.length}</span>
+            <span className={clsx(styles.users__countBadge)}>{totalItems}</span>
           </h1>
         </div>
         <div className={clsx(styles.users__actions)}>
