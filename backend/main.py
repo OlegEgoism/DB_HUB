@@ -9,14 +9,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import select
 
 from backend.api.v1 import api_v1_router
 from backend.core.limiter import limiter
-from sqlalchemy import select
-
 from backend.database.session import AsyncSessionLocal, Base, engine
 from backend.models.user import User
-from backend.models.connection_tab_settings import ConnectionTabSettings
 
 """Настройка логирования"""
 logging.basicConfig(level=logging.INFO)

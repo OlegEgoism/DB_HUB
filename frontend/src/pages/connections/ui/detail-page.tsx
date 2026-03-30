@@ -907,8 +907,8 @@ export default function ConnectionDetailPage() {
         }
     };
 
-    const openGroupUsersModal = async (group: { oid: number; name: string; user_count: number }) => {
-        setGroupUsersModal({oid: group.oid, name: group.name, userCount: groupUserCountOverrides[group.oid] ?? group.user_count});
+    const openGroupUsersModal = async (group: { oid: number; name: string; user_count?: number }) => {
+        setGroupUsersModal({oid: group.oid, name: group.name, userCount: groupUserCountOverrides[group.oid] ?? group.user_count ?? 0});
         setSelectedUserOid('');
         setGroupUserSearchQuery('');
         setGroupUsers([]);
