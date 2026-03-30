@@ -203,8 +203,6 @@ const PHRASE_RU_TO_EN: Array<[string, string]> = [
   ['Сервер недоступен', 'Server unavailable'],
   ['Выполнить', 'Run'],
   ['Выполнение', 'Running'],
-  ['Да', 'Yes'],
-  ['Нет', 'No'],
 ];
 
 const textOriginalMap = new WeakMap<Text, string>();

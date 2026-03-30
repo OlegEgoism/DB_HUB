@@ -5,18 +5,20 @@ import {useState} from 'react';
 import styles from './styles.module.scss';
 import {ChangePasswordModal} from './ChangePasswordModal';
 import {EditProfileModal} from './EditProfileModal';
+import { useI18n } from '@shared/i18n';
 
 export default function ProfilePage() {
     const {user, loading, error} = useProfile();
+    const { language, t } = useI18n();
     const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
     const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
     // Форматирование даты
     const formatDate = (dateString: string | null) => {
-        if (!dateString) return 'Не указано';
+        if (!dateString) return t('profile.not_set');
         try {
             const date = new Date(dateString);
-            return date.toLocaleString('ru-RU', {
+            return date.toLocaleString(language === 'en' ? 'en-US' : 'ru-RU', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -35,7 +37,7 @@ export default function ProfilePage() {
                 styles.profile__statusBadge,
                 isActive ? styles.profile__statusBadge_active : styles.profile__statusBadge_inactive
             )}>
-        {isActive ? 'Активен' : 'Неактивен'}
+        {isActive ? t('profile.active') : t('profile.inactive')}
       </span>
         );
     };
@@ -50,9 +52,16 @@ export default function ProfilePage() {
             'Пользователь': 'user',
         };
         const roleClass = roleColors[role] || 'user';
+        const roleTranslationMap: Record<string, string> = {
+            'Администратор БД': t('roles.admin'),
+            'Аналитик': t('roles.analyst'),
+            'Разработчик': t('roles.developer'),
+            'Тестировщик': t('roles.tester'),
+            'Пользователь': t('roles.user'),
+        };
         return (
             <span className={clsx(styles.profile__roleBadge, styles[`profile__roleBadge_${roleClass}`])}>
-        {role}
+        {roleTranslationMap[role] ?? role}
       </span>
         );
     };
@@ -89,22 +98,22 @@ export default function ProfilePage() {
             <div className="container">
                 <div className={clsx(styles.profile__section)}>
                     {!loading && !error && user && (
-                        <p className={clsx(styles.profile__title)}>Профиль</p>
+                        <p className={clsx(styles.profile__title)}>{t('profile.title')}</p>
                     )}
                     {loading && (
                         <div className={clsx(styles.profile__loading)}>
                             <div className={clsx(styles.profile__spinner)}></div>
-                            <p>Загрузка профиля...</p>
+                            <p>{t('profile.loading')}</p>
                         </div>
                     )}
                     {error && (
                         <div className={clsx(styles.profile__error)}>
-                            <p>Ошибка загрузки: {error}</p>
+                            <p>{t('profile.error')}: {error}</p>
                             <button
                                 className={clsx(styles.profile__retryButton)}
                                 onClick={() => window.location.reload()}
                             >
-                                Попробовать снова
+                                {t('profile.retry')}
                             </button>
                         </div>
                     )}
@@ -113,42 +122,42 @@ export default function ProfilePage() {
                             {/* Основная информация */}
                             <div className={clsx(styles.profile__card)}>
                                 <div className={clsx(styles.profile__cardHeader)}>
-                                    <h2 className={clsx(styles.profile__cardTitle)}>Основная информация</h2>
+                                    <h2 className={clsx(styles.profile__cardTitle)}>{t('profile.main')}</h2>
                                 </div>
                                 <div className={clsx(styles.profile__cardBody)}>
                                     <div className={clsx(styles.profile__infoGrid)}>
                                         <div className={clsx(styles.profile__infoItem)}>
-                                            <div className={clsx(styles.profile__infoLabel)}>Логин</div>
+                                            <div className={clsx(styles.profile__infoLabel)}>{t('profile.login')}</div>
                                             <div className={clsx(styles.profile__infoValue)}>{user.username}</div>
                                         </div>
                                         <div className={clsx(styles.profile__infoItem)}>
-                                            <div className={clsx(styles.profile__infoLabel)}>Email</div>
+                                            <div className={clsx(styles.profile__infoLabel)}>{t('profile.email')}</div>
                                             <div className={clsx(styles.profile__infoValue)}>{user.email}</div>
                                         </div>
                                         <div className={clsx(styles.profile__infoItem)}>
-                                            <div className={clsx(styles.profile__infoLabel)}>ФИО</div>
-                                            <div className={clsx(styles.profile__infoValue)}>{user.fio || 'Не указано'}</div>
+                                            <div className={clsx(styles.profile__infoLabel)}>{t('profile.fio')}</div>
+                                            <div className={clsx(styles.profile__infoValue)}>{user.fio || t('profile.not_set')}</div>
                                         </div>
                                         <div className={clsx(styles.profile__infoItem)}>
-                                            <div className={clsx(styles.profile__infoLabel)}>Роль</div>
+                                            <div className={clsx(styles.profile__infoLabel)}>{t('profile.role')}</div>
                                             <div className={clsx(styles.profile__infoValue)}>
                                                 {getRoleBadge(user.role)}
                                             </div>
                                         </div>
                                         <div className={clsx(styles.profile__infoItem)}>
-                                            <div className={clsx(styles.profile__infoLabel)}>Статус</div>
+                                            <div className={clsx(styles.profile__infoLabel)}>{t('profile.status')}</div>
                                             <div className={clsx(styles.profile__infoValue)}>
                                                 {getStatusBadge(user.is_active)}
                                             </div>
                                         </div>
                                         <div className={clsx(styles.profile__infoItem)}>
-                                            <div className={clsx(styles.profile__infoLabel)}>Суперпользователь</div>
+                                            <div className={clsx(styles.profile__infoLabel)}>{t('profile.superuser')}</div>
                                             <div className={clsx(styles.profile__infoValue)}>
                                                 <span className={clsx(
                                                     styles.profile__badge,
                                                     user.is_superuser ? styles.profile__badge_success : styles.profile__badge_secondary
                                                 )}>
-                                                  {user.is_superuser ? 'Да' : 'Нет'}
+                                                  {user.is_superuser ? t('yes') : t('no')}
                                                 </span>
                                             </div>
                                         </div>
@@ -157,22 +166,22 @@ export default function ProfilePage() {
 
                                 {/* Даты */}
                                 <div className={clsx(styles.profile__cardHeader)}>
-                                    <h2 className={clsx(styles.profile__cardTitle)}>Дополнительная информация</h2>
+                                    <h2 className={clsx(styles.profile__cardTitle)}>{t('profile.additional')}</h2>
                                 </div>
                                 <div className={clsx(styles.profile__cardBody)}>
                                     <div className={clsx(styles.profile__infoGrid)}>
                                         <div className={clsx(styles.profile__infoItem)}>
-                                            <div className={clsx(styles.profile__infoLabel)}>Дата регистрации</div>
+                                            <div className={clsx(styles.profile__infoLabel)}>{t('profile.registered_at')}</div>
                                             <div className={clsx(styles.profile__infoValue)}>{formatDate(user.created_at)}</div>
                                         </div>
                                         <div className={clsx(styles.profile__infoItem)}>
-                                            <div className={clsx(styles.profile__infoLabel)}>Последнее обновление данных</div>
+                                            <div className={clsx(styles.profile__infoLabel)}>{t('profile.updated_at')}</div>
                                             <div className={clsx(styles.profile__infoValue)}>{formatDate(user.updated_at)}</div>
                                         </div>
                                         <div className={clsx(styles.profile__infoItem)}>
-                                            <div className={clsx(styles.profile__infoLabel)}>Последний вход</div>
+                                            <div className={clsx(styles.profile__infoLabel)}>{t('profile.last_login')}</div>
                                             <div className={clsx(styles.profile__infoValue)}>
-                                                {user.last_login ? formatDate(user.last_login) : 'Еще не входил'}
+                                                {user.last_login ? formatDate(user.last_login) : t('profile.never_logged')}
                                             </div>
                                         </div>
                                     </div>
@@ -185,13 +194,13 @@ export default function ProfilePage() {
                                     className={clsx(styles.profile__actionButton, styles.profile__actionButton_primary)}
                                     onClick={handleChangePasswordClick}
                                 >
-                                    Сменить пароль
+                                    {t('profile.change_password')}
                                 </button>
                                 <button
                                     className={clsx(styles.profile__actionButton, styles.profile__actionButton_primary)}
                                     onClick={handleEditClick}
                                 >
-                                    Редактировать
+                                    {t('profile.edit')}
                                 </button>
                             </div>
                         </div>
