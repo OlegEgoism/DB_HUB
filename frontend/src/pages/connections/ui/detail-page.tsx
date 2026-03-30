@@ -3874,7 +3874,7 @@ export default function ConnectionDetailPage() {
                                 className={clsx(styles.modalIcon)}
                             />
                             <h2 className={clsx(styles.modalTitle)}>
-                                Подтверждение удаления
+                                {t('users.delete.confirm_title')}
                             </h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
@@ -3960,16 +3960,16 @@ export default function ConnectionDetailPage() {
                                 className={clsx(styles.modalIcon)}
                             />
                             <h2 className={clsx(styles.modalTitle)}>
-                                Подтверждение удаления
+                                {t('users.delete.confirm_title')}
                             </h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
                             <p className={clsx(styles.modalText)}>
-                                Удалить пользователя <strong>{userDeleteTarget.name}</strong>?
+                                {t('users.delete.confirm_prefix')} <strong>{userDeleteTarget.name}</strong>?
                             </p>
                             <p className={clsx(styles.modalWarning)}>
                                 <FontAwesomeIcon icon={faExclamationCircle}/>
-                                Пользователь будет удален безвозвратно.
+                                {t('users.delete.warning')}
                             </p>
                             {userDeleteError && (
                                 <pre className={clsx(styles.modalErrorBox)}>{userDeleteError}</pre>
@@ -3981,7 +3981,7 @@ export default function ConnectionDetailPage() {
                                 onClick={closeUserDeleteConfirm}
                                 disabled={deletingUserOid !== null}
                             >
-                                Отмена
+                                {t('users.cancel')}
                             </button>
                             <button
                                 className={clsx(
@@ -3994,12 +3994,12 @@ export default function ConnectionDetailPage() {
                                 {deletingUserOid !== null ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Удаление...
+                                        {t('users.deleting')}
                                     </>
                                 ) : (
                                     <>
                                         <FontAwesomeIcon icon={faTrashAlt}/>
-                                        Удалить
+                                        {t('users.delete')}
                                     </>
                                 )}
                             </button>

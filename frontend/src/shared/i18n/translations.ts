@@ -167,6 +167,10 @@ export const translations = {
     'users.edit.updated_title': 'Пользователь успешно обновлен!',
     'users.edit.new_password_optional': 'Новый пароль (оставьте пустым, чтобы не менять)',
     'users.delete_user': 'Удалить пользователя',
+    'users.delete.confirm_title': 'Подтверждение удаления',
+    'users.delete.confirm_prefix': 'Удалить пользователя',
+    'users.delete.warning': 'Пользователь будет удален безвозвратно.',
+    'users.cancel': 'Отмена',
     'users.delete_confirm': 'Вы уверены, что хотите удалить пользователя',
     'users.deleting': 'Удаление...',
 
@@ -448,6 +452,10 @@ export const translations = {
     'users.edit.updated_title': 'User updated successfully!',
     'users.edit.new_password_optional': 'New password (leave empty to keep current)',
     'users.delete_user': 'Delete user',
+    'users.delete.confirm_title': 'Delete confirmation',
+    'users.delete.confirm_prefix': 'Delete user',
+    'users.delete.warning': 'User will be deleted permanently.',
+    'users.cancel': 'Cancel',
     'users.delete_confirm': 'Are you sure you want to delete user',
     'users.deleting': 'Deleting...',
 
