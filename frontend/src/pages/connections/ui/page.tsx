@@ -698,8 +698,8 @@ export default function ConnectionsPage() {
                                 <div className={clsx(styles.pagination)}>
                                     <div className={clsx(styles.paginationInfo)}>
                     <span className={clsx(styles.paginationText)}>
-                      Показано <span className={clsx(styles.paginationHighlight)}>{((currentPage - 1) * pageSize) + 1}</span>–
-                      <span className={clsx(styles.paginationHighlight)}>{Math.min(currentPage * pageSize, totalItems)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalItems}</span> подключений
+                      {t('connections.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((currentPage - 1) * pageSize) + 1}</span>–
+                      <span className={clsx(styles.paginationHighlight)}>{Math.min(currentPage * pageSize, totalItems)}</span> {t('connections.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalItems}</span> {t('connections.pagination.connections')}
                     </span>
                                     </div>
                                     <div className={clsx(styles.paginationControls)}>
@@ -710,7 +710,7 @@ export default function ConnectionsPage() {
                                         >
                                             {PAGE_SIZES.map((size) => (
                                                 <option key={size} value={size}>
-                                                    {size} на странице
+                                                    {size} {t('connections.pagination.per_page')}
                                                 </option>
                                             ))}
                                         </select>
@@ -719,7 +719,7 @@ export default function ConnectionsPage() {
                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                 onClick={handleFirstPage}
                                                 disabled={currentPage === 1 || !hasPrev}
-                                                title="Первая страница"
+                                                title={t('connections.pagination.first')}
                                             >
                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                             </button>
@@ -727,18 +727,18 @@ export default function ConnectionsPage() {
                                                 className={clsx(styles.paginationButton)}
                                                 onClick={() => handlePageChange(currentPage - 1)}
                                                 disabled={currentPage === 1 || !hasPrev}
-                                                title="Предыдущая страница"
+                                                title={t('connections.pagination.prev')}
                                             >
                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                             </button>
                                             <span className={clsx(styles.pageInfo)}>
-                        Страница {currentPage} из {totalPages}
+                        {t('connections.pagination.page')} {currentPage} {t('connections.pagination.of')} {totalPages}
                       </span>
                                             <button
                                                 className={clsx(styles.paginationButton)}
                                                 onClick={() => handlePageChange(currentPage + 1)}
                                                 disabled={currentPage === totalPages || !hasNext}
-                                                title="Следующая страница"
+                                                title={t('connections.pagination.next')}
                                             >
                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                             </button>
@@ -746,7 +746,7 @@ export default function ConnectionsPage() {
                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                 onClick={handleLastPage}
                                                 disabled={currentPage === totalPages || !hasNext}
-                                                title="Последняя страница"
+                                                title={t('connections.pagination.last')}
                                             >
                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                             </button>
