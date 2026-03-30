@@ -1,7 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { translations, type Language, type TranslationKey } from './translations';
+import { startDomTranslation } from './dom-translator';
 
 const STORAGE_KEY = 'dbhub_language';
 
@@ -43,6 +44,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     () => ({ language, setLanguage, t }),
     [language, setLanguage, t],
   );
+
+  useEffect(() => {
+    return startDomTranslation(language);
+  }, [language]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
