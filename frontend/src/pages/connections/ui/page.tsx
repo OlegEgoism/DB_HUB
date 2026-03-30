@@ -757,18 +757,18 @@ export default function ConnectionsPage() {
                         </div>
                     ) : (
                         <div className={clsx(styles.emptyState)}>
-                            <h3>Подключения не найдены</h3>
+                            <h3>{t('connections.empty.title')}</h3>
                             {searchTerm ? (
-                                <p>По вашему запросу "{searchTerm}" ничего не найдено</p>
+                                <p>{t('connections.empty.search').replace('{search}', searchTerm)}</p>
                             ) : (
-                                <p>У вас пока нет подключений к базам данных</p>
+                                <p>{t('connections.empty.list')}</p>
                             )}
                             <button
                                 className={clsx(styles.emptyButton)}
                                 onClick={openCreateModal}
-                                aria-label="Создать подключение"
+                                aria-label={t('connections.button.create')}
                             >
-                                Создать подключение
+                                {t('connections.button.create')}
                             </button>
                         </div>
                     )}
