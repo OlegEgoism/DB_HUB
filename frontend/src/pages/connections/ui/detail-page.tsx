@@ -1397,10 +1397,10 @@ export default function ConnectionDetailPage() {
         const normalized = message.toLowerCase();
         if (normalized.includes('не найден') || normalized.includes('уже заверш')) {
             return {
-    const localizedTerminateProcessModal = useMemo(() => {
-        if (!terminateProcessModal) return null;
+    const localizeTerminateProcessModal = (modal: { title: string; message: string } | null) => {
+        if (!modal) return null;
 
-        const sourceMessage = terminateProcessModal.message ?? '';
+        const sourceMessage = modal.message ?? '';
         const normalizedMessage = sourceMessage.toLowerCase();
         const pidMatch = sourceMessage.match(/pid\s*(\d+)/i);
         const pidFromMessage = pidMatch ? Number(pidMatch[1]) : null;
@@ -1430,8 +1430,10 @@ export default function ConnectionDetailPage() {
             };
         }
 
-        return terminateProcessModal;
-    }, [terminateProcessModal, t]);
+        return modal;
+    };
+
+    const localizedTerminateProcessModal = localizeTerminateProcessModal(terminateProcessModal);
 
                 title: 'Предупреждение',
                 message: `Процесс с PID ${pid} не найден или уже завершён. Обновите список транзакций.`,
