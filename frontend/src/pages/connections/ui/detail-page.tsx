@@ -776,7 +776,7 @@ export default function ConnectionDetailPage() {
         }
 
         if (!groupFormName.trim()) {
-            setError('Название группы обязательно');
+            setError(t('groups.form.name_required'));
             return;
         }
 
@@ -2539,7 +2539,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск групп"
+                                                    placeholder={t('groups.search')}
                                                     value={groupsSearchQuery}
                                                     onChange={handleGroupsSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -2549,30 +2549,30 @@ export default function ConnectionDetailPage() {
                                                         type="button"
                                                         onClick={handleGroupsSearchClear}
                                                         className={clsx(styles.usersSearchClear)}
-                                                        title="Очистить поиск"
+                                                        title={t('groups.search_clear')}
                                                     >
                                                         <FontAwesomeIcon icon={faTimes}/>
                                                     </button>
                                                 )}
                                             </div>
-                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">
-                                                Поиск
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title={t('groups.search')}>
+                                                {t('groups.search')}
                                             </button>
                                         </form>
                                         <button
                                             className={clsx(styles.createUserButton)}
                                             onClick={openCreateGroupModal}
-                                            aria-label="Создать новую группу"
+                                            aria-label={t('groups.create.new')}
                                         >
-                                            Создать группу
+                                            {t('groups.create.button')}
                                         </button>
                                         <button
                                             type="button"
                                             className={clsx(styles.refreshButton)}
                                             onClick={refreshGroups}
                                             disabled={loadingGroups}
-                                            aria-label="Обновить список групп"
-                                            title="Обновить список групп"
+                                            aria-label={t('groups.refresh')}
+                                            title={t('groups.refresh')}
                                         >
                                             <FontAwesomeIcon icon={faArrowsRotate} spin={loadingGroups}/>
                                         </button>
@@ -2583,7 +2583,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка групп...</p>
+                                            <p>{t('groups.loading')}</p>
                                         </div>
                                     ) : groups && groups.length > 0 ? (
                                         <>
@@ -2596,12 +2596,12 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Пользователей:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('groups.users_count')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
                                                                 </div>
                                                                 {group.description && (
                                                                     <div className={clsx(styles.userItemInfo)}>
-                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>{t('groups.description_label')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue)}>{group.description}</span>
                                                                     </div>
                                                                 )}
@@ -2647,14 +2647,14 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((groupsPage - 1) * groupsPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(groupsPage * groupsPageSize, totalGroups)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalGroups}</span> групп
+{t('groups.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((groupsPage - 1) * groupsPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(groupsPage * groupsPageSize, totalGroups)}</span> {t('groups.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalGroups}</span> {t('groups.pagination.groups')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select value={groupsPageSize} onChange={handleGroupsPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                             {PAGE_SIZES.map((size) => (
-                                                                <option key={size} value={size}>{size} на странице</option>
+                                                                <option key={size} value={size}>{size} {t('groups.pagination.per_page')}</option>
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
@@ -2662,22 +2662,22 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleGroupsFirstPage}
                                                                 disabled={groupsPage === 1 || !groupsHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('groups.pagination.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage - 1)} disabled={groupsPage === 1 || !groupsHasPrev} title="Предыдущая страница">
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage - 1)} disabled={groupsPage === 1 || !groupsHasPrev} title={t('groups.pagination.prev')}>
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {groupsPage} из {totalGroupsPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage + 1)} disabled={groupsPage === totalGroupsPages || !groupsHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>{t('groups.pagination.page')} {groupsPage} {t('groups.pagination.of')} {totalGroupsPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage + 1)} disabled={groupsPage === totalGroupsPages || !groupsHasNext} title={t('groups.pagination.next')}>
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleGroupsLastPage}
                                                                 disabled={groupsPage === totalGroupsPages || !groupsHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('groups.pagination.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
@@ -2689,7 +2689,7 @@ export default function ConnectionDetailPage() {
                                     ) : (
                                         <div className={clsx(styles.usersEmpty)}>
                                             <FontAwesomeIcon icon={faLayerGroup} size="3x"/>
-                                            <p>Группы не найдены</p>
+                                            <p>{t('groups.not_found')}</p>
                                             {groupsError && <p className={clsx(styles.errorMessage)}>{groupsError}</p>}
                                         </div>
                                     )}
@@ -4012,18 +4012,18 @@ export default function ConnectionDetailPage() {
                     <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
                         <div className={clsx(styles.modalHeader)}>
                             <FontAwesomeIcon icon={faExclamationCircle} className={clsx(styles.modalIcon)}/>
-                            <h2 className={clsx(styles.modalTitle)}>Подтверждение удаления</h2>
+                            <h2 className={clsx(styles.modalTitle)}>{t('groups.delete.confirm_title')}</h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
                             <p className={clsx(styles.modalText)}>
-                                Удалить группу <strong>{groupDeleteTarget.name}</strong>?
+                                {t('groups.delete.confirm_prefix')} <strong>{groupDeleteTarget.name}</strong>?
                             </p>
                         </div>
                         <div className={clsx(styles.modalFooter)}>
-                            <button className={clsx(styles.modalCancelButton)} onClick={closeGroupDeleteConfirm} disabled={deletingGroupOid !== null}>Отмена</button>
+                            <button className={clsx(styles.modalCancelButton)} onClick={closeGroupDeleteConfirm} disabled={deletingGroupOid !== null}>{t('groups.cancel')}</button>
                             <button className={clsx(styles.modalDeleteButton)} onClick={deleteGroup} disabled={deletingGroupOid !== null}>
                                 {deletingGroupOid !== null ? <>
-                                    <FontAwesomeIcon icon={faSpinner} spin/> Удаление...</> : <><FontAwesomeIcon icon={faTrashAlt}/> Удалить</>}
+                                    <FontAwesomeIcon icon={faSpinner} spin/> {t('groups.deleting')}</> : <><FontAwesomeIcon icon={faTrashAlt}/> {t('groups.delete')}</>}
                             </button>
                         </div>
                     </div>
@@ -4034,7 +4034,7 @@ export default function ConnectionDetailPage() {
                     <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
                         <div className={clsx(styles.modalHeader)}>
                             <FontAwesomeIcon icon={faExclamationCircle} className={clsx(styles.modalIcon)}/>
-                            <h2 className={clsx(styles.modalTitle)}>Ошибка удаления группы</h2>
+                            <h2 className={clsx(styles.modalTitle)}>{t('groups.delete.error_title')}</h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
                             <p className={clsx(styles.modalText)} style={{whiteSpace: 'pre-line'}}>
@@ -4043,7 +4043,7 @@ export default function ConnectionDetailPage() {
                         </div>
                         <div className={clsx(styles.modalFooter)}>
                             <button className={clsx(styles.modalCancelButton)} onClick={() => setGroupDeleteErrorModal(null)}>
-                                Закрыть
+                                {t('groups.close')}
                             </button>
                         </div>
                     </div>
@@ -4056,28 +4056,28 @@ export default function ConnectionDetailPage() {
                             className={clsx(groupModalStyles.modal__closeButton)}
                             onClick={closeGroupModal}
                             disabled={groupFormLoading}
-                            aria-label="Закрыть окно редактирования группы"
+                            aria-label={t('groups.modal.close')}
                         >
                             <FontAwesomeIcon icon={faTimes}/>
                         </button>
                         <div className={clsx(groupModalStyles.modal__header)}>
-                            <h2 className={clsx(groupModalStyles.modal__title)}>{editingGroup ? 'Редактирование группы' : 'Создание группы'}</h2>
-                            <p className={clsx(groupModalStyles.modal__subtitle)}>{editingGroup ? editingGroup.name : 'Новая группа'}</p>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>{editingGroup ? t('groups.edit.title') : t('groups.create.title')}</h2>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>{editingGroup ? editingGroup.name : t('groups.create.new')}</p>
                         </div>
                         <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveGroup}>
                             <div className={clsx(groupModalStyles.modal__formGroup)}>
-                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupName">Название группы</label>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupName">{t('groups.form.name')}</label>
                                 <input
                                     id="groupName"
                                     className={clsx(groupModalStyles.modal__input)}
                                     value={groupFormName}
                                     onChange={(e) => setGroupFormName(e.target.value)}
                                     disabled={groupFormLoading}
-                                    placeholder="Введите название группы"
+                                    placeholder={t('groups.form.name_placeholder')}
                                 />
                             </div>
                             <div className={clsx(groupModalStyles.modal__formGroup)}>
-                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupDescription">Описание</label>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupDescription">{t('groups.form.description')}</label>
                                 <textarea
                                     id="groupDescription"
                                     className={clsx(groupModalStyles.modal__textarea)}
@@ -4085,13 +4085,13 @@ export default function ConnectionDetailPage() {
                                     onChange={(e) => setGroupFormDescription(e.target.value)}
                                     disabled={groupFormLoading}
                                     rows={3}
-                                    placeholder="Описание группы"
+                                    placeholder={t('groups.form.description_placeholder')}
                                 />
                             </div>
                             <div className={clsx(groupModalStyles.modal__formFooter)}>
-                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeGroupModal} disabled={groupFormLoading}>Отмена</button>
+                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeGroupModal} disabled={groupFormLoading}>{t('groups.cancel')}</button>
                                 <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={groupFormLoading}>
-                                    {groupFormLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
+                                    {groupFormLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> {t('groups.saving')}</> : t('groups.save')}
                                 </button>
                             </div>
                         </form>
