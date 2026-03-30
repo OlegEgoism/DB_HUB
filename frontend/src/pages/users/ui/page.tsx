@@ -327,6 +327,7 @@ export default function UsersPage() {
 
   const shownFrom = users.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0;
   const shownTo = users.length > 0 ? shownFrom + users.length - 1 : 0;
+  const usersCountBadge = totalItems > 0 ? totalItems : users.length;
 
   const roleLabelMap: Record<string, string> = {
     'Администратор БД': t('roles.admin'),
@@ -355,7 +356,7 @@ export default function UsersPage() {
         <div className={clsx(styles.users__titleContainer)}>
           <h1 className={clsx(styles.users__title)}>
             {t('users.title')}
-            <span className={clsx(styles.users__countBadge)}>{totalItems}</span>
+            <span className={clsx(styles.users__countBadge)}>{usersCountBadge}</span>
           </h1>
         </div>
         <div className={clsx(styles.users__actions)}>
