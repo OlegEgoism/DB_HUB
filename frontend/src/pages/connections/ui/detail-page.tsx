@@ -3736,18 +3736,18 @@ export default function ConnectionDetailPage() {
                 <div className={clsx(styles.modalOverlay)} onClick={closeActivityChartModal}>
                     <div className={clsx(styles.activityChartModal)} onClick={(e) => e.stopPropagation()}>
                         <div className={clsx(styles.activityChartHeader)}>
-                            <h2 className={clsx(styles.activityChartTitle)}>График активности БД (обновление 1 сек)</h2>
+                            <h2 className={clsx(styles.activityChartTitle)}>{t('chart.title')}</h2>
                             <button
                                 type="button"
                                 className={clsx(styles.modalCancelButton)}
                                 onClick={closeActivityChartModal}
                             >
-                                Закрыть
+                                {t('chart.close')}
                             </button>
                         </div>
                         <div className={clsx(styles.activityChartBody)}>
                             <p className={clsx(styles.activityChartMeta)}>
-                                Текущее количество активных пользовательских транзакций: <b>{chartTotalActiveQueries}</b>
+                                {t('chart.current_active')}: <b>{chartTotalActiveQueries}</b>
                             </p>
                             <div className={clsx(styles.activityChartSvgWrap)}>
                                 {activityChartPoints.length > 1 ? (
@@ -3755,7 +3755,7 @@ export default function ConnectionDetailPage() {
                                         viewBox={`0 0 ${activityChartModel.width} ${activityChartModel.height}`}
                                         className={clsx(styles.activityChartSvg)}
                                         role="img"
-                                        aria-label="График активности БД"
+                                        aria-label={t('chart.aria')}
                                     >
                                         {activityChartModel.yTicks.map((tick) => {
                                             const y = activityChartModel.axis.top
@@ -3823,7 +3823,7 @@ export default function ConnectionDetailPage() {
                                             textAnchor="middle"
                                             className={clsx(styles.activityChartAxisTitle)}
                                         >
-                                            Время
+                                            {t('chart.axis.time')}
                                         </text>
                                         <text
                                             x={16}
@@ -3832,28 +3832,28 @@ export default function ConnectionDetailPage() {
                                             transform={`rotate(-90 16 ${activityChartModel.height / 2})`}
                                             className={clsx(styles.activityChartAxisTitle)}
                                         >
-                                            Количество транзакций
+                                            {t('chart.axis.transactions')}
                                         </text>
                                     </svg>
                                 ) : (
                                     <div className={clsx(styles.usersEmpty)}>
                                         <FontAwesomeIcon icon={faSpinner} spin={chartLoadingActiveQueries} size="2x"/>
-                                        <p>Собираем данные для графика...</p>
+                                        <p>{t('chart.collecting')}</p>
                                     </div>
                                 )}
                             </div>
                             {activityChartPoints.length > 0 && (
                                 <div className={clsx(styles.activityChartTicks)}>
-                                    <span>Информация</span>
-                                    <span>Период: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
-                                    <span>Мин: {activityChartModel.minValue}</span>
-                                    <span>Среднее: {activityChartModel.avgValue}</span>
-                                    <span>Пик: {activityChartModel.maxValue}</span>
+                                    <span>{t('chart.info')}</span>
+                                    <span>{t('chart.period')}: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
+                                    <span>{t('chart.min')}: {activityChartModel.minValue}</span>
+                                    <span>{t('chart.avg')}: {activityChartModel.avgValue}</span>
+                                    <span>{t('chart.max')}: {activityChartModel.maxValue}</span>
                                     <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_select)}>SELECT: {activityChartPoints[activityChartPoints.length - 1].select}</span>
                                     <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_insert)}>INSERT: {activityChartPoints[activityChartPoints.length - 1].insert}</span>
                                     <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_update)}>UPDATE: {activityChartPoints[activityChartPoints.length - 1].update}</span>
                                     <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_delete)}>DELETE: {activityChartPoints[activityChartPoints.length - 1].delete}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_other)}>ПРОЧЕЕ: {activityChartPoints[activityChartPoints.length - 1].other}</span>
+                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_other)}>{t('chart.other')}: {activityChartPoints[activityChartPoints.length - 1].other}</span>
                                 </div>
                             )}
                         </div>
