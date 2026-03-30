@@ -1397,6 +1397,42 @@ export default function ConnectionDetailPage() {
         const normalized = message.toLowerCase();
         if (normalized.includes('не найден') || normalized.includes('уже заверш')) {
             return {
+    const localizedTerminateProcessModal = useMemo(() => {
+        if (!terminateProcessModal) return null;
+
+        const sourceMessage = terminateProcessModal.message ?? '';
+        const normalizedMessage = sourceMessage.toLowerCase();
+        const pidMatch = sourceMessage.match(/pid\s*(\d+)/i);
+        const pidFromMessage = pidMatch ? Number(pidMatch[1]) : null;
+
+        if (
+            normalizedMessage.includes('не найден')
+            || normalizedMessage.includes('уже заверш')
+            || normalizedMessage.includes('was not found')
+            || normalizedMessage.includes('already terminated')
+        ) {
+            if (pidFromMessage !== null && Number.isFinite(pidFromMessage)) {
+                return {
+                    title: t('active_sql.terminate.warning_title'),
+                    message: `${t('active_sql.terminate.not_found_prefix')} ${pidFromMessage} ${t('active_sql.terminate.not_found_suffix')}`,
+                };
+            }
+            return {
+                title: t('active_sql.terminate.warning_title'),
+                message: t('active_sql.terminate.not_found_generic'),
+            };
+        }
+
+        if (normalizedMessage.includes('connection is closed') || (normalizedMessage.includes('соединение') && normalizedMessage.includes('закрыт'))) {
+            return {
+                title: t('active_sql.terminate.error_title'),
+                message: t('active_sql.terminate.connection_closed'),
+            };
+        }
+
+        return terminateProcessModal;
+    }, [terminateProcessModal, t]);
+
                 title: 'Предупреждение',
                 message: `Процесс с PID ${pid} не найден или уже завершён. Обновите список транзакций.`,
             };
@@ -3919,7 +3955,7 @@ export default function ConnectionDetailPage() {
                 </div>
             )}
 
-            {terminateProcessModal && (
+            {localizedTerminateProcessModal && (
                 <div className={clsx(styles.modalOverlay)} onClick={() => setTerminateProcessModal(null)}>
                     <div
                         className={clsx(styles.modalContent)}
@@ -3931,11 +3967,11 @@ export default function ConnectionDetailPage() {
                                 className={clsx(styles.modalIcon)}
                             />
                             <h2 className={clsx(styles.modalTitle)}>
-                                {terminateProcessModal.title}
+                                {localizedTerminateProcessModal.title}
                             </h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
-                            <p className={clsx(styles.modalText)}>{terminateProcessModal.message}</p>
+                            <p className={clsx(styles.modalText)}>{localizedTerminateProcessModal.message}</p>
                         </div>
                         <div className={clsx(styles.modalFooter)}>
                             <button
