@@ -4409,12 +4409,12 @@ export default function ConnectionDetailPage() {
                             className={clsx(groupModalStyles.modal__closeButton)}
                             onClick={closeTableEditModal}
                             disabled={tableModalLoading}
-                            aria-label="Закрыть окно редактирования таблицы"
+                            aria-label={t('tables.edit.close')}
                         >
                             <FontAwesomeIcon icon={faTimes}/>
                         </button>
                         <div className={clsx(groupModalStyles.modal__header)}>
-                            <h2 className={clsx(groupModalStyles.modal__title)}>Редактирование таблицы</h2>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>{t('tables.edit.title')}</h2>
                             <p className={clsx(groupModalStyles.modal__subtitle)}>{editingTable.schema_name}.{editingTable.table_name}</p>
                         </div>
                         <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveTablePrivileges}>
@@ -4483,9 +4483,9 @@ export default function ConnectionDetailPage() {
                             </div>
                             <div className={clsx(styles.tableGroupsSearchPanel)}>
                                 <div className={clsx(styles.tableGroupsSearchHeader)}>
-                                    <label className={clsx(styles.tableGroupsSearchLabel)} htmlFor="tableGroupsSearch">Поиск групп</label>
+                                    <label className={clsx(styles.tableGroupsSearchLabel)} htmlFor="tableGroupsSearch">{t('tables.edit.search_groups')}</label>
                                     <span className={clsx(styles.tableGroupsSearchMeta)}>
-                                        Найдено: {filteredTableGroupsForm.length} из {tableGroupsForm.length}
+                                        {t('tables.edit.found')}: {filteredTableGroupsForm.length} {t('tables.pagination.of')} {tableGroupsForm.length}
                                     </span>
                                 </div>
                                 <div className={clsx(styles.usersSearchWrapper)}>
@@ -4493,7 +4493,7 @@ export default function ConnectionDetailPage() {
                                     <input
                                         id="tableGroupsSearch"
                                         type="text"
-                                        placeholder="Введите название группы"
+                                        placeholder={t('tables.edit.group_name_placeholder')}
                                         value={tableGroupSearchQuery}
                                         onChange={(e) => setTableGroupSearchQuery(e.target.value)}
                                         className={clsx(styles.usersSearchInput)}
@@ -4504,7 +4504,7 @@ export default function ConnectionDetailPage() {
                                             type="button"
                                             onClick={() => setTableGroupSearchQuery('')}
                                             className={clsx(styles.usersSearchClear)}
-                                            title="Очистить поиск групп"
+                                            title={t('tables.edit.clear_groups_search')}
                                             disabled={tableModalLoading}
                                         >
                                             <FontAwesomeIcon icon={faTimes}/>
@@ -4536,14 +4536,14 @@ export default function ConnectionDetailPage() {
                                     ))
                                 ) : (
                                     <div className={clsx(styles.tableGroupsSearchEmpty)}>
-                                        Группы по указанному фильтру не найдены
+                                        {t('tables.edit.groups_not_found')}
                                     </div>
                                 )}
                             </div>
                             <div className={clsx(groupModalStyles.modal__formFooter)}>
-                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeTableEditModal} disabled={tableModalLoading}>Отмена</button>
+                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeTableEditModal} disabled={tableModalLoading}>{t('tables.edit.cancel')}</button>
                                 <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={tableModalLoading}>
-                                    {tableModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
+                                    {tableModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> {t('tables.edit.saving')}</> : t('tables.edit.save')}
                                 </button>
                             </div>
                         </form>
