@@ -378,7 +378,7 @@ export const translations = {
     'settings.description': 'Выберите, какие вкладки отображать на странице подключения.',
     'settings.reset': 'Сбросить по умолчанию',
     'settings.language': 'Язык интерфейса',
-    'settings.save': 'Сохранить настройки',
+    'settings.save': 'Сохранить',
     'settings.saving': 'Сохранение настроек...',
 
     'tabs.overview': 'Обзор',
@@ -823,8 +823,8 @@ export const translations = {
     'settings.description': 'Choose which tabs are shown on the connection page.',
     'settings.reset': 'Reset to defaults',
     'settings.language': 'Interface language',
-    'settings.save': 'Save settings',
-    'settings.saving': 'Saving settings...',
+    'settings.save': 'Save',
+    'settings.saving': 'Save',
 
     'tabs.overview': 'Overview',
     'tabs.metrics': 'Metrics',

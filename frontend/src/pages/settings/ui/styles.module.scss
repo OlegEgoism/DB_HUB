@@ -96,7 +96,7 @@
   &__select {
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid var(--gray-300);
+    border: 1px solid var(--color-text-main);
     background: #fff;
     color: var(--color-text-main);
     font-size: 14px;
@@ -107,7 +107,7 @@
   &__saveButton {
     border: none;
     border-radius: 8px;
-    background: var(--color-status-success);
+    background: var(--color-primary);
     color: white;
     padding: 10px 14px;
     font-weight: 600;
