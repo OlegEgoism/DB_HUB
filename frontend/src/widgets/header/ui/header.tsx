@@ -15,7 +15,7 @@ export function Header() {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { logout, checkAuth, getUser } = useSession();
-  const { language, setLanguage, t } = useI18n();
+  const { t } = useI18n();
 
   const isAuthenticated = checkAuth();
   const user = getUser();
@@ -39,17 +39,6 @@ export function Header() {
           </div>
 
           <div className={clsx(styles.header__actions)}>
-            <div className={clsx(styles.header__langSwitcher)}>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as 'ru' | 'en')}
-                className={clsx(styles.header__langSelect)}
-                aria-label="Language switcher"
-              >
-                <option value="ru">{t('lang.ru')}</option>
-                <option value="en">{t('lang.en')}</option>
-              </select>
-            </div>
             {!isAuthenticated ? (
               <>
                 <button className={clsx(styles.header__loginButton)} onClick={() => setIsLoginModalOpen(true)}>
