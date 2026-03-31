@@ -1,11 +1,12 @@
 import math
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
+T = TypeVar("T", bound=BaseModel)
 
-class PaginatedResponse[T: BaseModel](BaseModel):
+class PaginatedResponse(BaseModel, Generic[T]):
     """Универсальный класс для пагинированных ответов с элементами"""
 
     items: list[T]
