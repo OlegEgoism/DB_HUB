@@ -24,7 +24,8 @@ DB_HUB/
 
 ## Установка зависимостей
 
-- В папке проекта DB_HUB создайте файл .env и заполните настройки
+- Файл `.env` **не обязателен** для базового локального запуска (используются значения по умолчанию).
+- Если хотите переопределить настройки — создайте `.env` в корне проекта:
 
 ```
 # APP
@@ -167,6 +168,24 @@ docker compose down
 
 ```bash
 docker compose -f docker-compose.fullstack.yml up --build -d
+```
+
+## Docker Hub релиз (новый поток для нового проекта)
+
+Для публикации подготовлены отдельные production-oriented файлы:
+
+- `Dockerfile.fullstack.prod`
+- `docker-compose.hub.yml`
+- `docs/DOCKER_HUB_DEPLOYMENT.md`
+
+Сборка и публикация:
+
+```bash
+docker login -u olegegoism
+docker build -f Dockerfile.fullstack.prod -t olegegoism/db-hub:latest .
+docker build -f Dockerfile.fullstack.prod -t olegegoism/db-hub:v1.0.0 .
+docker push olegegoism/db-hub:latest
+docker push olegegoism/db-hub:v1.0.0
 ```
 
 

@@ -1,23 +1,33 @@
 # backend/database/session.py
 
+import os
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
-APP_DATABASE_URL = "sqlite+aiosqlite:///./db_hub.sqlite3"
-APP_DATABASE_FALLBACK_URL = "postgresql+asyncpg://user:pass@localhost:5432/name"
+DEFAULT_APP_DATABASE_URL = "sqlite+aiosqlite:///./db_hub.sqlite3"
+DEFAULT_APP_DATABASE_FALLBACK_URL = "postgresql+asyncpg://user:pass@localhost:5432/name"
 
 
 def _build_legacy_postgres_url() -> str:
-    return APP_DATABASE_FALLBACK_URL
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+    db_name = os.getenv("DB_NAME", "name")
+    db_user = os.getenv("DB_USER", "user")
+    db_password = os.getenv("DB_PASSWORD", "pass")
+    return f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 
-DATABASE_URL = APP_DATABASE_URL
+DATABASE_URL = os.getenv("APP_DATABASE_URL", DEFAULT_APP_DATABASE_URL)
 
 if DATABASE_URL.startswith("sqlite+aiosqlite"):
     try:
         import aiosqlite  # noqa: F401
     except ModuleNotFoundError:
-        fallback_url = _build_legacy_postgres_url()
+        fallback_url = os.getenv(
+            "APP_DATABASE_FALLBACK_URL",
+            _build_legacy_postgres_url() or DEFAULT_APP_DATABASE_FALLBACK_URL,
+        )
         print("⚠️ Модуль aiosqlite не найден. Используем fallback БД приложения.")
         DATABASE_URL = fallback_url
 
