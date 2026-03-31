@@ -66,10 +66,14 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
-    const savedVisibility = await connectionTabsSettingsModel.saveVisibility(visibility);
-    setVisibility(savedVisibility);
     setLanguage(selectedLanguage);
-    setIsSaving(false);
+
+    try {
+      const savedVisibility = await connectionTabsSettingsModel.saveVisibility(visibility);
+      setVisibility(savedVisibility);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
