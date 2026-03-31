@@ -314,7 +314,7 @@ function translateTextNode(node: Text, language: Language) {
     textOriginalMap.set(node, original);
   }
 
-  const next = language === 'ru' ? original : translateValue(original, 'en');
+  const next = translateValue(original, language);
   if (node.textContent !== next) {
     node.textContent = next;
   }
@@ -333,7 +333,7 @@ function translateElementAttributes(element: Element, language: Language) {
     }
 
     const source = originalAttrs[attr];
-    const next = language === 'ru' ? source : translateValue(source, 'en');
+    const next = translateValue(source, language);
     if (current !== next) {
       element.setAttribute(attr, next);
     }
