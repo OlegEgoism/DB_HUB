@@ -51,6 +51,10 @@ export default function SettingsPage() {
     void loadSettings();
   }, [checkAuth, language, navigate]);
 
+  useEffect(() => {
+    setSelectedLanguage(language);
+  }, [language]);
+
   const handleToggle = (tabKey: ConnectionTabKey) => {
     setVisibility((prev) => {
       return {
@@ -98,11 +102,12 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          <div className={clsx(styles.settings__language)}>
+          <div key={language} className={clsx(styles.settings__language)}>
             <label htmlFor="language" className={clsx(styles.settings__label)}>
               {t('settings.language')}
             </label>
             <select
+              key={`${language}-${selectedLanguage}`}
               id="language"
               value={selectedLanguage}
               onChange={(event) => setSelectedLanguage(event.target.value as Language)}
