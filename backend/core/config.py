@@ -12,14 +12,20 @@ class Settings(BaseSettings):
     APP_DATABASE_URL: str = Field("sqlite+aiosqlite:///./db_hub.sqlite3", env="APP_DATABASE_URL")
 
     """Ключ шифрования для паролей подключений"""
-    ENCRYPTION_KEY: str = Field(env="ENCRYPTION_KEY")
+    ENCRYPTION_KEY: str = Field(
+        "EBvGmpvcm4nrUrcMjmjfwUB0F0usPXfRCOHVvK3upCo=",
+        env="ENCRYPTION_KEY",
+    )
 
     """FastAPI"""
     HOST: str = Field("127.0.0.1", env="HOST")
     PORT: int = Field(8000, env="PORT")
 
     """JWT"""
-    SECRET_KEY: str = Field(env="SECRET_KEY")
+    SECRET_KEY: str = Field(
+        "your-super-secret-jwt-key-change-this-in-production",
+        env="SECRET_KEY",
+    )
     ALGORITHM: str = Field("HS256", env="ALGORITHM")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
 
