@@ -257,7 +257,7 @@ class DBViewsService:
                 schema_privileges.setdefault(schema_name, {}).setdefault(groupname, {"CREATE": False, "USAGE": False})
                 schema_privileges[schema_name][groupname][privilege] = True
 
-            for view_oid, info in view_info.items():
+            for _view_oid, info in view_info.items():
                 schema_name = info["schema_name"]
                 for groupname in all_groupnames:
                     group_schema_priv = schema_privileges.get(schema_name, {}).get(groupname)

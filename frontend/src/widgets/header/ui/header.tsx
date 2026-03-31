@@ -9,11 +9,13 @@ import styles from './header.module.scss';
 import clsx from 'clsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { useI18n } from '@shared/i18n';
 
 export function Header() {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { logout, checkAuth, getUser } = useSession();
+  const { language, setLanguage, t } = useI18n();
 
   const isAuthenticated = checkAuth();
   const user = getUser();
@@ -37,31 +39,42 @@ export function Header() {
           </div>
 
           <div className={clsx(styles.header__actions)}>
+            <div className={clsx(styles.header__langSwitcher)}>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as 'ru' | 'en')}
+                className={clsx(styles.header__langSelect)}
+                aria-label="Language switcher"
+              >
+                <option value="ru">{t('lang.ru')}</option>
+                <option value="en">{t('lang.en')}</option>
+              </select>
+            </div>
             {!isAuthenticated ? (
               <>
                 <button className={clsx(styles.header__loginButton)} onClick={() => setIsLoginModalOpen(true)}>
-                  Авторизация
+                  {t('header.login')}
                 </button>
                 <button className={clsx(styles.header__registerButton)} onClick={() => setIsRegisterModalOpen(true)}>
-                  Регистрация
+                  {t('header.register')}
                 </button>
               </>
             ) : (
               <>
                 <div className={clsx(styles.header__userMenu)}>
                 <NavLink to={ROUTES.CONNECTIONS} className={clsx(styles.header__profileButton)}>
-                  Подключения
+                  {t('header.connections')}
                 </NavLink>
                 {user?.is_superuser && (
                   <NavLink to={ROUTES.USERS} className={clsx(styles.header__profileButton)}>
-                    Пользователи
+                    {t('header.users')}
                   </NavLink>
                 )}
                 <NavLink to={ROUTES.PROFILE} className={clsx(styles.header__profileButton)}>
-                  Профиль
+                  {t('header.profile')}
                 </NavLink>
                 <NavLink to={ROUTES.SETTINGS} className={clsx(styles.header__profileButton)}>
-                  Настройки
+                  {t('header.settings')}
                 </NavLink>
                 </div>
                 <div className={clsx(styles.header__userMenu)}>
@@ -70,7 +83,7 @@ export function Header() {
                   </div>
                   <button className={clsx(styles.header__logoutButton)} onClick={handleLogout}>
                     <FontAwesomeIcon icon={faSignOutAlt} />
-                    Выход
+                    {t('header.logout')}
                   </button>
                 </div>
               </>

@@ -9,6 +9,7 @@ import {
     faCheckCircle,
     faTimes,
 } from '@fortawesome/free-solid-svg-icons';
+import { useI18n } from '@shared/i18n';
 
 export function LoginModal({
     onClose,
@@ -23,11 +24,12 @@ export function LoginModal({
     });
     const [showPassword, setShowPassword] = useState(false);
     const { login, loading, error, success } = useLogin();
+    const { t } = useI18n();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.username.trim() || !formData.password.trim()) {
-            alert('Пожалуйста, заполните все поля');
+            alert(t('login.alert.fill'));
             return;
         }
         await login(formData);
@@ -67,33 +69,33 @@ export function LoginModal({
             error.includes('Account is not active') ||
             error.includes('User is not active')
         ) {
-            return 'Ваш аккаунт не активирован в системе. Обратитесь к администратору.';
+            return t('login.error.inactive');
         }
 
         // Обработка ошибки 429 (Too Many Requests)
         if (error.includes('429') || error.includes('HTTP error! status: 429')) {
-            return 'Вы сделали слишком много попыток входа. Попробуйте позже.';
+            return t('login.error.too_many');
         }
 
         // Обработка других ошибок
         if (error.includes('401') || error.includes('Invalid credentials') || error.includes('Неверные учетные данные')) {
-            return 'Неверное имя пользователя или пароль.';
+            return t('login.error.invalid');
         }
 
         if (error.includes('403')) {
-            return 'Доступ запрещен. Проверьте ваши права доступа.';
+            return t('login.error.forbidden');
         }
 
         if (error.includes('404')) {
-            return 'Сервер авторизации недоступен.';
+            return t('login.error.not_found');
         }
 
         if (error.includes('500') || error.includes('Internal Server Error')) {
-            return 'Внутренняя ошибка сервера. Попробуйте позже.';
+            return t('login.error.server');
         }
 
         if (error.includes('Network Error') || error.includes('Failed to fetch')) {
-            return 'Ошибка сети. Проверьте подключение к интернету.';
+            return t('login.error.network');
         }
 
         // По умолчанию возвращаем оригинальное сообщение
@@ -107,14 +109,14 @@ export function LoginModal({
                     className={clsx(styles.modal__closeButton)}
                     onClick={handleClose}
                     disabled={loading}
-                    aria-label="Закрыть окно авторизации"
+                    aria-label={t('login.close')}
                 >
                     <FontAwesomeIcon icon={faTimes} />
                 </button>
 
                 <div className={clsx(styles.modal__header)}>
                     <h2 className={clsx(styles.modal__title)}>
-                        {success ? 'Добро пожаловать!' : 'Авторизация'}
+                        {success ? t('login.welcome') : t('login.title')}
                     </h2>
                 </div>
 
@@ -122,11 +124,11 @@ export function LoginModal({
                     <div className={clsx(styles.modal__success)}>
                         <div className={clsx(styles.modal__successMessage)}>
                             <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '8px', color: 'var(--color-status-success)' }} />
-                            Авторизация успешна!
+                            {t('login.success')}
                         </div>
                         <div className={clsx(styles.modal__userInfo)}>
                             <div>
-                                <div className={clsx(styles.modal__userInfoLabel)}>Имя пользователя:</div>
+                                <div className={clsx(styles.modal__userInfoLabel)}>{t('login.username')}:</div>
                                 <div className={clsx(styles.modal__userInfoValue)}>{formData.username}</div>
                             </div>
                         </div>
@@ -134,7 +136,7 @@ export function LoginModal({
                             className={clsx(styles.modal__successButton)}
                             onClick={onClose}
                         >
-                            Начать работу
+                            {t('login.start')}
                         </button>
                     </div>
                 ) : (
@@ -147,7 +149,7 @@ export function LoginModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="username" className={clsx(styles.modal__label)}>
-                                Имя пользователя
+                                {t('login.username')}
                             </label>
                             <input
                                 type="text"
@@ -157,7 +159,7 @@ export function LoginModal({
                                 onChange={handleChange}
                                 required
                                 className={clsx(styles.modal__input)}
-                                placeholder="Введите имя пользователя"
+                                placeholder={t('login.username.placeholder')}
                                 disabled={loading}
                                 autoComplete="username"
                             />
@@ -165,7 +167,7 @@ export function LoginModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="password" className={clsx(styles.modal__label)}>
-                                Пароль
+                                {t('login.password')}
                             </label>
                             <div className={clsx(styles.modal__passwordWrapper)}>
                                 <input
@@ -176,7 +178,7 @@ export function LoginModal({
                                     onChange={handleChange}
                                     required
                                     className={clsx(styles.modal__input)}
-                                    placeholder="Введите пароль"
+                                    placeholder={t('login.password.placeholder')}
                                     disabled={loading}
                                     autoComplete="current-password"
                                 />
@@ -198,14 +200,14 @@ export function LoginModal({
                                 onClick={handleClose}
                                 disabled={loading}
                             >
-                                Отмена
+                                {t('login.cancel')}
                             </button>
                             <button
                                 type="submit"
                                 className={clsx(styles.modal__submitButton)}
                                 disabled={loading}
                             >
-                                {loading ? 'Вход...' : 'Войти'}
+                                {loading ? t('login.loading') : t('login.submit')}
                             </button>
                         </div>
                     </form>

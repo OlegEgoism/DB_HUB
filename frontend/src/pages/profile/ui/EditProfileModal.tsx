@@ -10,6 +10,7 @@ import {
     faSpinner,
     faCheckCircle,
 } from '@fortawesome/free-solid-svg-icons';
+import { useI18n } from '@shared/i18n';
 
 export function EditProfileModal({
                                      user,
@@ -28,6 +29,7 @@ export function EditProfileModal({
 
     const [initialData] = useState({ ...formData });
     const {updateProfile, loading, error, success} = useEditProfile(user.id);
+    const { t } = useI18n();
 
 
 
@@ -40,7 +42,7 @@ export function EditProfileModal({
             formData.fio === initialData.fio &&
             formData.role === initialData.role
         ) {
-            alert('Нет изменений для сохранения');
+            alert(t('profile.no_changes'));
             return;
         }
 
@@ -80,14 +82,14 @@ export function EditProfileModal({
                     className={clsx(styles.modal__closeButton)}
                     onClick={handleClose}
                     disabled={loading}
-                    aria-label="Закрыть окно редактирования"
+                    aria-label={t('profile.edit_title')}
                 >
                     <FontAwesomeIcon icon={faTimes}/>
                 </button>
 
                 <div className={clsx(styles.modal__header)}>
                     <h2 className={clsx(styles.modal__title)}>
-                        {success ? 'Профиль обновлен!' : 'Редактирование профиля'}
+                        {success ? t('profile.updated_success') : t('profile.edit_title')}
                     </h2>
                 </div>
 
@@ -101,10 +103,10 @@ export function EditProfileModal({
                                     color: 'var(--color-status-success)'
                                 }}
                             />
-                            Профиль успешно обновлен!
+                            {t('profile.updated_success')}
                         </div>
                         <div className={clsx(styles.modal__successHint)}>
-                            Ваши изменения сохранены
+                            {t('profile.saved_hint')}
                         </div>
                         <button
                             className={clsx(styles.modal__successButton)}
@@ -141,7 +143,7 @@ export function EditProfileModal({
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="fio" className={clsx(styles.modal__label)}>
-                                ФИО
+                                {t('profile.fio')}
                             </label>
                             <input
                                 type="text"
@@ -150,14 +152,14 @@ export function EditProfileModal({
                                 value={formData.fio}
                                 onChange={handleChange}
                                 className={clsx(styles.modal__input)}
-                                placeholder="Иванов Иван Иванович"
+                                placeholder={t('register.placeholder.fio')}
                                 disabled={loading}
                             />
                         </div>
 
                         <div className={clsx(styles.modal__formGroup)}>
                             <label htmlFor="role" className={clsx(styles.modal__label)}>
-                                Роль
+                                {t('profile.role')}
                             </label>
                             <select
                                 id="role"
@@ -167,11 +169,11 @@ export function EditProfileModal({
                                 className={clsx(styles.modal__select)}
                                 disabled={loading}
                             >
-                                <option value="Пользователь">Пользователь</option>
-                                <option value="Аналитик">Аналитик</option>
-                                <option value="Разработчик">Разработчик</option>
-                                <option value="Тестировщик">Тестировщик</option>
-                                <option value="Администратор БД">Администратор БД</option>
+                                <option value="Пользователь">{t('roles.user')}</option>
+                                <option value="Аналитик">{t('roles.analyst')}</option>
+                                <option value="Разработчик">{t('roles.developer')}</option>
+                                <option value="Тестировщик">{t('roles.tester')}</option>
+                                <option value="Администратор БД">{t('roles.admin')}</option>
                             </select>
                         </div>
 
@@ -182,7 +184,7 @@ export function EditProfileModal({
                                 onClick={handleClose}
                                 disabled={loading}
                             >
-                                Отмена
+                                {t('login.cancel')}
                             </button>
                             <button
                                 type="submit"
@@ -192,12 +194,10 @@ export function EditProfileModal({
                                 {loading ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Сохранение...
+                                        {t('profile.saving')}
                                     </>
                                 ) : (
-                                    <>
-                                        Сохранить
-                                    </>
+                                    t('profile.save')
                                 )}
                             </button>
                         </div>
@@ -207,4 +207,3 @@ export function EditProfileModal({
         </div>
     );
 }
-

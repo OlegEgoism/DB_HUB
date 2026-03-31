@@ -58,6 +58,7 @@ import { formatDateTime, formatStartTime, formatUptime } from '@pages/connection
 import { useConnectionDetailCore } from '@pages/connections/lib/detail-page/useConnectionDetailCore';
 import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navigation';
 import { connectionTabsSettingsModel, DEFAULT_CONNECTION_TABS_VISIBILITY } from '@entities/settings/model';
+import { useI18n } from '@shared/i18n';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -85,6 +86,7 @@ const detectQueryOperation = (query: string | null | undefined): keyof Omit<Acti
 };
 
 export default function ConnectionDetailPage() {
+    const { t } = useI18n();
     const {id} = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -774,7 +776,7 @@ export default function ConnectionDetailPage() {
         }
 
         if (!groupFormName.trim()) {
-            setError('Название группы обязательно');
+            setError(t('groups.form.name_required'));
             return;
         }
 
@@ -907,8 +909,8 @@ export default function ConnectionDetailPage() {
         }
     };
 
-    const openGroupUsersModal = async (group: { oid: number; name: string; user_count: number }) => {
-        setGroupUsersModal({oid: group.oid, name: group.name, userCount: groupUserCountOverrides[group.oid] ?? group.user_count});
+    const openGroupUsersModal = async (group: { oid: number; name: string; user_count?: number }) => {
+        setGroupUsersModal({oid: group.oid, name: group.name, userCount: groupUserCountOverrides[group.oid] ?? group.user_count ?? 0});
         setSelectedUserOid('');
         setGroupUserSearchQuery('');
         setGroupUsers([]);
@@ -2463,8 +2465,8 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((usersPage - 1) * usersPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(usersPage * usersPageSize, totalUsers)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalUsers}</span> пользователей
+{t('users.shown')} <span className={clsx(styles.paginationHighlight)}>{((usersPage - 1) * usersPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(usersPage * usersPageSize, totalUsers)}</span> {t('users.of')} <span className={clsx(styles.paginationHighlight)}>{totalUsers}</span> {t('users.users')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
@@ -2475,7 +2477,7 @@ export default function ConnectionDetailPage() {
                                                         >
                                                             {PAGE_SIZES.map((size) => (
                                                                 <option key={size} value={size}>
-                                                                    {size} на странице
+                                                                    {size} {t('users.per_page')}
                                                                 </option>
                                                             ))}
                                                         </select>
@@ -2484,7 +2486,7 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleUsersFirstPage}
                                                                 disabled={usersPage === 1 || !usersHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('users.page.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
@@ -2492,18 +2494,18 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton)}
                                                                 onClick={() => handleUsersPageChange(usersPage - 1)}
                                                                 disabled={usersPage === 1 || !usersHasPrev}
-                                                                title="Предыдущая страница"
+                                                                title={t('users.page.prev')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>
-Страница {usersPage} из {totalUsersPages}
+<span className={clsx(styles.pageInfo)}>
+{t('users.page.label')} {usersPage} {t('users.of')} {totalUsersPages}
 </span>
                                                             <button
                                                                 className={clsx(styles.paginationButton)}
                                                                 onClick={() => handleUsersPageChange(usersPage + 1)}
                                                                 disabled={usersPage === totalUsersPages || !usersHasNext}
-                                                                title="Следующая страница"
+                                                                title={t('users.page.next')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
@@ -2511,7 +2513,7 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleUsersLastPage}
                                                                 disabled={usersPage === totalUsersPages || !usersHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('users.page.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
@@ -2537,7 +2539,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск групп"
+                                                    placeholder={t('groups.search')}
                                                     value={groupsSearchQuery}
                                                     onChange={handleGroupsSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
@@ -2547,30 +2549,30 @@ export default function ConnectionDetailPage() {
                                                         type="button"
                                                         onClick={handleGroupsSearchClear}
                                                         className={clsx(styles.usersSearchClear)}
-                                                        title="Очистить поиск"
+                                                        title={t('groups.search_clear')}
                                                     >
                                                         <FontAwesomeIcon icon={faTimes}/>
                                                     </button>
                                                 )}
                                             </div>
-                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">
-                                                Поиск
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title={t('groups.search')}>
+                                                {t('groups.search')}
                                             </button>
                                         </form>
                                         <button
                                             className={clsx(styles.createUserButton)}
                                             onClick={openCreateGroupModal}
-                                            aria-label="Создать новую группу"
+                                            aria-label={t('groups.create.new')}
                                         >
-                                            Создать группу
+                                            {t('groups.create.button')}
                                         </button>
                                         <button
                                             type="button"
                                             className={clsx(styles.refreshButton)}
                                             onClick={refreshGroups}
                                             disabled={loadingGroups}
-                                            aria-label="Обновить список групп"
-                                            title="Обновить список групп"
+                                            aria-label={t('groups.refresh')}
+                                            title={t('groups.refresh')}
                                         >
                                             <FontAwesomeIcon icon={faArrowsRotate} spin={loadingGroups}/>
                                         </button>
@@ -2581,7 +2583,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка групп...</p>
+                                            <p>{t('groups.loading')}</p>
                                         </div>
                                     ) : groups && groups.length > 0 ? (
                                         <>
@@ -2594,12 +2596,12 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Пользователей:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('groups.users_count')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
                                                                 </div>
                                                                 {group.description && (
                                                                     <div className={clsx(styles.userItemInfo)}>
-                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>{t('groups.description_label')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue)}>{group.description}</span>
                                                                     </div>
                                                                 )}
@@ -2645,14 +2647,14 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((groupsPage - 1) * groupsPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(groupsPage * groupsPageSize, totalGroups)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalGroups}</span> групп
+{t('groups.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((groupsPage - 1) * groupsPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(groupsPage * groupsPageSize, totalGroups)}</span> {t('groups.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalGroups}</span> {t('groups.pagination.groups')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select value={groupsPageSize} onChange={handleGroupsPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                             {PAGE_SIZES.map((size) => (
-                                                                <option key={size} value={size}>{size} на странице</option>
+                                                                <option key={size} value={size}>{size} {t('groups.pagination.per_page')}</option>
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
@@ -2660,22 +2662,22 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleGroupsFirstPage}
                                                                 disabled={groupsPage === 1 || !groupsHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('groups.pagination.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage - 1)} disabled={groupsPage === 1 || !groupsHasPrev} title="Предыдущая страница">
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage - 1)} disabled={groupsPage === 1 || !groupsHasPrev} title={t('groups.pagination.prev')}>
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {groupsPage} из {totalGroupsPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage + 1)} disabled={groupsPage === totalGroupsPages || !groupsHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>{t('groups.pagination.page')} {groupsPage} {t('groups.pagination.of')} {totalGroupsPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleGroupsPageChange(groupsPage + 1)} disabled={groupsPage === totalGroupsPages || !groupsHasNext} title={t('groups.pagination.next')}>
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleGroupsLastPage}
                                                                 disabled={groupsPage === totalGroupsPages || !groupsHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('groups.pagination.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
@@ -2687,7 +2689,7 @@ export default function ConnectionDetailPage() {
                                     ) : (
                                         <div className={clsx(styles.usersEmpty)}>
                                             <FontAwesomeIcon icon={faLayerGroup} size="3x"/>
-                                            <p>Группы не найдены</p>
+                                            <p>{t('groups.not_found')}</p>
                                             {groupsError && <p className={clsx(styles.errorMessage)}>{groupsError}</p>}
                                         </div>
                                     )}
@@ -2701,25 +2703,25 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск схем"
+                                                    placeholder={t('schemas.search')}
                                                     value={schemasSearchQuery}
                                                     onChange={handleSchemasSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
                                                 />
                                                 {schemasSearchQuery && (
-                                                    <button type="button" onClick={handleSchemasSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                    <button type="button" onClick={handleSchemasSearchClear} className={clsx(styles.usersSearchClear)} title={t('schemas.search_clear')}>
                                                         <FontAwesomeIcon icon={faTimes}/>
                                                     </button>
                                                 )}
                                             </div>
-                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title={t('schemas.search')}>{t('schemas.search')}</button>
                                             <button
                                                 type="button"
                                                 className={clsx(styles.refreshButton)}
                                                 onClick={refreshSchemas}
                                                 disabled={loadingSchemas}
-                                                aria-label="Обновить список схем"
-                                                title="Обновить список схем"
+                                                aria-label={t('schemas.refresh')}
+                                                title={t('schemas.refresh')}
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingSchemas}/>
                                             </button>
@@ -2731,7 +2733,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка схем...</p>
+                                            <p>{t('schemas.loading')}</p>
                                         </div>
                                     ) : schemas && schemas.length > 0 ? (
                                         <>
@@ -2744,11 +2746,11 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Владелец:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('schemas.owner')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{schema.owner}</span>
                                                                 </div>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Ролей:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('schemas.roles')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{schema.role_privileges.length}</span>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
@@ -2765,14 +2767,14 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((schemasPage - 1) * schemasPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(schemasPage * schemasPageSize, totalSchemas)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalSchemas}</span> схем
+{t('schemas.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((schemasPage - 1) * schemasPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(schemasPage * schemasPageSize, totalSchemas)}</span> {t('schemas.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalSchemas}</span> {t('schemas.pagination.schemas')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select value={schemasPageSize} onChange={handleSchemasPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                             {PAGE_SIZES.map((size) => (
-                                                                <option key={size} value={size}>{size} на странице</option>
+                                                                <option key={size} value={size}>{size} {t('schemas.pagination.per_page')}</option>
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
@@ -2780,22 +2782,22 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleSchemasFirstPage}
                                                                 disabled={schemasPage === 1 || !schemasHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('schemas.pagination.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage - 1)} disabled={schemasPage === 1 || !schemasHasPrev} title="Предыдущая страница">
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage - 1)} disabled={schemasPage === 1 || !schemasHasPrev} title={t('schemas.pagination.prev')}>
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {schemasPage} из {totalSchemasPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage + 1)} disabled={schemasPage === totalSchemasPages || !schemasHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>{t('schemas.pagination.page')} {schemasPage} {t('schemas.pagination.of')} {totalSchemasPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSchemasPageChange(schemasPage + 1)} disabled={schemasPage === totalSchemasPages || !schemasHasNext} title={t('schemas.pagination.next')}>
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleSchemasLastPage}
                                                                 disabled={schemasPage === totalSchemasPages || !schemasHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('schemas.pagination.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
@@ -2818,33 +2820,33 @@ export default function ConnectionDetailPage() {
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleTablesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
                                             <select value={tablesFilterType} onChange={handleTablesFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
-                                                <option value="regular">Обычные таблицы</option>
-                                                <option value="temporary">Временные таблицы</option>
-                                                <option value="all">Все таблицы</option>
+                                                <option value="regular">{t('tables.filter.regular')}</option>
+                                                <option value="temporary">{t('tables.filter.temporary')}</option>
+                                                <option value="all">{t('tables.filter.all')}</option>
                                             </select>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск по имени таблицы и владельцу"
+                                                    placeholder={t('tables.search')}
                                                     value={tablesSearchQuery}
                                                     onChange={handleTablesSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
                                                 />
                                                 {tablesSearchQuery && (
-                                                    <button type="button" onClick={handleTablesSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                    <button type="button" onClick={handleTablesSearchClear} className={clsx(styles.usersSearchClear)} title={t('tables.search_clear')}>
                                                         <FontAwesomeIcon icon={faTimes}/>
                                                     </button>
                                                 )}
                                             </div>
-                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title={t('tables.search')}>{t('tables.search')}</button>
                                             <button
                                                 type="button"
                                                 className={clsx(styles.refreshButton)}
                                                 onClick={refreshTables}
                                                 disabled={loadingTables}
-                                                aria-label="Обновить список таблиц"
-                                                title="Обновить список таблиц"
+                                                aria-label={t('tables.refresh')}
+                                                title={t('tables.refresh')}
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingTables}/>
                                             </button>
@@ -2856,7 +2858,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка таблиц...</p>
+                                            <p>{t('tables.loading')}</p>
                                         </div>
                                     ) : tables && tables.length > 0 ? (
                                         <>
@@ -2869,11 +2871,11 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Владелец:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('tables.owner')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{table.owner}</span>
                                                                 </div>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Групп:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('tables.groups')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{table.group_privileges.length}</span>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
@@ -2890,14 +2892,14 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((tablesPage - 1) * tablesPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(tablesPage * tablesPageSize, totalTables)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalTables}</span> таблиц
+{t('tables.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((tablesPage - 1) * tablesPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(tablesPage * tablesPageSize, totalTables)}</span> {t('tables.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalTables}</span> {t('tables.pagination.tables')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select value={tablesPageSize} onChange={handleTablesPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                             {PAGE_SIZES.map((size) => (
-                                                                <option key={size} value={size}>{size} на странице</option>
+                                                                <option key={size} value={size}>{size} {t('tables.pagination.per_page')}</option>
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
@@ -2905,22 +2907,22 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleTablesFirstPage}
                                                                 disabled={tablesPage === 1 || !tablesHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('tables.pagination.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleTablesPageChange(tablesPage - 1)} disabled={tablesPage === 1 || !tablesHasPrev} title="Предыдущая страница">
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleTablesPageChange(tablesPage - 1)} disabled={tablesPage === 1 || !tablesHasPrev} title={t('tables.pagination.prev')}>
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {tablesPage} из {totalTablesPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleTablesPageChange(tablesPage + 1)} disabled={tablesPage === totalTablesPages || !tablesHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>{t('tables.pagination.page')} {tablesPage} {t('tables.pagination.of')} {totalTablesPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleTablesPageChange(tablesPage + 1)} disabled={tablesPage === totalTablesPages || !tablesHasNext} title={t('tables.pagination.next')}>
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleTablesLastPage}
                                                                 disabled={tablesPage === totalTablesPages || !tablesHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('tables.pagination.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
@@ -2932,7 +2934,7 @@ export default function ConnectionDetailPage() {
                                     ) : (
                                         <div className={clsx(styles.usersEmpty)}>
                                             <FontAwesomeIcon icon={faTableList} size="3x"/>
-                                            <p>Таблицы не найдены</p>
+                                            <p>{t('tables.not_found')}</p>
                                             {tablesError && <p className={clsx(styles.errorMessage)}>{tablesError}</p>}
                                         </div>
                                     )}
@@ -2944,32 +2946,32 @@ export default function ConnectionDetailPage() {
                                         {viewsFilterType === 'views' ? (
                                             <form onSubmit={handleViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
                                                 <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
-                                                    <option value="views">Представления</option>
-                                                    <option value="materialized_views">Материализованные представления</option>
+                                                    <option value="views">{t('views.filter.views')}</option>
+                                                    <option value="materialized_views">{t('views.filter.materialized')}</option>
                                                 </select>
                                                 <div className={clsx(styles.usersSearchWrapper)}>
                                                     <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                     <input
                                                         type="text"
-                                                        placeholder="Поиск представлений"
+                                                        placeholder={t('views.search')}
                                                         value={viewsSearchQuery}
                                                         onChange={handleViewsSearchInputChange}
                                                         className={clsx(styles.usersSearchInput)}
                                                     />
                                                     {viewsSearchQuery && (
-                                                        <button type="button" onClick={handleViewsSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                        <button type="button" onClick={handleViewsSearchClear} className={clsx(styles.usersSearchClear)} title={t('views.search_clear')}>
                                                             <FontAwesomeIcon icon={faTimes}/>
                                                         </button>
                                                     )}
                                                 </div>
-                                                <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                                <button type="submit" className={clsx(styles.usersSearchButton)} title={t('views.search')}>{t('views.search')}</button>
                                                 <button
                                                     type="button"
                                                     className={clsx(styles.refreshButton)}
                                                     onClick={refreshViews}
                                                     disabled={loadingViews || loadingMaterializedViews}
-                                                    aria-label="Обновить список представлений"
-                                                    title="Обновить список представлений"
+                                                    aria-label={t('views.refresh')}
+                                                    title={t('views.refresh')}
                                                 >
                                                     <FontAwesomeIcon icon={faArrowsRotate} spin={loadingViews || loadingMaterializedViews}/>
                                                 </button>
@@ -2977,32 +2979,32 @@ export default function ConnectionDetailPage() {
                                         ) : (
                                             <form onSubmit={handleMaterializedViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
                                                 <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
-                                                    <option value="views">Представления</option>
-                                                    <option value="materialized_views">Материализованные представления</option>
+                                                    <option value="views">{t('views.filter.views')}</option>
+                                                    <option value="materialized_views">{t('views.filter.materialized')}</option>
                                                 </select>
                                                 <div className={clsx(styles.usersSearchWrapper)}>
                                                     <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                     <input
                                                         type="text"
-                                                        placeholder="Поиск материализованных представлений..."
+                                                        placeholder={t('views.search_materialized')}
                                                         value={materializedViewsSearchQuery}
                                                         onChange={handleMaterializedViewsSearchInputChange}
                                                         className={clsx(styles.usersSearchInput)}
                                                     />
                                                     {materializedViewsSearchQuery && (
-                                                        <button type="button" onClick={handleMaterializedViewsSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                        <button type="button" onClick={handleMaterializedViewsSearchClear} className={clsx(styles.usersSearchClear)} title={t('views.search_clear')}>
                                                             <FontAwesomeIcon icon={faTimes}/>
                                                         </button>
                                                     )}
                                                 </div>
-                                                <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                                <button type="submit" className={clsx(styles.usersSearchButton)} title={t('views.search')}>{t('views.search')}</button>
                                                 <button
                                                     type="button"
                                                     className={clsx(styles.refreshButton)}
                                                     onClick={refreshViews}
                                                     disabled={loadingViews || loadingMaterializedViews}
-                                                    aria-label="Обновить список представлений"
-                                                    title="Обновить список представлений"
+                                                    aria-label={t('views.refresh')}
+                                                    title={t('views.refresh')}
                                                 >
                                                     <FontAwesomeIcon icon={faArrowsRotate} spin={loadingViews || loadingMaterializedViews}/>
                                                 </button>
@@ -3016,7 +3018,7 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.spinner)}>
                                                     <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                                 </div>
-                                                <p>Загрузка представлений...</p>
+                                                <p>{t('views.loading')}</p>
                                             </div>
                                         ) : (
                                             <>
@@ -3052,7 +3054,7 @@ export default function ConnectionDetailPage() {
                                                 ) : (
                                                     <div className={clsx(styles.usersEmpty)}>
                                                         <FontAwesomeIcon icon={faEye} size="3x"/>
-                                                        <p>Представления не найдены</p>
+                                                        <p>{t('views.not_found')}</p>
                                                         {viewsError && <p className={clsx(styles.errorMessage)}>{viewsError}</p>}
                                                         {viewsPrivilegesError && <p className={clsx(styles.errorMessage)}>{viewsPrivilegesError}</p>}
                                                     </div>
@@ -3061,28 +3063,28 @@ export default function ConnectionDetailPage() {
                                                     <div className={clsx(styles.pagination)}>
                                                         <div className={clsx(styles.paginationInfo)}>
                                                             <span className={clsx(styles.paginationText)}>
-                                                                Показано <span className={clsx(styles.paginationHighlight)}>{((viewsPage - 1) * viewsPageSize) + 1}</span>–
-                                                                <span className={clsx(styles.paginationHighlight)}>{Math.min(viewsPage * viewsPageSize, resolvedViewsTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedViewsTotal}</span> представлений
+                                                                {t('views.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((viewsPage - 1) * viewsPageSize) + 1}</span>–
+                                                                <span className={clsx(styles.paginationHighlight)}>{Math.min(viewsPage * viewsPageSize, resolvedViewsTotal)}</span> {t('views.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{resolvedViewsTotal}</span> {t('views.pagination.views')}
                                                             </span>
                                                         </div>
                                                         <div className={clsx(styles.paginationControls)}>
                                                             <select value={viewsPageSize} onChange={handleViewsPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                                 {PAGE_SIZES.map((size) => (
-                                                                    <option key={size} value={size}>{size} на странице</option>
+                                                                    <option key={size} value={size}>{size} {t('views.pagination.per_page')}</option>
                                                                 ))}
                                                             </select>
                                                             <div className={clsx(styles.paginationButtons)}>
-                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_first)} onClick={handleViewsFirstPage} disabled={viewsPage === 1 || !viewsHasPrev} title="Первая страница">
+                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_first)} onClick={handleViewsFirstPage} disabled={viewsPage === 1 || !viewsHasPrev} title={t('views.pagination.first')}>
                                                                     <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                                 </button>
-                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage - 1)} disabled={viewsPage === 1 || !viewsHasPrev} title="Предыдущая страница">
+                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage - 1)} disabled={viewsPage === 1 || !viewsHasPrev} title={t('views.pagination.prev')}>
                                                                     <FontAwesomeIcon icon={faChevronLeft}/>
                                                                 </button>
-                                                                <span className={clsx(styles.pageInfo)}>Страница {viewsPage} из {resolvedViewsPages}</span>
-                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage + 1)} disabled={viewsPage === resolvedViewsPages || !viewsHasNext} title="Следующая страница">
+                                                                <span className={clsx(styles.pageInfo)}>{t('views.pagination.page')} {viewsPage} {t('views.pagination.of')} {resolvedViewsPages}</span>
+                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleViewsPageChange(viewsPage + 1)} disabled={viewsPage === resolvedViewsPages || !viewsHasNext} title={t('views.pagination.next')}>
                                                                     <FontAwesomeIcon icon={faChevronRight}/>
                                                                 </button>
-                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleViewsLastPage} disabled={viewsPage === resolvedViewsPages || !viewsHasNext} title="Последняя страница">
+                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleViewsLastPage} disabled={viewsPage === resolvedViewsPages || !viewsHasNext} title={t('views.pagination.last')}>
                                                                     <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                                 </button>
                                                             </div>
@@ -3097,7 +3099,7 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.spinner)}>
                                                     <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                                 </div>
-                                                <p>Загрузка материализованных представлений...</p>
+                                                <p>{t('views.loading_materialized')}</p>
                                             </div>
                                         ) : (
                                             <>
@@ -3133,7 +3135,7 @@ export default function ConnectionDetailPage() {
                                                 ) : (
                                                     <div className={clsx(styles.usersEmpty)}>
                                                         <FontAwesomeIcon icon={faEye} size="3x"/>
-                                                        <p>Материализованные представления не найдены</p>
+                                                        <p>{t('views.not_found_materialized')}</p>
                                                         {materializedViewsError && <p className={clsx(styles.errorMessage)}>{materializedViewsError}</p>}
                                                         {materializedViewsPrivilegesError && <p className={clsx(styles.errorMessage)}>{materializedViewsPrivilegesError}</p>}
                                                     </div>
@@ -3142,28 +3144,28 @@ export default function ConnectionDetailPage() {
                                                     <div className={clsx(styles.pagination)}>
                                                         <div className={clsx(styles.paginationInfo)}>
                                                             <span className={clsx(styles.paginationText)}>
-                                                                Показано <span className={clsx(styles.paginationHighlight)}>{((materializedViewsPage - 1) * materializedViewsPageSize) + 1}</span>–
-                                                                <span className={clsx(styles.paginationHighlight)}>{Math.min(materializedViewsPage * materializedViewsPageSize, resolvedMaterializedViewsTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedMaterializedViewsTotal}</span> материализованных представлений
+                                                                {t('views.materialized.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((materializedViewsPage - 1) * materializedViewsPageSize) + 1}</span>–
+                                                                <span className={clsx(styles.paginationHighlight)}>{Math.min(materializedViewsPage * materializedViewsPageSize, resolvedMaterializedViewsTotal)}</span> {t('views.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{resolvedMaterializedViewsTotal}</span> {t('views.materialized.pagination.views')}
                                                             </span>
                                                         </div>
                                                         <div className={clsx(styles.paginationControls)}>
                                                             <select value={materializedViewsPageSize} onChange={handleMaterializedViewsPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                                 {PAGE_SIZES.map((size) => (
-                                                                    <option key={size} value={size}>{size} на странице</option>
+                                                                    <option key={size} value={size}>{size} {t('views.pagination.per_page')}</option>
                                                                 ))}
                                                             </select>
                                                             <div className={clsx(styles.paginationButtons)}>
-                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_first)} onClick={handleMaterializedViewsFirstPage} disabled={materializedViewsPage === 1 || !materializedViewsHasPrev} title="Первая страница">
+                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_first)} onClick={handleMaterializedViewsFirstPage} disabled={materializedViewsPage === 1 || !materializedViewsHasPrev} title={t('views.pagination.first')}>
                                                                     <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                                 </button>
-                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleMaterializedViewsPageChange(materializedViewsPage - 1)} disabled={materializedViewsPage === 1 || !materializedViewsHasPrev} title="Предыдущая страница">
+                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleMaterializedViewsPageChange(materializedViewsPage - 1)} disabled={materializedViewsPage === 1 || !materializedViewsHasPrev} title={t('views.pagination.prev')}>
                                                                     <FontAwesomeIcon icon={faChevronLeft}/>
                                                                 </button>
-                                                                <span className={clsx(styles.pageInfo)}>Страница {materializedViewsPage} из {resolvedMaterializedViewsPages}</span>
-                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleMaterializedViewsPageChange(materializedViewsPage + 1)} disabled={materializedViewsPage === resolvedMaterializedViewsPages || !materializedViewsHasNext} title="Следующая страница">
+                                                                <span className={clsx(styles.pageInfo)}>{t('views.pagination.page')} {materializedViewsPage} {t('views.pagination.of')} {resolvedMaterializedViewsPages}</span>
+                                                                <button className={clsx(styles.paginationButton)} onClick={() => handleMaterializedViewsPageChange(materializedViewsPage + 1)} disabled={materializedViewsPage === resolvedMaterializedViewsPages || !materializedViewsHasNext} title={t('views.pagination.next')}>
                                                                     <FontAwesomeIcon icon={faChevronRight}/>
                                                                 </button>
-                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleMaterializedViewsLastPage} disabled={materializedViewsPage === resolvedMaterializedViewsPages || !materializedViewsHasNext} title="Последняя страница">
+                                                                <button className={clsx(styles.paginationButton, styles.paginationButton_last)} onClick={handleMaterializedViewsLastPage} disabled={materializedViewsPage === resolvedMaterializedViewsPages || !materializedViewsHasNext} title={t('views.pagination.last')}>
                                                                     <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                                 </button>
                                                             </div>
@@ -3184,25 +3186,25 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск индексов"
+                                                    placeholder={t('indexes.search')}
                                                     value={indexesSearchQuery}
                                                     onChange={handleIndexesSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
                                                 />
                                                 {indexesSearchQuery && (
-                                                    <button type="button" onClick={handleIndexesSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                    <button type="button" onClick={handleIndexesSearchClear} className={clsx(styles.usersSearchClear)} title={t('indexes.search_clear')}>
                                                         <FontAwesomeIcon icon={faTimes}/>
                                                     </button>
                                                 )}
                                             </div>
-                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title={t('indexes.search')}>{t('indexes.search')}</button>
                                             <button
                                                 type="button"
                                                 className={clsx(styles.refreshButton)}
                                                 onClick={refreshIndexes}
                                                 disabled={loadingIndexes}
-                                                aria-label="Обновить список индексов"
-                                                title="Обновить список индексов"
+                                                aria-label={t('indexes.refresh')}
+                                                title={t('indexes.refresh')}
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingIndexes}/>
                                             </button>
@@ -3214,7 +3216,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка индексов...</p>
+                                            <p>{t('indexes.loading')}</p>
                                         </div>
                                     ) : indexes && indexes.length > 0 ? (
                                         <>
@@ -3243,14 +3245,14 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((indexesPage - 1) * indexesPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(indexesPage * indexesPageSize, resolvedIndexesTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedIndexesTotal}</span> индексов
+{t('indexes.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((indexesPage - 1) * indexesPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(indexesPage * indexesPageSize, resolvedIndexesTotal)}</span> {t('indexes.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{resolvedIndexesTotal}</span> {t('indexes.pagination.indexes')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select value={indexesPageSize} onChange={handleIndexesPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                             {PAGE_SIZES.map((size) => (
-                                                                <option key={size} value={size}>{size} на странице</option>
+                                                                <option key={size} value={size}>{size} {t('indexes.pagination.per_page')}</option>
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
@@ -3258,7 +3260,7 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleIndexesFirstPage}
                                                                 disabled={indexesPage === 1 || !indexesHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('indexes.pagination.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
@@ -3266,16 +3268,16 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton)}
                                                                 onClick={() => handleIndexesPageChange(indexesPage - 1)}
                                                                 disabled={indexesPage === 1 || !indexesHasPrev}
-                                                                title="Предыдущая страница"
+                                                                title={t('indexes.pagination.prev')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {indexesPage} из {resolvedIndexesPages}</span>
+                                                            <span className={clsx(styles.pageInfo)}>{t('indexes.pagination.page')} {indexesPage} {t('indexes.pagination.of')} {resolvedIndexesPages}</span>
                                                             <button
                                                                 className={clsx(styles.paginationButton)}
                                                                 onClick={() => handleIndexesPageChange(indexesPage + 1)}
                                                                 disabled={indexesPage === resolvedIndexesPages || !indexesHasNext}
-                                                                title="Следующая страница"
+                                                                title={t('indexes.pagination.next')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
@@ -3283,7 +3285,7 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleIndexesLastPage}
                                                                 disabled={indexesPage === resolvedIndexesPages || !indexesHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('indexes.pagination.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
@@ -3295,7 +3297,7 @@ export default function ConnectionDetailPage() {
                                     ) : (
                                         <div className={clsx(styles.usersEmpty)}>
                                             <FontAwesomeIcon icon={faNetworkWired} size="3x"/>
-                                            <p>Индексы не найдены</p>
+                                            <p>{t('indexes.not_found')}</p>
                                             {indexesError && <p className={clsx(styles.errorMessage)}>{indexesError}</p>}
                                         </div>
                                     )}
@@ -3309,25 +3311,25 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск функций"
+                                                    placeholder={t('functions.search')}
                                                     value={functionsSearchQuery}
                                                     onChange={handleFunctionsSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
                                                 />
                                                 {functionsSearchQuery && (
-                                                    <button type="button" onClick={handleFunctionsSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                    <button type="button" onClick={handleFunctionsSearchClear} className={clsx(styles.usersSearchClear)} title={t('functions.search_clear')}>
                                                         <FontAwesomeIcon icon={faTimes}/>
                                                     </button>
                                                 )}
                                             </div>
-                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title={t('functions.search')}>{t('functions.search')}</button>
                                             <button
                                                 type="button"
                                                 className={clsx(styles.refreshButton)}
                                                 onClick={refreshFunctions}
                                                 disabled={loadingFunctions}
-                                                aria-label="Обновить список функций"
-                                                title="Обновить список функций"
+                                                aria-label={t('functions.refresh')}
+                                                title={t('functions.refresh')}
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingFunctions}/>
                                             </button>
@@ -3339,7 +3341,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка функций...</p>
+                                            <p>{t('functions.loading')}</p>
                                         </div>
                                     ) : functions && functions.length > 0 ? (
                                         <>
@@ -3364,14 +3366,14 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((functionsPage - 1) * functionsPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(functionsPage * functionsPageSize, resolvedFunctionsTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedFunctionsTotal}</span> функций
+{t('functions.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((functionsPage - 1) * functionsPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(functionsPage * functionsPageSize, resolvedFunctionsTotal)}</span> {t('functions.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{resolvedFunctionsTotal}</span> {t('functions.pagination.functions')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select value={functionsPageSize} onChange={handleFunctionsPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                             {PAGE_SIZES.map((size) => (
-                                                                <option key={size} value={size}>{size} на странице</option>
+                                                                <option key={size} value={size}>{size} {t('functions.pagination.per_page')}</option>
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
@@ -3379,22 +3381,22 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleFunctionsFirstPage}
                                                                 disabled={functionsPage === 1 || !functionsHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('functions.pagination.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleFunctionsPageChange(functionsPage - 1)} disabled={functionsPage === 1 || !functionsHasPrev} title="Предыдущая страница">
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleFunctionsPageChange(functionsPage - 1)} disabled={functionsPage === 1 || !functionsHasPrev} title={t('functions.pagination.prev')}>
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {functionsPage} из {resolvedFunctionsPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleFunctionsPageChange(functionsPage + 1)} disabled={functionsPage === resolvedFunctionsPages || !functionsHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>{t('functions.pagination.page')} {functionsPage} {t('functions.pagination.of')} {resolvedFunctionsPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleFunctionsPageChange(functionsPage + 1)} disabled={functionsPage === resolvedFunctionsPages || !functionsHasNext} title={t('functions.pagination.next')}>
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleFunctionsLastPage}
                                                                 disabled={functionsPage === resolvedFunctionsPages || !functionsHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('functions.pagination.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
@@ -3406,7 +3408,7 @@ export default function ConnectionDetailPage() {
                                     ) : (
                                         <div className={clsx(styles.usersEmpty)}>
                                             <FontAwesomeIcon icon={faCogs} size="3x"/>
-                                            <p>Функции не найдены</p>
+                                            <p>{t('functions.not_found')}</p>
                                             {functionsError && <p className={clsx(styles.errorMessage)}>{functionsError}</p>}
                                         </div>
                                     )}
@@ -3420,25 +3422,25 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Поиск процедур"
+                                                    placeholder={t('procedures.search')}
                                                     value={proceduresSearchQuery}
                                                     onChange={handleProceduresSearchInputChange}
                                                     className={clsx(styles.usersSearchInput)}
                                                 />
                                                 {proceduresSearchQuery && (
-                                                    <button type="button" onClick={handleProceduresSearchClear} className={clsx(styles.usersSearchClear)} title="Очистить поиск">
+                                                    <button type="button" onClick={handleProceduresSearchClear} className={clsx(styles.usersSearchClear)} title={t('procedures.search_clear')}>
                                                         <FontAwesomeIcon icon={faTimes}/>
                                                     </button>
                                                 )}
                                             </div>
-                                            <button type="submit" className={clsx(styles.usersSearchButton)} title="Найти">Поиск</button>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)} title={t('procedures.search')}>{t('procedures.search')}</button>
                                             <button
                                                 type="button"
                                                 className={clsx(styles.refreshButton)}
                                                 onClick={refreshProcedures}
                                                 disabled={loadingProcedures}
-                                                aria-label="Обновить список процедур"
-                                                title="Обновить список процедур"
+                                                aria-label={t('procedures.refresh')}
+                                                title={t('procedures.refresh')}
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingProcedures}/>
                                             </button>
@@ -3450,7 +3452,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка процедур...</p>
+                                            <p>{t('procedures.loading')}</p>
                                         </div>
                                     ) : procedures && procedures.length > 0 ? (
                                         <>
@@ -3475,14 +3477,14 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
-Показано <span className={clsx(styles.paginationHighlight)}>{((proceduresPage - 1) * proceduresPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(proceduresPage * proceduresPageSize, resolvedProceduresTotal)}</span> из <span className={clsx(styles.paginationHighlight)}>{resolvedProceduresTotal}</span> процедур
+{t('procedures.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((proceduresPage - 1) * proceduresPageSize) + 1}</span>–
+<span className={clsx(styles.paginationHighlight)}>{Math.min(proceduresPage * proceduresPageSize, resolvedProceduresTotal)}</span> {t('procedures.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{resolvedProceduresTotal}</span> {t('procedures.pagination.procedures')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select value={proceduresPageSize} onChange={handleProceduresPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                             {PAGE_SIZES.map((size) => (
-                                                                <option key={size} value={size}>{size} на странице</option>
+                                                                <option key={size} value={size}>{size} {t('procedures.pagination.per_page')}</option>
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
@@ -3490,22 +3492,22 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                                 onClick={handleProceduresFirstPage}
                                                                 disabled={proceduresPage === 1 || !proceduresHasPrev}
-                                                                title="Первая страница"
+                                                                title={t('procedures.pagination.first')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                                             </button>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleProceduresPageChange(proceduresPage - 1)} disabled={proceduresPage === 1 || !proceduresHasPrev} title="Предыдущая страница">
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleProceduresPageChange(proceduresPage - 1)} disabled={proceduresPage === 1 || !proceduresHasPrev} title={t('procedures.pagination.prev')}>
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {proceduresPage} из {resolvedProceduresPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleProceduresPageChange(proceduresPage + 1)} disabled={proceduresPage === resolvedProceduresPages || !proceduresHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>{t('procedures.pagination.page')} {proceduresPage} {t('procedures.pagination.of')} {resolvedProceduresPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleProceduresPageChange(proceduresPage + 1)} disabled={proceduresPage === resolvedProceduresPages || !proceduresHasNext} title={t('procedures.pagination.next')}>
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                             <button
                                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                                 onClick={handleProceduresLastPage}
                                                                 disabled={proceduresPage === resolvedProceduresPages || !proceduresHasNext}
-                                                                title="Последняя страница"
+                                                                title={t('procedures.pagination.last')}
                                                             >
                                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                                             </button>
@@ -3517,7 +3519,7 @@ export default function ConnectionDetailPage() {
                                     ) : (
                                         <div className={clsx(styles.usersEmpty)}>
                                             <FontAwesomeIcon icon={faCogs} size="3x"/>
-                                            <p>Процедуры не найдены</p>
+                                            <p>{t('procedures.not_found')}</p>
                                             {proceduresError && <p className={clsx(styles.errorMessage)}>{proceduresError}</p>}
                                         </div>
                                     )}
@@ -3527,11 +3529,11 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.sqlQueryPanel)}>
                                         <div className={clsx(styles.sqlQueryPanelHeader)}>
-                                            <h3 className={clsx(styles.sqlQueryPanelTitle)}>SQL запрос (только SELECT, максимальный LIMIT 1000)</h3>
+                                            <h3 className={clsx(styles.sqlQueryPanelTitle)}>{t('sql_query.title')}</h3>
                                             <div className={clsx(styles.sqlQueryTemplates)}>
-                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT 1 AS test;')} disabled={sqlQueryLoading}>Тест</button>
-                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM information_schema.tables;')} disabled={sqlQueryLoading}>Таблицы</button>
-                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM pg_catalog.pg_stat_activity;')} disabled={sqlQueryLoading}>Сессии</button>
+                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT 1 AS test;')} disabled={sqlQueryLoading}>{t('sql_query.template.test')}</button>
+                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM information_schema.tables;')} disabled={sqlQueryLoading}>{t('sql_query.template.tables')}</button>
+                                                <button type="button" className={clsx(styles.sqlTemplateButton)} onClick={() => applySqlTemplate('SELECT * FROM pg_catalog.pg_stat_activity;')} disabled={sqlQueryLoading}>{t('sql_query.template.sessions')}</button>
                                             </div>
                                         </div>
 
@@ -3541,11 +3543,11 @@ export default function ConnectionDetailPage() {
                                                 onChange={(e) => setSqlQueryText(e.target.value)}
                                                 rows={10}
                                                 className={clsx(styles.sqlQueryTextarea)}
-                                                placeholder="Введите SELECT-запрос"
+                                                placeholder={t('sql_query.placeholder')}
                                                 disabled={sqlQueryLoading}
                                             />
                                             <div className={clsx(styles.sqlQueryActions)}>
-                                                <label className={clsx(styles.sqlQueryLimitLabel)} htmlFor="sqlQueryLimit">Лимит строк</label>
+                                                <label className={clsx(styles.sqlQueryLimitLabel)} htmlFor="sqlQueryLimit">{t('sql_query.limit')}</label>
                                                 <input
                                                     id="sqlQueryLimit"
                                                     type="number"
@@ -3556,16 +3558,16 @@ export default function ConnectionDetailPage() {
                                                     className={clsx(styles.sqlQueryLimitInput)}
                                                     disabled={sqlQueryLoading}
                                                 />
-                                                <button type="button" className={clsx(styles.sqlSecondaryButton)} onClick={() => setSqlQueryText('')} disabled={sqlQueryLoading}>Очистить</button>
+                                                <button type="button" className={clsx(styles.sqlSecondaryButton)} onClick={() => setSqlQueryText('')} disabled={sqlQueryLoading}>{t('sql_query.clear')}</button>
                                                 <button type="submit" className={clsx(styles.usersSearchButton)} disabled={sqlQueryLoading}>
-                                                    {sqlQueryLoading ? 'Выполнение...' : 'Выполнить'}
+                                                    {sqlQueryLoading ? t('sql_query.running') : t('sql_query.run')}
                                                 </button>
                                             </div>
                                         </form>
                                     </div>
 
                                     {sqlQueryError && <p className={clsx(styles.errorMessage)}>{sqlQueryError}</p>}
-                                    {sqlQueryTruncated && <p className={clsx(styles.errorMessage)}>Результат ограничен выбранным лимитом.</p>}
+                                    {sqlQueryTruncated && <p className={clsx(styles.errorMessage)}>{t('sql_query.truncated')}</p>}
 
                                     {sqlQueryRows.length > 0 ? (
                                         <div className={clsx(styles.sqlResultCard)}>
@@ -3593,7 +3595,7 @@ export default function ConnectionDetailPage() {
                                     ) : (
                                         <div className={clsx(styles.usersEmpty)}>
                                             <FontAwesomeIcon icon={faDatabase} size="3x"/>
-                                            <p>Введите SELECT-запрос и нажмите «Выполнить»</p>
+                                            <p>{t('sql_query.empty')}</p>
                                         </div>
                                     )}
                                 </div>
@@ -3606,7 +3608,7 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
                                                     type="text"
-                                                    placeholder="Фильтр по пользователю..."
+                                                    placeholder={t('active_sql.filter.user')}
                                                     value={activeSqlUsernameQuery}
                                                     onChange={(e) => setActiveSqlUsernameQuery(e.target.value)}
                                                     className={clsx(styles.usersSearchInput)}
@@ -3615,7 +3617,7 @@ export default function ConnectionDetailPage() {
                                             <input
                                                 type="number"
                                                 min={0}
-                                                placeholder="Мин. длительность"
+                                                placeholder={t('active_sql.filter.min_duration')}
                                                 value={activeSqlMinDuration}
                                                 onChange={(e) => setActiveSqlMinDuration(e.target.value)}
                                                 className={clsx(styles.activeSqlDurationInput)}
@@ -3623,20 +3625,20 @@ export default function ConnectionDetailPage() {
                                             <input
                                                 type="number"
                                                 min={0}
-                                                placeholder="Макс. длительность"
+                                                placeholder={t('active_sql.filter.max_duration')}
                                                 value={activeSqlMaxDuration}
                                                 onChange={(e) => setActiveSqlMaxDuration(e.target.value)}
                                                 className={clsx(styles.activeSqlDurationInput)}
                                             />
-                                            <button type="submit" className={clsx(styles.usersSearchButton)}>Применить</button>
-                                            <button type="button" className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)} onClick={handleActiveSqlFilterClear}>Сброс</button>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)}>{t('active_sql.filter.apply')}</button>
+                                            <button type="button" className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)} onClick={handleActiveSqlFilterClear}>{t('active_sql.filter.reset')}</button>
                                             <button
                                                 type="button"
                                                 className={clsx(styles.refreshButton)}
                                                 onClick={refreshActiveTransactions}
                                                 disabled={loadingActiveQueries}
-                                                aria-label="Обновить список транзакций"
-                                                title="Обновить список транзакций"
+                                                aria-label={t('active_sql.refresh')}
+                                                title={t('active_sql.refresh')}
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingActiveQueries}/>
                                             </button>
@@ -3644,9 +3646,9 @@ export default function ConnectionDetailPage() {
                                                 type="button"
                                                 className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)}
                                                 onClick={() => setIsActivityChartModalOpen(true)}
-                                                title="Открыть график активности"
+                                                title={t('active_sql.open_chart')}
                                             >
-                                                <FontAwesomeIcon icon={faChartLine}/> График активности
+                                                <FontAwesomeIcon icon={faChartLine}/> {t('active_sql.chart')}
                                             </button>
                                         </form>
                                     </div>
@@ -3656,7 +3658,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.spinner)}>
                                                 <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                             </div>
-                                            <p>Загрузка активных SQL-запросов...</p>
+                                            <p>{t('active_sql.loading')}</p>
                                         </div>
                                     ) : activeQueries.length > 0 ? (
                                         <>
@@ -3669,7 +3671,7 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Длительность:</span>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('active_sql.duration')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{item.duration_ms ?? '—'} мс</span>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
@@ -3677,7 +3679,7 @@ export default function ConnectionDetailPage() {
                                                                         className={clsx(styles.userActionButton, styles.userActionButton_delete)}
                                                                         onClick={() => terminateActiveSqlQuery(item.pid)}
                                                                         disabled={terminatingPid === item.pid}
-                                                                        title="Завершить запрос"
+                                                                        title={t('active_sql.terminate')}
                                                                     >
                                                                         {terminatingPid === item.pid ? <FontAwesomeIcon icon={faSpinner} spin/> : <FontAwesomeIcon icon={faTrashAlt}/>}
                                                                     </button>
@@ -3694,22 +3696,22 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
                                                         <span className={clsx(styles.paginationText)}>
-                                                            Показано <span className={clsx(styles.paginationHighlight)}>{((activeSqlPage - 1) * activeSqlPageSize) + 1}</span>–
-                                                            <span className={clsx(styles.paginationHighlight)}>{Math.min(activeSqlPage * activeSqlPageSize, totalActiveQueries)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalActiveQueries}</span> активных запросов
+                                                            {t('active_sql.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((activeSqlPage - 1) * activeSqlPageSize) + 1}</span>–
+                                                            <span className={clsx(styles.paginationHighlight)}>{Math.min(activeSqlPage * activeSqlPageSize, totalActiveQueries)}</span> {t('active_sql.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalActiveQueries}</span> {t('active_sql.pagination.queries')}
                                                         </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
                                                         <select value={activeSqlPageSize} onChange={handleActiveSqlPageSizeChange} className={clsx(styles.paginationSelect)}>
                                                             {PAGE_SIZES.map((size) => (
-                                                                <option key={size} value={size}>{size} на странице</option>
+                                                                <option key={size} value={size}>{size} {t('active_sql.pagination.per_page')}</option>
                                                             ))}
                                                         </select>
                                                         <div className={clsx(styles.paginationButtons)}>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleActiveSqlPageChange(activeSqlPage - 1)} disabled={activeSqlPage === 1 || !activeQueriesHasPrev} title="Предыдущая страница">
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleActiveSqlPageChange(activeSqlPage - 1)} disabled={activeSqlPage === 1 || !activeQueriesHasPrev} title={t('active_sql.pagination.prev')}>
                                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                                             </button>
-                                                            <span className={clsx(styles.pageInfo)}>Страница {activeSqlPage} из {totalActiveQueriesPages}</span>
-                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleActiveSqlPageChange(activeSqlPage + 1)} disabled={activeSqlPage === totalActiveQueriesPages || !activeQueriesHasNext} title="Следующая страница">
+                                                            <span className={clsx(styles.pageInfo)}>{t('active_sql.pagination.page')} {activeSqlPage} {t('active_sql.pagination.of')} {totalActiveQueriesPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleActiveSqlPageChange(activeSqlPage + 1)} disabled={activeSqlPage === totalActiveQueriesPages || !activeQueriesHasNext} title={t('active_sql.pagination.next')}>
                                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                                             </button>
                                                         </div>
@@ -3720,7 +3722,7 @@ export default function ConnectionDetailPage() {
                                     ) : (
                                         <div className={clsx(styles.usersEmpty)}>
                                             <FontAwesomeIcon icon={faDatabase} size="3x"/>
-                                            <p>Активные SQL запросы не найдены</p>
+                                            <p>{t('active_sql.not_found')}</p>
                                             {(activeQueriesError || error) && <p className={clsx(styles.errorMessage)}>{activeQueriesError || error}</p>}
                                         </div>
                                     )}
@@ -3734,18 +3736,18 @@ export default function ConnectionDetailPage() {
                 <div className={clsx(styles.modalOverlay)} onClick={closeActivityChartModal}>
                     <div className={clsx(styles.activityChartModal)} onClick={(e) => e.stopPropagation()}>
                         <div className={clsx(styles.activityChartHeader)}>
-                            <h2 className={clsx(styles.activityChartTitle)}>График активности БД (обновление 1 сек)</h2>
+                            <h2 className={clsx(styles.activityChartTitle)}>{t('chart.title')}</h2>
                             <button
                                 type="button"
                                 className={clsx(styles.modalCancelButton)}
                                 onClick={closeActivityChartModal}
                             >
-                                Закрыть
+                                {t('chart.close')}
                             </button>
                         </div>
                         <div className={clsx(styles.activityChartBody)}>
                             <p className={clsx(styles.activityChartMeta)}>
-                                Текущее количество активных пользовательских транзакций: <b>{chartTotalActiveQueries}</b>
+                                {t('chart.current_active')}: <b>{chartTotalActiveQueries}</b>
                             </p>
                             <div className={clsx(styles.activityChartSvgWrap)}>
                                 {activityChartPoints.length > 1 ? (
@@ -3753,7 +3755,7 @@ export default function ConnectionDetailPage() {
                                         viewBox={`0 0 ${activityChartModel.width} ${activityChartModel.height}`}
                                         className={clsx(styles.activityChartSvg)}
                                         role="img"
-                                        aria-label="График активности БД"
+                                        aria-label={t('chart.aria')}
                                     >
                                         {activityChartModel.yTicks.map((tick) => {
                                             const y = activityChartModel.axis.top
@@ -3821,7 +3823,7 @@ export default function ConnectionDetailPage() {
                                             textAnchor="middle"
                                             className={clsx(styles.activityChartAxisTitle)}
                                         >
-                                            Время
+                                            {t('chart.axis.time')}
                                         </text>
                                         <text
                                             x={16}
@@ -3830,28 +3832,28 @@ export default function ConnectionDetailPage() {
                                             transform={`rotate(-90 16 ${activityChartModel.height / 2})`}
                                             className={clsx(styles.activityChartAxisTitle)}
                                         >
-                                            Количество транзакций
+                                            {t('chart.axis.transactions')}
                                         </text>
                                     </svg>
                                 ) : (
                                     <div className={clsx(styles.usersEmpty)}>
                                         <FontAwesomeIcon icon={faSpinner} spin={chartLoadingActiveQueries} size="2x"/>
-                                        <p>Собираем данные для графика...</p>
+                                        <p>{t('chart.collecting')}</p>
                                     </div>
                                 )}
                             </div>
                             {activityChartPoints.length > 0 && (
                                 <div className={clsx(styles.activityChartTicks)}>
-                                    <span>Информация</span>
-                                    <span>Период: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
-                                    <span>Мин: {activityChartModel.minValue}</span>
-                                    <span>Среднее: {activityChartModel.avgValue}</span>
-                                    <span>Пик: {activityChartModel.maxValue}</span>
+                                    <span>{t('chart.info')}</span>
+                                    <span>{t('chart.period')}: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
+                                    <span>{t('chart.min')}: {activityChartModel.minValue}</span>
+                                    <span>{t('chart.avg')}: {activityChartModel.avgValue}</span>
+                                    <span>{t('chart.max')}: {activityChartModel.maxValue}</span>
                                     <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_select)}>SELECT: {activityChartPoints[activityChartPoints.length - 1].select}</span>
                                     <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_insert)}>INSERT: {activityChartPoints[activityChartPoints.length - 1].insert}</span>
                                     <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_update)}>UPDATE: {activityChartPoints[activityChartPoints.length - 1].update}</span>
                                     <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_delete)}>DELETE: {activityChartPoints[activityChartPoints.length - 1].delete}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_other)}>ПРОЧЕЕ: {activityChartPoints[activityChartPoints.length - 1].other}</span>
+                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_other)}>{t('chart.other')}: {activityChartPoints[activityChartPoints.length - 1].other}</span>
                                 </div>
                             )}
                         </div>
@@ -3872,7 +3874,7 @@ export default function ConnectionDetailPage() {
                                 className={clsx(styles.modalIcon)}
                             />
                             <h2 className={clsx(styles.modalTitle)}>
-                                Подтверждение удаления
+                                {t('users.delete.confirm_title')}
                             </h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
@@ -3958,16 +3960,16 @@ export default function ConnectionDetailPage() {
                                 className={clsx(styles.modalIcon)}
                             />
                             <h2 className={clsx(styles.modalTitle)}>
-                                Подтверждение удаления
+                                {t('users.delete.confirm_title')}
                             </h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
                             <p className={clsx(styles.modalText)}>
-                                Удалить пользователя <strong>{userDeleteTarget.name}</strong>?
+                                {t('users.delete.confirm_prefix')} <strong>{userDeleteTarget.name}</strong>?
                             </p>
                             <p className={clsx(styles.modalWarning)}>
                                 <FontAwesomeIcon icon={faExclamationCircle}/>
-                                Пользователь будет удален безвозвратно.
+                                {t('users.delete.warning')}
                             </p>
                             {userDeleteError && (
                                 <pre className={clsx(styles.modalErrorBox)}>{userDeleteError}</pre>
@@ -3979,7 +3981,7 @@ export default function ConnectionDetailPage() {
                                 onClick={closeUserDeleteConfirm}
                                 disabled={deletingUserOid !== null}
                             >
-                                Отмена
+                                {t('users.cancel')}
                             </button>
                             <button
                                 className={clsx(
@@ -3992,12 +3994,12 @@ export default function ConnectionDetailPage() {
                                 {deletingUserOid !== null ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Удаление...
+                                        {t('users.deleting')}
                                     </>
                                 ) : (
                                     <>
                                         <FontAwesomeIcon icon={faTrashAlt}/>
-                                        Удалить
+                                        {t('users.delete')}
                                     </>
                                 )}
                             </button>
@@ -4010,18 +4012,18 @@ export default function ConnectionDetailPage() {
                     <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
                         <div className={clsx(styles.modalHeader)}>
                             <FontAwesomeIcon icon={faExclamationCircle} className={clsx(styles.modalIcon)}/>
-                            <h2 className={clsx(styles.modalTitle)}>Подтверждение удаления</h2>
+                            <h2 className={clsx(styles.modalTitle)}>{t('groups.delete.confirm_title')}</h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
                             <p className={clsx(styles.modalText)}>
-                                Удалить группу <strong>{groupDeleteTarget.name}</strong>?
+                                {t('groups.delete.confirm_prefix')} <strong>{groupDeleteTarget.name}</strong>?
                             </p>
                         </div>
                         <div className={clsx(styles.modalFooter)}>
-                            <button className={clsx(styles.modalCancelButton)} onClick={closeGroupDeleteConfirm} disabled={deletingGroupOid !== null}>Отмена</button>
+                            <button className={clsx(styles.modalCancelButton)} onClick={closeGroupDeleteConfirm} disabled={deletingGroupOid !== null}>{t('groups.cancel')}</button>
                             <button className={clsx(styles.modalDeleteButton)} onClick={deleteGroup} disabled={deletingGroupOid !== null}>
                                 {deletingGroupOid !== null ? <>
-                                    <FontAwesomeIcon icon={faSpinner} spin/> Удаление...</> : <><FontAwesomeIcon icon={faTrashAlt}/> Удалить</>}
+                                    <FontAwesomeIcon icon={faSpinner} spin/> {t('groups.deleting')}</> : <><FontAwesomeIcon icon={faTrashAlt}/> {t('groups.delete')}</>}
                             </button>
                         </div>
                     </div>
@@ -4032,7 +4034,7 @@ export default function ConnectionDetailPage() {
                     <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
                         <div className={clsx(styles.modalHeader)}>
                             <FontAwesomeIcon icon={faExclamationCircle} className={clsx(styles.modalIcon)}/>
-                            <h2 className={clsx(styles.modalTitle)}>Ошибка удаления группы</h2>
+                            <h2 className={clsx(styles.modalTitle)}>{t('groups.delete.error_title')}</h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
                             <p className={clsx(styles.modalText)} style={{whiteSpace: 'pre-line'}}>
@@ -4041,7 +4043,7 @@ export default function ConnectionDetailPage() {
                         </div>
                         <div className={clsx(styles.modalFooter)}>
                             <button className={clsx(styles.modalCancelButton)} onClick={() => setGroupDeleteErrorModal(null)}>
-                                Закрыть
+                                {t('groups.close')}
                             </button>
                         </div>
                     </div>
@@ -4054,28 +4056,28 @@ export default function ConnectionDetailPage() {
                             className={clsx(groupModalStyles.modal__closeButton)}
                             onClick={closeGroupModal}
                             disabled={groupFormLoading}
-                            aria-label="Закрыть окно редактирования группы"
+                            aria-label={t('groups.modal.close')}
                         >
                             <FontAwesomeIcon icon={faTimes}/>
                         </button>
                         <div className={clsx(groupModalStyles.modal__header)}>
-                            <h2 className={clsx(groupModalStyles.modal__title)}>{editingGroup ? 'Редактирование группы' : 'Создание группы'}</h2>
-                            <p className={clsx(groupModalStyles.modal__subtitle)}>{editingGroup ? editingGroup.name : 'Новая группа'}</p>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>{editingGroup ? t('groups.edit.title') : t('groups.create.title')}</h2>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>{editingGroup ? editingGroup.name : t('groups.create.new')}</p>
                         </div>
                         <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveGroup}>
                             <div className={clsx(groupModalStyles.modal__formGroup)}>
-                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupName">Название группы</label>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupName">{t('groups.form.name')}</label>
                                 <input
                                     id="groupName"
                                     className={clsx(groupModalStyles.modal__input)}
                                     value={groupFormName}
                                     onChange={(e) => setGroupFormName(e.target.value)}
                                     disabled={groupFormLoading}
-                                    placeholder="Введите название группы"
+                                    placeholder={t('groups.form.name_placeholder')}
                                 />
                             </div>
                             <div className={clsx(groupModalStyles.modal__formGroup)}>
-                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupDescription">Описание</label>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="groupDescription">{t('groups.form.description')}</label>
                                 <textarea
                                     id="groupDescription"
                                     className={clsx(groupModalStyles.modal__textarea)}
@@ -4083,13 +4085,13 @@ export default function ConnectionDetailPage() {
                                     onChange={(e) => setGroupFormDescription(e.target.value)}
                                     disabled={groupFormLoading}
                                     rows={3}
-                                    placeholder="Описание группы"
+                                    placeholder={t('groups.form.description_placeholder')}
                                 />
                             </div>
                             <div className={clsx(groupModalStyles.modal__formFooter)}>
-                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeGroupModal} disabled={groupFormLoading}>Отмена</button>
+                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeGroupModal} disabled={groupFormLoading}>{t('groups.cancel')}</button>
                                 <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={groupFormLoading}>
-                                    {groupFormLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
+                                    {groupFormLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> {t('groups.saving')}</> : t('groups.save')}
                                 </button>
                             </div>
                         </form>
@@ -4103,12 +4105,12 @@ export default function ConnectionDetailPage() {
                             className={clsx(groupModalStyles.modal__closeButton)}
                             onClick={closeGroupUsersModal}
                             disabled={groupUsersSaving}
-                            aria-label="Закрыть окно управления пользователями"
+                            aria-label={t('groups.users_manager.close')}
                         >
                             <FontAwesomeIcon icon={faTimes}/>
                         </button>
                         <div className={clsx(groupModalStyles.modal__header)}>
-                            <h2 className={clsx(groupModalStyles.modal__title)}>Управление пользователями группы</h2>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>{t('groups.users_manager.title')}</h2>
                             <p className={clsx(groupModalStyles.modal__subtitle)}>{groupUsersModal.name}</p>
                         </div>
                         <div className={clsx(groupModalStyles.modal__form, styles.groupUsersManager)}>
@@ -4120,7 +4122,7 @@ export default function ConnectionDetailPage() {
                                         <input
                                             id="groupUserSearch"
                                             type="text"
-                                            placeholder="Поиск пользователя..."
+                                            placeholder={t('groups.users_manager.search_user')}
                                             value={groupUserSearchQuery}
                                             onChange={(e) => setGroupUserSearchQuery(e.target.value)}
                                             className={clsx(styles.usersSearchInput)}
@@ -4131,7 +4133,7 @@ export default function ConnectionDetailPage() {
                                                 type="button"
                                                 onClick={() => setGroupUserSearchQuery('')}
                                                 className={clsx(styles.usersSearchClear)}
-                                                title="Очистить поиск"
+                                                title={t('groups.search_clear')}
                                             >
                                                 <FontAwesomeIcon icon={faTimes}/>
                                             </button>
@@ -4144,7 +4146,7 @@ export default function ConnectionDetailPage() {
                                         onChange={(e) => setSelectedUserOid(e.target.value)}
                                         disabled={groupUsersLoading || groupUsersSaving || filteredAvailableUsersForAdd.length === 0}
                                     >
-                                        <option value="">Выберите пользователя</option>
+                                        <option value="">{t('groups.users_manager.select_user')}</option>
                                         {filteredAvailableUsersForAdd.map((user) => (
                                             <option key={user.oid} value={user.oid}>{user.name}</option>
                                         ))}
@@ -4155,7 +4157,7 @@ export default function ConnectionDetailPage() {
                                         onClick={addUserToGroup}
                                         disabled={!selectedUserOid || groupUsersSaving || groupUsersLoading}
                                     >
-                                        Добавить в группу
+                                        {t('groups.users_manager.add_to_group')}
                                     </button>
                                 </div>
                             </div>
@@ -4165,7 +4167,7 @@ export default function ConnectionDetailPage() {
                                     <div className={clsx(styles.spinner)}>
                                         <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                     </div>
-                                    <p>Загрузка пользователей группы...</p>
+                                    <p>{t('groups.users_manager.loading')}</p>
                                 </div>
                             ) : (
                                 <div className={clsx(styles.groupUsersManager__list)}>
@@ -4188,7 +4190,7 @@ export default function ConnectionDetailPage() {
                                     )) : (
                                         <div className={clsx(styles.usersEmpty, styles.groupUsersManager__empty)}>
                                             <FontAwesomeIcon icon={faUsers} size="2x"/>
-                                            <p>В группе пока нет пользователей</p>
+                                            <p>{t('groups.users_manager.empty')}</p>
                                         </div>
                                     )}
                                 </div>
@@ -4407,12 +4409,12 @@ export default function ConnectionDetailPage() {
                             className={clsx(groupModalStyles.modal__closeButton)}
                             onClick={closeTableEditModal}
                             disabled={tableModalLoading}
-                            aria-label="Закрыть окно редактирования таблицы"
+                            aria-label={t('tables.edit.close')}
                         >
                             <FontAwesomeIcon icon={faTimes}/>
                         </button>
                         <div className={clsx(groupModalStyles.modal__header)}>
-                            <h2 className={clsx(groupModalStyles.modal__title)}>Редактирование таблицы</h2>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>{t('tables.edit.title')}</h2>
                             <p className={clsx(groupModalStyles.modal__subtitle)}>{editingTable.schema_name}.{editingTable.table_name}</p>
                         </div>
                         <form className={clsx(groupModalStyles.modal__form)} onSubmit={saveTablePrivileges}>
@@ -4481,9 +4483,9 @@ export default function ConnectionDetailPage() {
                             </div>
                             <div className={clsx(styles.tableGroupsSearchPanel)}>
                                 <div className={clsx(styles.tableGroupsSearchHeader)}>
-                                    <label className={clsx(styles.tableGroupsSearchLabel)} htmlFor="tableGroupsSearch">Поиск групп</label>
+                                    <label className={clsx(styles.tableGroupsSearchLabel)} htmlFor="tableGroupsSearch">{t('tables.edit.search_groups')}</label>
                                     <span className={clsx(styles.tableGroupsSearchMeta)}>
-                                        Найдено: {filteredTableGroupsForm.length} из {tableGroupsForm.length}
+                                        {t('tables.edit.found')}: {filteredTableGroupsForm.length} {t('tables.pagination.of')} {tableGroupsForm.length}
                                     </span>
                                 </div>
                                 <div className={clsx(styles.usersSearchWrapper)}>
@@ -4491,7 +4493,7 @@ export default function ConnectionDetailPage() {
                                     <input
                                         id="tableGroupsSearch"
                                         type="text"
-                                        placeholder="Введите название группы"
+                                        placeholder={t('tables.edit.group_name_placeholder')}
                                         value={tableGroupSearchQuery}
                                         onChange={(e) => setTableGroupSearchQuery(e.target.value)}
                                         className={clsx(styles.usersSearchInput)}
@@ -4502,7 +4504,7 @@ export default function ConnectionDetailPage() {
                                             type="button"
                                             onClick={() => setTableGroupSearchQuery('')}
                                             className={clsx(styles.usersSearchClear)}
-                                            title="Очистить поиск групп"
+                                            title={t('tables.edit.clear_groups_search')}
                                             disabled={tableModalLoading}
                                         >
                                             <FontAwesomeIcon icon={faTimes}/>
@@ -4534,14 +4536,14 @@ export default function ConnectionDetailPage() {
                                     ))
                                 ) : (
                                     <div className={clsx(styles.tableGroupsSearchEmpty)}>
-                                        Группы по указанному фильтру не найдены
+                                        {t('tables.edit.groups_not_found')}
                                     </div>
                                 )}
                             </div>
                             <div className={clsx(groupModalStyles.modal__formFooter)}>
-                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeTableEditModal} disabled={tableModalLoading}>Отмена</button>
+                                <button type="button" className={clsx(groupModalStyles.modal__cancelButton)} onClick={closeTableEditModal} disabled={tableModalLoading}>{t('tables.edit.cancel')}</button>
                                 <button type="submit" className={clsx(groupModalStyles.modal__submitButton)} disabled={tableModalLoading}>
-                                    {tableModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> Сохранение...</> : 'Сохранить'}
+                                    {tableModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin/> {t('tables.edit.saving')}</> : t('tables.edit.save')}
                                 </button>
                             </div>
                         </form>

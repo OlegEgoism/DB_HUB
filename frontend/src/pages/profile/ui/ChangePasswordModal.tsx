@@ -11,6 +11,7 @@ import {
   faEyeSlash,
   faCheckCircle,
 } from '@fortawesome/free-solid-svg-icons';
+import { useI18n } from '@shared/i18n';
 
 export function ChangePasswordModal({
   userId,
@@ -26,15 +27,16 @@ export function ChangePasswordModal({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { changePassword, loading, error, success } = useChangePassword(userId);
+  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
-      alert('Пароли не совпадают');
+      alert(t('password.mismatch'));
       return;
     }
     if (formData.newPassword.length < 4) {
-      alert('Пароль должен быть не менее 4 символов');
+      alert(t('password.min'));
       return;
     }
     try {
@@ -69,19 +71,19 @@ export function ChangePasswordModal({
   const getErrorMessage = () => {
     if (!error) return null;
     if (error.includes('400') || error.includes('Invalid') || error.includes('Неверный')) {
-      return 'Неверные данные. Проверьте введенные значения.';
+      return t('password.error.invalid');
     }
     if (error.includes('403')) {
-      return 'Доступ запрещен. Проверьте ваши права доступа.';
+      return t('password.error.forbidden');
     }
     if (error.includes('404')) {
-      return 'Сервер недоступен.';
+      return t('password.error.not_found');
     }
     if (error.includes('500') || error.includes('Internal Server Error')) {
-      return 'Внутренняя ошибка сервера. Попробуйте позже.';
+      return t('password.error.server');
     }
     if (error.includes('Network Error') || error.includes('Failed to fetch')) {
-      return 'Ошибка сети. Проверьте подключение к интернету.';
+      return t('password.error.network');
     }
     return error;
   };
@@ -93,13 +95,13 @@ export function ChangePasswordModal({
           className={clsx(styles.modal__closeButton)}
           onClick={handleClose}
           disabled={loading}
-          aria-label="Закрыть окно смены пароля"
+          aria-label={t('password.change_title')}
         >
           <FontAwesomeIcon icon={faTimes} />
         </button>
         <div className={clsx(styles.modal__header)}>
           <h2 className={clsx(styles.modal__title)}>
-            {success ? 'Пароль успешно изменен!' : 'Смена пароля'}
+            {success ? t('password.changed') : t('password.change_title')}
           </h2>
         </div>
         {success ? (
@@ -109,12 +111,12 @@ export function ChangePasswordModal({
                 icon={faCheckCircle}
                 style={{ marginRight: '8px', color: 'var(--color-status-success)' }}
               />
-              Пароль успешно изменен!
+              {t('password.changed')}
             </div>
             <div className={clsx(styles.modal__userInfo)}>
               <div>
                 <div className={clsx(styles.modal__userInfoLabel)}>
-                  Теперь вы можете войти с новым паролем
+                  {t('password.hint')}
                 </div>
               </div>
             </div>
@@ -131,7 +133,7 @@ export function ChangePasswordModal({
             )}
             <div className={clsx(styles.modal__formGroup)}>
               <label htmlFor="newPassword" className={clsx(styles.modal__label)}>
-                Новый пароль *
+                {t('password.new')} *
               </label>
               <div className={clsx(styles.modal__passwordWrapper)}>
                 <input
@@ -142,7 +144,7 @@ export function ChangePasswordModal({
                   onChange={handleChange}
                   required
                   className={clsx(styles.modal__input)}
-                  placeholder="Минимум 4 символа"
+                  placeholder={t('register.placeholder.password')}
                   disabled={loading}
                   autoComplete="new-password"
                 />
@@ -158,7 +160,7 @@ export function ChangePasswordModal({
             </div>
             <div className={clsx(styles.modal__formGroup)}>
               <label htmlFor="confirmPassword" className={clsx(styles.modal__label)}>
-                Подтвердите пароль *
+                {t('password.confirm')} *
               </label>
               <div className={clsx(styles.modal__passwordWrapper)}>
                 <input
@@ -169,7 +171,7 @@ export function ChangePasswordModal({
                   onChange={handleChange}
                   required
                   className={clsx(styles.modal__input)}
-                  placeholder="Повторите пароль"
+                  placeholder={t('register.placeholder.password.confirm')}
                   disabled={loading}
                   autoComplete="new-password"
                 />
@@ -190,7 +192,7 @@ export function ChangePasswordModal({
                 onClick={handleClose}
                 disabled={loading}
               >
-                Отмена
+                {t('login.cancel')}
               </button>
               <button
                 type="submit"
@@ -200,10 +202,10 @@ export function ChangePasswordModal({
                 {loading ? (
                   <>
                     <FontAwesomeIcon icon={faSpinner} spin />
-                    Изменение...
+                    {t('password.changing')}
                   </>
                 ) : (
-                  'Изменить пароль'
+                  t('password.change')
                 )}
               </button>
             </div>

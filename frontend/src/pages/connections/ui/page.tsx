@@ -29,9 +29,11 @@ import {CreateConnectionModal} from './CreateConnectionModal';
 import {CONNECTIONS_PAGE_SIZES} from '@pages/connections/model/page-constants';
 import type {Connection, ConnectionsTab} from '@pages/connections/model/page-types';
 import {fetchConnections, patchConnectionFavorite, removeConnection} from '@pages/connections/lib/page-api';
+import { useI18n } from '@shared/i18n';
 
 export default function ConnectionsPage() {
     const navigate = useNavigate();
+    const { t } = useI18n();
 
     // Состояния
     const [connections, setConnections] = useState<Connection[]>([]);
@@ -61,6 +63,14 @@ export default function ConnectionsPage() {
     const hasLoadedOnceRef = useRef(false);
 
     const PAGE_SIZES = CONNECTIONS_PAGE_SIZES;
+    const tabLabelMap: Record<ConnectionsTab, string> = {
+        'Все': t('connections.tab.all'),
+        'Продакшн': t('connections.tab.production'),
+        'Разработка': t('connections.tab.development'),
+        'Тестирование': t('connections.tab.testing'),
+        'Аналитика': t('connections.tab.analytics'),
+        'Избранные': t('connections.tab.favorites'),
+    };
 
     // Загрузка подключений
     const loadConnections = async () => {
@@ -273,20 +283,20 @@ export default function ConnectionsPage() {
         switch (envLower) {
             case 'production':
                 colorClass = styles.badge_production;
-                label = 'ПРОДАКШЕН';
+                label = t('connections.badge.production');
                 break;
             case 'testing':
                 colorClass = styles.badge_testing;
-                label = 'ТЕСТИРОВАНИЕ';
+                label = t('connections.badge.testing');
                 break;
             case 'analytics':
                 colorClass = styles.badge_analytics;
-                label = 'АНАЛИТИКА';
+                label = t('connections.badge.analytics');
                 break;
             case 'development':
             default:
                 colorClass = styles.badge_development;
-                label = 'РАЗРАБОТКА';
+                label = t('connections.badge.development');
                 break;
         }
 
@@ -322,7 +332,7 @@ export default function ConnectionsPage() {
                             <div className={clsx(styles.spinner)}>
                                 <FontAwesomeIcon icon={faSpinner} spin size="3x"/>
                             </div>
-                            <p>Загрузка подключений...</p>
+                            <p>{t('connections.loading')}</p>
                         </div>
                     </div>
                 </div>
@@ -342,7 +352,7 @@ export default function ConnectionsPage() {
                                 className={clsx(styles.retryButton)}
                                 onClick={() => loadConnections()}
                             >
-                                Попробовать снова
+                                {t('connections.button.retry')}
                             </button>
                         </div>
                     </div>
@@ -402,9 +412,9 @@ export default function ConnectionsPage() {
                             <button
                                 className={clsx(styles.addButton)}
                                 onClick={openCreateModal}
-                                aria-label="Создать новое подключение к базе данных"
+                                aria-label={t('connections.aria.create')}
                             >
-                                Создать подключение
+                                {t('connections.button.create')}
                             </button>
 
                             {/* ✅ Кнопка обновления */}
@@ -412,8 +422,8 @@ export default function ConnectionsPage() {
                                 className={clsx(styles.refreshButton, refreshing && styles.refreshButton_loading)}
                                 onClick={handleRefresh}
                                 disabled={refreshing || loading || gridLoading}
-                                aria-label="Обновить список подключений"
-                                title="Обновить список подключений"
+                                aria-label={t('connections.aria.refresh')}
+                                title={t('connections.title.refresh')}
                             >
                                 <FontAwesomeIcon
                                     icon={faRefresh}
@@ -432,7 +442,7 @@ export default function ConnectionsPage() {
                             )}
                             onClick={() => handleTabChange('Все')}
                         >
-                            Все
+                            {tabLabelMap['Все']}
                         </div>
                         <div
                             className={clsx(
@@ -441,7 +451,7 @@ export default function ConnectionsPage() {
                             )}
                             onClick={() => handleTabChange('Продакшн')}
                         >
-                            Продакшн
+                            {tabLabelMap['Продакшн']}
                         </div>
                         <div
                             className={clsx(
@@ -450,7 +460,7 @@ export default function ConnectionsPage() {
                             )}
                             onClick={() => handleTabChange('Разработка')}
                         >
-                            Разработка
+                            {tabLabelMap['Разработка']}
                         </div>
                         <div
                             className={clsx(
@@ -459,7 +469,7 @@ export default function ConnectionsPage() {
                             )}
                             onClick={() => handleTabChange('Тестирование')}
                         >
-                            Тестирование
+                            {tabLabelMap['Тестирование']}
                         </div>
                         <div
                             className={clsx(
@@ -468,7 +478,7 @@ export default function ConnectionsPage() {
                             )}
                             onClick={() => handleTabChange('Аналитика')}
                         >
-                            Аналитика
+                            {tabLabelMap['Аналитика']}
                         </div>
                         <div
                             className={clsx(
@@ -477,7 +487,7 @@ export default function ConnectionsPage() {
                             )}
                             onClick={() => handleTabChange('Избранные')}
                         >
-                            Избранные
+                            {tabLabelMap['Избранные']}
                         </div>
                     </div>
 
@@ -489,7 +499,7 @@ export default function ConnectionsPage() {
                                 className={clsx(styles.retryButton)}
                                 onClick={() => loadConnections()}
                             >
-                                Попробовать снова
+                                {t('connections.button.retry')}
                             </button>
                         </div>
                     )}
@@ -503,7 +513,7 @@ export default function ConnectionsPage() {
                                         <div className={clsx(styles.spinner)}>
                                             <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
                                         </div>
-                                        <p>Обновление списка подключений...</p>
+                                        <p>{t('connections.loading.update')}</p>
                                     </div>
                                 ) : filteredConnections.map((connection) => (
                                     <div
@@ -515,7 +525,7 @@ export default function ConnectionsPage() {
                                                 className={clsx(styles.cardIconContainer)}
                                                 role="button"
                                                 tabIndex={0}
-                                                title="Постмотреть подключению"
+                                                title={t('connections.title.view')}
                                                 onClick={() => handleConnectionClick(connection.id)}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter' || e.key === ' ') {
@@ -546,7 +556,7 @@ export default function ConnectionsPage() {
                                                     </div>
                                                 </div>
                                                 <div className={clsx(styles.cardName)}>
-                                                    {connection.name || 'Без имени'}
+                                                    {connection.name || t('connections.empty.name')}
                                                 </div>
                                                 <div
                                                     className={clsx(styles.cardDescription)}
@@ -565,7 +575,7 @@ export default function ConnectionsPage() {
                                                 <div className={clsx(styles.infoItem)}>
                                                     <div className={clsx(styles.infoLabel)}>
                                                         <FontAwesomeIcon icon={faDatabase} className={clsx(styles.infoIcon)}/>
-                                                        БАЗА ДАННЫХ
+                                                        {t('connections.labels.database')}
                                                     </div>
                                                     <div className={clsx(styles.infoValue)}>
                                                         {connection.database_name || '—'}
@@ -574,7 +584,7 @@ export default function ConnectionsPage() {
                                                 <div className={clsx(styles.infoItem)}>
                                                     <div className={clsx(styles.infoLabel)}>
                                                         <FontAwesomeIcon icon={faUser} className={clsx(styles.infoIcon)}/>
-                                                        ПОЛЬЗОВАТЕЛЬ
+                                                        {t('connections.labels.user')}
                                                     </div>
                                                     <div className={clsx(styles.infoValue)}>
                                                         {connection.username}
@@ -583,7 +593,7 @@ export default function ConnectionsPage() {
                                                 <div className={clsx(styles.infoItem)}>
                                                     <div className={clsx(styles.infoLabel)}>
                                                         <FontAwesomeIcon icon={faCodeBranch} className={clsx(styles.infoIcon)}/>
-                                                        ХОСТ
+                                                        {t('connections.labels.host')}
                                                     </div>
                                                     <div className={clsx(styles.infoValue)}>
                                                         {connection.host}
@@ -592,7 +602,7 @@ export default function ConnectionsPage() {
                                                 <div className={clsx(styles.infoItem)}>
                                                     <div className={clsx(styles.infoLabel)}>
                                                         <FontAwesomeIcon icon={faPlug} className={clsx(styles.infoIcon)}/>
-                                                        ПОРТ
+                                                        {t('connections.labels.port')}
                                                     </div>
                                                     <div className={clsx(styles.infoValue)}>
                                                         {connection.port}
@@ -604,7 +614,7 @@ export default function ConnectionsPage() {
                                                     <div className={clsx(styles.databaseSize)}>
                                                         <div className={clsx(styles.infoLabel)}>
                                                             <FontAwesomeIcon icon={faHdd} className={clsx(styles.infoIcon)}/>
-                                                            РАЗМЕР
+                                                            {t('connections.labels.size')}
                                                         </div>
                                                         <div className={clsx(styles.infoValue)}>
                                                             {formatSize(connection.db_size_mb)}
@@ -636,7 +646,7 @@ export default function ConnectionsPage() {
                                                                 e.stopPropagation();
                                                                 handleConnectionClick(connection.id);
                                                             }}
-                                                            title="Просмотреть подключение"
+                                                            title={t('connections.title.view')}
                                                             disabled={deletingId === connection.id}
                                                         >
                                                             <FontAwesomeIcon
@@ -688,8 +698,8 @@ export default function ConnectionsPage() {
                                 <div className={clsx(styles.pagination)}>
                                     <div className={clsx(styles.paginationInfo)}>
                     <span className={clsx(styles.paginationText)}>
-                      Показано <span className={clsx(styles.paginationHighlight)}>{((currentPage - 1) * pageSize) + 1}</span>–
-                      <span className={clsx(styles.paginationHighlight)}>{Math.min(currentPage * pageSize, totalItems)}</span> из <span className={clsx(styles.paginationHighlight)}>{totalItems}</span> подключений
+                      {t('connections.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((currentPage - 1) * pageSize) + 1}</span>–
+                      <span className={clsx(styles.paginationHighlight)}>{Math.min(currentPage * pageSize, totalItems)}</span> {t('connections.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalItems}</span> {t('connections.pagination.connections')}
                     </span>
                                     </div>
                                     <div className={clsx(styles.paginationControls)}>
@@ -700,7 +710,7 @@ export default function ConnectionsPage() {
                                         >
                                             {PAGE_SIZES.map((size) => (
                                                 <option key={size} value={size}>
-                                                    {size} на странице
+                                                    {size} {t('connections.pagination.per_page')}
                                                 </option>
                                             ))}
                                         </select>
@@ -709,7 +719,7 @@ export default function ConnectionsPage() {
                                                 className={clsx(styles.paginationButton, styles.paginationButton_first)}
                                                 onClick={handleFirstPage}
                                                 disabled={currentPage === 1 || !hasPrev}
-                                                title="Первая страница"
+                                                title={t('connections.pagination.first')}
                                             >
                                                 <FontAwesomeIcon icon={faChevronCircleLeft}/>
                                             </button>
@@ -717,18 +727,18 @@ export default function ConnectionsPage() {
                                                 className={clsx(styles.paginationButton)}
                                                 onClick={() => handlePageChange(currentPage - 1)}
                                                 disabled={currentPage === 1 || !hasPrev}
-                                                title="Предыдущая страница"
+                                                title={t('connections.pagination.prev')}
                                             >
                                                 <FontAwesomeIcon icon={faChevronLeft}/>
                                             </button>
                                             <span className={clsx(styles.pageInfo)}>
-                        Страница {currentPage} из {totalPages}
+                        {t('connections.pagination.page')} {currentPage} {t('connections.pagination.of')} {totalPages}
                       </span>
                                             <button
                                                 className={clsx(styles.paginationButton)}
                                                 onClick={() => handlePageChange(currentPage + 1)}
                                                 disabled={currentPage === totalPages || !hasNext}
-                                                title="Следующая страница"
+                                                title={t('connections.pagination.next')}
                                             >
                                                 <FontAwesomeIcon icon={faChevronRight}/>
                                             </button>
@@ -736,7 +746,7 @@ export default function ConnectionsPage() {
                                                 className={clsx(styles.paginationButton, styles.paginationButton_last)}
                                                 onClick={handleLastPage}
                                                 disabled={currentPage === totalPages || !hasNext}
-                                                title="Последняя страница"
+                                                title={t('connections.pagination.last')}
                                             >
                                                 <FontAwesomeIcon icon={faChevronCircleRight}/>
                                             </button>
@@ -747,18 +757,18 @@ export default function ConnectionsPage() {
                         </div>
                     ) : (
                         <div className={clsx(styles.emptyState)}>
-                            <h3>Подключения не найдены</h3>
+                            <h3>{t('connections.empty.title')}</h3>
                             {searchTerm ? (
-                                <p>По вашему запросу "{searchTerm}" ничего не найдено</p>
+                                <p>{t('connections.empty.search').replace('{search}', searchTerm)}</p>
                             ) : (
-                                <p>У вас пока нет подключений к базам данных</p>
+                                <p>{t('connections.empty.list')}</p>
                             )}
                             <button
                                 className={clsx(styles.emptyButton)}
                                 onClick={openCreateModal}
-                                aria-label="Создать подключение"
+                                aria-label={t('connections.button.create')}
                             >
-                                Создать подключение
+                                {t('connections.button.create')}
                             </button>
                         </div>
                     )}
@@ -778,16 +788,16 @@ export default function ConnectionsPage() {
                                 className={clsx(styles.modalIcon)}
                             />
                             <h2 className={clsx(styles.modalTitle)}>
-                                Подтверждение удаления
+                                {t('connections.delete.title')}
                             </h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
                             <p className={clsx(styles.modalText)}>
-                                Удалить подключение <strong>{confirmDeleteName}</strong>?
+                                {t('connections.delete.text')} <strong>{confirmDeleteName}</strong>?
                             </p>
                             <p className={clsx(styles.modalWarning)}>
                                 <FontAwesomeIcon icon={faExclamationCircle}/>
-                                Все данные будут удалены безвозвратно.
+                                {t('connections.delete.warning')}
                             </p>
                         </div>
                         <div className={clsx(styles.modalFooter)}>
@@ -796,7 +806,7 @@ export default function ConnectionsPage() {
                                 onClick={closeDeleteConfirm}
                                 disabled={deletingId !== null}
                             >
-                                Отмена
+                                {t('login.cancel')}
                             </button>
                             <button
                                 className={clsx(
@@ -809,12 +819,12 @@ export default function ConnectionsPage() {
                                 {deletingId !== null ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/>
-                                        Удаление...
+                                        {t('connections.delete.loading')}
                                     </>
                                 ) : (
                                     <>
                                         <FontAwesomeIcon icon={faTrashAlt}/>
-                                        Удалить
+                                        {t('users.delete')}
                                     </>
                                 )}
                             </button>
