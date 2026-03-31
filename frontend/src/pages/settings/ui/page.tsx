@@ -5,14 +5,16 @@ import styles from './styles.module.scss';
 import { useSession } from '@features/auth';
 import { ROUTES } from '@shared/config';
 import { CONNECTION_TAB_OPTIONS, DEFAULT_CONNECTION_TABS_VISIBILITY, connectionTabsSettingsModel, type ConnectionTabsVisibility, type ConnectionTabKey } from '@entities/settings/model';
-import { useI18n } from '@shared/i18n';
+import { useI18n, type Language } from '@shared/i18n';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { checkAuth } = useSession();
   const isInitializedRef = useRef(false);
   const [visibility, setVisibility] = useState<ConnectionTabsVisibility>(DEFAULT_CONNECTION_TABS_VISIBILITY);
-  const { t } = useI18n();
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('ru');
+  const [isSaving, setIsSaving] = useState(false);
+  const { language, setLanguage, t } = useI18n();
 
   const tabLabelMap: Record<ConnectionTabKey, string> = {
     metrics: t('tabs.overview'),
@@ -43,30 +45,31 @@ export default function SettingsPage() {
     const loadSettings = async () => {
       const nextVisibility = await connectionTabsSettingsModel.fetchVisibility();
       setVisibility(nextVisibility);
+      setSelectedLanguage(language);
     };
 
     void loadSettings();
-  }, [checkAuth, navigate]);
+  }, [checkAuth, language, navigate]);
 
   const handleToggle = (tabKey: ConnectionTabKey) => {
     setVisibility((prev) => {
-      const next = {
+      return {
         ...prev,
         [tabKey]: !prev[tabKey],
       };
-
-      void connectionTabsSettingsModel.saveVisibility(next).then((saved) => {
-        setVisibility(saved);
-      });
-      return next;
     });
   };
 
   const handleReset = () => {
     setVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY);
-    void connectionTabsSettingsModel.saveVisibility(DEFAULT_CONNECTION_TABS_VISIBILITY).then((saved) => {
-      setVisibility(saved);
-    });
+  };
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    const savedVisibility = await connectionTabsSettingsModel.saveVisibility(visibility);
+    setVisibility(savedVisibility);
+    setLanguage(selectedLanguage);
+    setIsSaving(false);
   };
 
   return (
@@ -91,9 +94,27 @@ export default function SettingsPage() {
             ))}
           </div>
 
+          <div className={clsx(styles.settings__language)}>
+            <label htmlFor="language" className={clsx(styles.settings__label)}>
+              {t('settings.language')}
+            </label>
+            <select
+              id="language"
+              value={selectedLanguage}
+              onChange={(event) => setSelectedLanguage(event.target.value as Language)}
+              className={clsx(styles.settings__select)}
+            >
+              <option value="ru">{t('lang.ru')}</option>
+              <option value="en">{t('lang.en')}</option>
+            </select>
+          </div>
+
           <div className={clsx(styles.settings__actions)}>
             <button type="button" className={clsx(styles.settings__resetButton)} onClick={handleReset}>
               {t('settings.reset')}
+            </button>
+            <button type="button" className={clsx(styles.settings__saveButton)} onClick={handleSaveSettings} disabled={isSaving}>
+              {isSaving ? t('settings.saving') : t('settings.save')}
             </button>
           </div>
         </div>
