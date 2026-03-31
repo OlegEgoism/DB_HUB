@@ -60,7 +60,11 @@ import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navig
 import { connectionTabsSettingsModel, DEFAULT_CONNECTION_TABS_VISIBILITY } from '@entities/settings/model';
 import { useI18n } from '@shared/i18n';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const DEFAULT_API_BASE_URL =
+    typeof window !== 'undefined'
+        ? `${window.location.protocol}//${window.location.hostname}:8088`
+        : 'http://localhost:8088';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
 const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query'];
 
