@@ -1,9 +1,9 @@
 # backend/main.py
+"""Точка входа FastAPI: create_all для SQLite, дефолтный admin, подключение роутеров."""
 
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,16 +16,12 @@ from backend.core.limiter import limiter
 from backend.database.session import AsyncSessionLocal, Base, engine
 from backend.models.user import User
 
-"""Настройка логирования"""
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 async def ensure_admin_user() -> None:
     """Создать дефолтного superuser admin, если он отсутствует."""
-    admin_created_at = datetime(2026, 3, 13, 23, 43, 52, 972000, tzinfo=timezone(timedelta(hours=3)))
-    admin_updated_at = datetime(2026, 3, 13, 23, 44, 9, 549000, tzinfo=timezone(timedelta(hours=3)))
-
     async with AsyncSessionLocal() as session:
         existing_admin = await session.scalar(select(User).where(User.username == "admin"))
         if existing_admin is not None:
@@ -42,13 +38,12 @@ async def ensure_admin_user() -> None:
             role="Администратор БД",
             last_login=None,
             refresh_token=None,
-            created_at=admin_created_at,
-            updated_at=admin_updated_at,
         )
 
         session.add(admin_user)
         await session.commit()
         logger.info("✅ Дефолтный пользователь admin создан")
+
 
 @asynccontextmanager
 async def lifespan(backend: FastAPI):
@@ -98,5 +93,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-"""Подключаем роутеры"""
 app.include_router(api_v1_router)

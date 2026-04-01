@@ -8,8 +8,6 @@ extend-exclude = [
     "venv",
     "__pycache__",
     "frontend",
-    "collect_backend.py",
-    "collect_frontend.py",
 ]
 
 [tool.ruff.lint]
@@ -26,4 +24,5 @@ select = [
 # Что часто мешает в FastAPI
 ignore = [
     "B008",
+    "UP046",  # Generic[T] вместо class C[T] до единообразного перехода на Python 3.12+
 ]

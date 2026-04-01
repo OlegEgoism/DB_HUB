@@ -1,38 +1,19 @@
-# 🚀 DB HUB Frontend
+# DB HUB — frontend
 
-## Что изменено архитектурно
-Фронтенд переведен на слоистую модель **Feature-Sliced Design (FSD)** с разделением ответственности:
+React 19, Vite 7, React Router 7, TypeScript. Структура — **Feature-Sliced Design** (`app`, `pages`, `widgets`, `features`, `entities`, `shared`).
 
-- `app` — конфигурация приложения, маршруты, базовый layout.
-- `pages` — page-level composition (сборка экранов из виджетов и фич).
-- `widgets` — крупные UI-блоки страниц.
-- `features` — пользовательские сценарии (авторизация/регистрация/сессия).
-- `entities` — доменные сущности и их API (`session`, `user`).
-- `shared` — переиспользуемая инфраструктура и утилиты (`api/http`, стили, конфиг).
+## Требования
 
-## Ключевые принципы FSD, примененные в проекте
-- Бизнес-логика авторизации вынесена из `pages` в `features/auth/*`.
-- Данные сессии и доменные типы вынесены в `entities/session`.
-- API-запросы профиля и регистрации централизованы в `entities/user/api`.
-- Базовый HTTP-клиент и единая обработка ошибок вынесены в `shared/api/http.ts`.
-- `pages/*/lib` сохранены как адаптеры совместимости, но теперь делегируют работу в `features`.
+Node.js **v22.x** (как в Docker-образе; см. корневой `README.md`).
 
----
-
-## 📦 Установка
-Node.js `v22.18.0`
+## Команды
 
 ```bash
 npm install
-```
-
-## ⚡ Быстрый старт
-```bash
-npm run dev
-```
-
-## 🔍 Проверка
-```bash
-npm run build
+npm run dev      # разработка (Vite)
+npm run build    # production-сборка в каталог build/ (не коммитится)
 npm run lint
+npm run preview  # просмотр собранного клиента
 ```
+
+`build/`, `.vite/`, `.react-router/` генерируются локально и перечислены в `.gitignore`.

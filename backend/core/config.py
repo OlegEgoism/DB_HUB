@@ -7,21 +7,18 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """SQLite приложения"""
-
+    # SQLite (метаданные приложения: пользователи, сохранённые подключения)
     APP_DATABASE_URL: str = Field("sqlite+aiosqlite:///./db_hub.sqlite3", env="APP_DATABASE_URL")
 
-    """Ключ шифрования для паролей подключений"""
+    # Ключ Fernet (base64) для шифрования паролей внешних БД в БД приложения
     ENCRYPTION_KEY: str = Field(
         "EBvGmpvcm4nrUrcMjmjfwUB0F0usPXfRCOHVvK3upCo=",
         env="ENCRYPTION_KEY",
     )
 
-    """FastAPI"""
     HOST: str = Field("127.0.0.1", env="HOST")
     PORT: int = Field(8000, env="PORT")
 
-    """JWT"""
     SECRET_KEY: str = Field(
         "your-super-secret-jwt-key-change-this-in-production",
         env="SECRET_KEY",
@@ -29,7 +26,6 @@ class Settings(BaseSettings):
     ALGORITHM: str = Field("HS256", env="ALGORITHM")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
 
-    """Refresh Token"""
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(7, env="REFRESH_TOKEN_EXPIRE_DAYS")
 
     @validator("ENCRYPTION_KEY")

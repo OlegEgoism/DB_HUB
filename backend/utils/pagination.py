@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
+
 class PaginatedResponse(BaseModel, Generic[T]):
     """Универсальный класс для пагинированных ответов с элементами"""
 

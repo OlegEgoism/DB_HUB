@@ -1,50 +1,29 @@
-# DB HUB — Deep Docker Analysis & Docker Hub Release Guide
+# DB HUB — Docker Hub и production fullstack-образ
 
-## 1) Текущее состояние и риски
+## Файлы
 
-### Что было найдено
-- `Dockerfile.fullstack` запускает frontend через `vite dev`, что является dev-режимом (HMR/пересборки), а не production runtime.
-- `docker-compose.fullstack.yml` ссылается на `env_file: .env`, что создаёт лишнюю зависимость от локального файла для старта контейнера.
-- В репозитории уже есть fallback-настройки backend, но для Docker Hub релиза полезно иметь отдельный production-oriented набор файлов.
+| Файл | Назначение |
+|------|------------|
+| `Dockerfile.fullstack` | Dev: Vite dev + uvicorn в одном контейнере |
+| `Dockerfile.fullstack.prod` | Сборка `npm run build`, затем uvicorn + `vite preview` |
+| `scripts/start_fullstack_prod.sh` | Инициализация БД (`backend.docker_init`), параллельный запуск backend и preview |
+| `docker-compose.hub.yml` | Запуск собранного prod-образа; переменные в `environment`, без обязательного `.env` |
 
-### К чему это приводит
-- Образ в Docker Hub можно собрать и запустить, но поведение ближе к dev-сценарию.
-- Для нового проекта/чистой машины запуск усложняется из-за ожидания `.env`.
-
-## 2) Что изменено для нового Docker Hub workflow
-
-Добавлены новые файлы для publish-потока:
-
-1. `Dockerfile.fullstack.prod`
-   - Собирает frontend (`npm run build`) на этапе build.
-   - Поднимает backend (`uvicorn`) и frontend в режиме preview (`vite preview`) в одном контейнере.
-   - Не требует `.env` для базового старта.
-
-2. `scripts/start_fullstack_prod.sh`
-   - Инициализирует БД (`backend.docker_init`).
-   - Запускает backend и frontend preview параллельно.
-   - Корректно завершает оба процесса по сигналам.
-
-3. `docker-compose.hub.yml`
-   - Готовый compose для сборки/запуска образа под публикацию.
-   - Все необходимые переменные заданы статически в `environment`.
-   - Без `env_file`.
-
-## 3) Как обновить Docker Hub для нового проекта
-
-### Локально (рекомендуется)
+## Сборка и push
 
 ```bash
-docker login -u olegegoism
+docker login -u <dockerhub_user>
 
-docker build -f Dockerfile.fullstack.prod -t olegegoism/db-hub:latest .
-docker build -f Dockerfile.fullstack.prod -t olegegoism/db-hub:v1.0.0 .
+docker build -f Dockerfile.fullstack.prod -t <dockerhub_user>/db-hub:latest .
+docker build -f Dockerfile.fullstack.prod -t <dockerhub_user>/db-hub:v1.0.0 .
 
-docker push olegegoism/db-hub:latest
-docker push olegegoism/db-hub:v1.0.0
+docker push <dockerhub_user>/db-hub:latest
+docker push <dockerhub_user>/db-hub:v1.0.0
 ```
 
-### Локальная проверка перед push
+При другом URL API измените `VITE_API_BASE_URL` (build-arg в `docker-compose.hub.yml` или `docker build --build-arg VITE_API_BASE_URL=...`).
+
+## Локальная проверка compose
 
 ```bash
 docker compose -f docker-compose.hub.yml up --build -d
@@ -52,8 +31,7 @@ docker compose -f docker-compose.hub.yml ps
 docker compose -f docker-compose.hub.yml logs -f app
 ```
 
-## 4) Рекомендации на следующий шаг
+## Замечания по эксплуатации
 
-- Для production-grade варианта лучше разделить backend и frontend на два контейнера (backend + nginx static).
-- JWT/шифровальные ключи стоит передавать через секреты CI/CD, а не хранить статически в compose.
-- Для Docker Hub релизов удобно добавить CI (GitHub Actions) с авто-тегированием по git tag.
+- Для продакшена передавайте `SECRET_KEY` и `ENCRYPTION_KEY` через секреты оркестратора, не оставляйте значения по умолчанию из примеров.
+- Дальнейшее развитие: разнести backend и статический frontend (nginx) по отдельным контейнерам и добавить CI (например, GitHub Actions) с тегами по git.
