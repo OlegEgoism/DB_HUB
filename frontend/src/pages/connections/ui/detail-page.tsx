@@ -51,6 +51,7 @@ import {useConnectionIndexes} from '../lib/useConnectionIndexes';
 import {useConnectionFunctions} from '../lib/useConnectionFunctions';
 import {useConnectionProcedures} from '../lib/useConnectionProcedures';
 import {useConnectionActiveQueries} from '../lib/useConnectionActiveQueries';
+import { useConnectionActivitySnapshot } from '../lib/useConnectionActivitySnapshot';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 import { PAGE_SIZES } from '@pages/connections/model/detail-page-constants';
 import type { Connection, EditingUser, GroupUser, TabType, TablesFilterType, ViewsFilterType } from '@pages/connections/model/detail-page-types';
@@ -62,11 +63,11 @@ import { useI18n } from '@shared/i18n';
 
 const DEFAULT_API_BASE_URL =
     typeof window !== 'undefined'
-        ? `${window.location.protocol}//${window.location.hostname}:8088`
-        : 'http://localhost:8088';
+        ? `${window.location.protocol}//${window.location.hostname}:8000`
+        : 'http://localhost:8000';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
-const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query'];
+const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring'];
 
 const isTabType = (value: string | null): value is TabType => value !== null && TAB_TYPE_VALUES.includes(value as TabType);
 
@@ -79,6 +80,14 @@ type ActivityChartPoint = {
     delete: number;
     other: number;
 };
+
+type SessionActivityChartPoint = {
+    timestamp: string;
+    totalSessions: number;
+    activeSessions: number;
+    activeTransactions: number;
+};
+
 
 const detectQueryOperation = (query: string | null | undefined): keyof Omit<ActivityChartPoint, 'timestamp' | 'total'> => {
     const normalized = (query || '').trim().toUpperCase();
@@ -223,6 +232,8 @@ export default function ConnectionDetailPage() {
     const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
     const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
     const [activityChartPoints, setActivityChartPoints] = useState<ActivityChartPoint[]>([]);
+    const [sessionActivityPoints, setSessionActivityPoints] = useState<SessionActivityChartPoint[]>([]);
+    const [sessionActivityReloadTrigger, setSessionActivityReloadTrigger] = useState(0);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
 
@@ -465,6 +476,12 @@ export default function ConnectionDetailPage() {
         activityChartReloadTrigger,
     );
 
+    const { snapshot: sessionActivitySnapshot, loading: loadingSessionActivity, error: sessionActivityError } = useConnectionActivitySnapshot(
+        (activeTab === 'metrics' || activeTab === 'active_sql') && id ? parseInt(id) : null,
+        sessionActivityReloadTrigger,
+        5000,
+    );
+
     useEffect(() => {
         if (activeTab === 'metrics' && !metrics) {
             loadMetrics();
@@ -562,6 +579,90 @@ export default function ConnectionDetailPage() {
 
         setActivityChartPoints((prev) => [...prev.slice(-59), point]);
     }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen, chartActiveQueries]);
+
+    useEffect(() => {
+        if (activeTab !== 'metrics' || !sessionActivitySnapshot) return;
+
+        const activeTransactions = sessionActivitySnapshot.users.reduce((sum, user) => sum + user.active_transactions, 0);
+        const point: SessionActivityChartPoint = {
+            timestamp: new Date().toLocaleTimeString('ru-RU'),
+            totalSessions: sessionActivitySnapshot.sessions_total,
+            activeSessions: sessionActivitySnapshot.active_sessions,
+            activeTransactions,
+        };
+
+        setSessionActivityPoints((prev) => [...prev.slice(-59), point]);
+    }, [activeTab, sessionActivitySnapshot]);
+
+    const sessionActivityChartModel = useMemo(() => {
+        const width = 860;
+        const height = 260;
+        const axis = {left: 56, right: 24, top: 20, bottom: 44};
+        const innerWidth = width - axis.left - axis.right;
+        const innerHeight = height - axis.top - axis.bottom;
+
+        if (sessionActivityPoints.length === 0) {
+            return {
+                width,
+                height,
+                axis,
+                lines: { totalSessions: '', activeSessions: '', activeTransactions: '' },
+                yTicks: [0, 1, 2, 3, 4],
+                xTickLabels: [] as Array<{ x: number; label: string }>,
+                maxValue: 0,
+            };
+        }
+
+        const values = sessionActivityPoints.flatMap((p) => [p.totalSessions, p.activeSessions, p.activeTransactions]);
+        const maxValue = Math.max(...values, 1);
+
+        const buildPolyline = (key: keyof Omit<SessionActivityChartPoint, 'timestamp'>) =>
+            sessionActivityPoints
+                .map((point, index) => {
+                    const x = axis.left + (index / Math.max(sessionActivityPoints.length - 1, 1)) * innerWidth;
+                    const y = axis.top + innerHeight - ((point[key] as number) / maxValue) * innerHeight;
+                    return `${x},${y}`;
+                })
+                .join(' ');
+
+        const yTicks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(maxValue * part));
+        const xTickIndexes = [0, 0.5, 1]
+            .map((part) => Math.round((sessionActivityPoints.length - 1) * part))
+            .filter((idx, pos, arr) => arr.indexOf(idx) === pos);
+
+        const xTickLabels = xTickIndexes.map((idx) => ({
+            x: axis.left + (idx / Math.max(sessionActivityPoints.length - 1, 1)) * innerWidth,
+            label: sessionActivityPoints[idx]?.timestamp ?? '',
+        }));
+
+        return {
+            width,
+            height,
+            axis,
+            lines: {
+                totalSessions: buildPolyline('totalSessions'),
+                activeSessions: buildPolyline('activeSessions'),
+                activeTransactions: buildPolyline('activeTransactions'),
+            },
+            yTicks,
+            xTickLabels,
+            maxValue,
+        };
+    }, [sessionActivityPoints]);
+
+    const activitySnapshotBars = useMemo(() => {
+        const users = (sessionActivitySnapshot?.users ?? []).slice(0, 8);
+        const maxValue = Math.max(
+            1,
+            ...users.map((item) => Math.max(item.active_transactions, item.active_sessions)),
+        );
+
+        return users.map((item) => ({
+            ...item,
+            txHeight: Math.max(6, Math.round((item.active_transactions / maxValue) * 140)),
+            sessionsHeight: Math.max(6, Math.round((item.active_sessions / maxValue) * 140)),
+        }));
+    }, [sessionActivitySnapshot]);
 
     const activityChartModel = useMemo(() => {
         const width = 860;
@@ -2042,6 +2143,34 @@ export default function ConnectionDetailPage() {
                                         : ''}
                                 </div>
                             </div>
+                            {visibleTabs.metrics && activeTab === 'metrics' && (
+                                <div className={clsx(styles.cardHeaderActions)}>
+                                    <button
+                                        className={clsx(styles.actionButton, styles.actionButton_primary)}
+                                        onClick={downloadConnectionSettings}
+                                        title="Скачать настройки"
+                                        disabled={deletingId === connection.id}
+                                    >
+                                        Скачать настройки
+                                    </button>
+                                    <button
+                                        className={clsx(styles.actionButton, styles.actionButton_primary)}
+                                        onClick={openEditModal}
+                                        title="Редактировать подключение"
+                                        disabled={deletingId === connection.id}
+                                    >
+                                        Редактировать
+                                    </button>
+                                    <button
+                                        className={clsx(styles.actionButton, styles.actionButton_delete)}
+                                        onClick={() => openDeleteConfirm(connection.id, connection.name || 'Без имени')}
+                                        title="Удалить подключение"
+                                        disabled={deletingId !== null}
+                                    >
+                                        Удалить
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <DetailTabNavigation
                             activeTab={activeTab}
@@ -2300,38 +2429,9 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {/* Кнопки действий - отображаются ТОЛЬКО на вкладке "Информация" */}
-                                            {visibleTabs.metrics && activeTab === 'metrics' && (
-                                                <div className={clsx(styles.cardFooter)}>
-                                                    <div className={clsx(styles.cardFooterRight)}>
-                                                        <button
-                                                            className={clsx(styles.actionButton, styles.actionButton_primary)}
-                                                            onClick={downloadConnectionSettings}
-                                                            title="Скачать настройки"
-                                                            disabled={deletingId === connection.id}
-                                                        >
-                                                            Скачать настройки
-                                                        </button>
-                                                        <button
-                                                            className={clsx(styles.actionButton, styles.actionButton_primary)}
-                                                            onClick={openEditModal}
-                                                            title="Редактировать подключение"
-                                                            disabled={deletingId === connection.id}
-                                                        >
-                                                            Редактировать
-                                                        </button>
-                                                        <button
-                                                            className={clsx(styles.actionButton, styles.actionButton_delete)}
-                                                            onClick={() => openDeleteConfirm(connection.id, connection.name || 'Без имени')}
-                                                            title="Удалить подключение"
-                                                            disabled={deletingId !== null}
-                                                        >
-                                                            Удалить
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </>
+
+
+                                                                                    </>
                                     ) : (
                                         <div className={clsx(styles.metricsEmpty)}>
                                             <FontAwesomeIcon icon={faInfoCircle} size="3x"/>
@@ -3657,6 +3757,36 @@ export default function ConnectionDetailPage() {
                                         </form>
                                     </div>
 
+                                    <div className={clsx(styles.activeSqlActivityCard)}>
+                                        <div className={clsx(styles.activeSqlActivityHeader)}>
+                                            <h3>График активности пользователей (activity_snapshot)</h3>
+                                            <span>Источник: GET /api/v1/db_connections/{'{'}connection_id{'}'}/activity_snapshot</span>
+                                        </div>
+
+                                        {loadingSessionActivity && !sessionActivitySnapshot ? (
+                                            <div className={clsx(styles.metricsSmallMuted)}>Загрузка activity snapshot...</div>
+                                        ) : sessionActivityError ? (
+                                            <div className={clsx(styles.errorMessage)}>{sessionActivityError}</div>
+                                        ) : activitySnapshotBars.length === 0 ? (
+                                            <div className={clsx(styles.metricsSmallMuted)}>Нет данных по активным пользователям.</div>
+                                        ) : (
+                                            <div className={clsx(styles.activeSqlBarsWrap)}>
+                                                {activitySnapshotBars.map((item) => (
+                                                    <div key={item.username} className={clsx(styles.activeSqlUserBar)}>
+                                                        <div className={clsx(styles.activeSqlBarPair)}>
+                                                            <div className={clsx(styles.activeSqlBar, styles.activeSqlBarSessions)} style={{ height: `${item.sessionsHeight}px` }} title={`Активные сессии: ${item.active_sessions}`} />
+                                                            <div className={clsx(styles.activeSqlBar, styles.activeSqlBarTransactions)} style={{ height: `${item.txHeight}px` }} title={`Активные транзакции: ${item.active_transactions}`} />
+                                                        </div>
+                                                        <div className={clsx(styles.activeSqlBarMeta)}>
+                                                            <span className={clsx(styles.activeSqlUserName)}>{item.username}</span>
+                                                            <span>S:{item.active_sessions} / Tx:{item.active_transactions}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {loadingActiveQueries ? (
                                         <div className={clsx(styles.usersLoading)}>
                                             <div className={clsx(styles.spinner)}>
@@ -3730,6 +3860,69 @@ export default function ConnectionDetailPage() {
                                             {(activeQueriesError || error) && <p className={clsx(styles.errorMessage)}>{activeQueriesError || error}</p>}
                                         </div>
                                     )}
+                                </div>
+
+                            )}
+                            {visibleTabs.monitoring && activeTab === 'monitoring' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.metricsWideCard)}>
+                                        <div className={clsx(styles.metricsCardHeader)}>
+                                            <FontAwesomeIcon icon={faChartLine} className={clsx(styles.metricsCardIcon)}/>
+                                            <h3 className={clsx(styles.metricsCardTitle)}>Транзакционная активность и сессии (live)</h3>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.metricsInlineRefresh)}
+                                                onClick={() => setSessionActivityReloadTrigger((prev) => prev + 1)}
+                                                title="Обновить график"
+                                            >
+                                                <FontAwesomeIcon icon={faArrowsRotate}/> Обновить
+                                            </button>
+                                        </div>
+                                        <div className={clsx(styles.metricsCardContent)}>
+                                            {loadingSessionActivity && sessionActivityPoints.length === 0 ? (
+                                                <div className={clsx(styles.metricsSmallMuted)}>Загрузка данных активности...</div>
+                                            ) : sessionActivityError ? (
+                                                <div className={clsx(styles.errorMessage)}>{sessionActivityError}</div>
+                                            ) : (
+                                                <>
+                                                    <div className={clsx(styles.metricsChartLegend)}>
+                                                        <span><i className={clsx(styles.legendDot, styles.legendDotTotal)}/>Все сессии: {sessionActivitySnapshot?.sessions_total ?? 0}</span>
+                                                        <span><i className={clsx(styles.legendDot, styles.legendDotActive)}/>Активные сессии: {sessionActivitySnapshot?.active_sessions ?? 0}</span>
+                                                        <span><i className={clsx(styles.legendDot, styles.legendDotTx)}/>Активные транзакции: {sessionActivitySnapshot?.users.reduce((sum, user) => sum + user.active_transactions, 0) ?? 0}</span>
+                                                    </div>
+                                                    <svg viewBox={`0 0 ${sessionActivityChartModel.width} ${sessionActivityChartModel.height}`} className={clsx(styles.metricsLineChart)} role="img" aria-label="График активности сессий и транзакций">
+                                                        {sessionActivityChartModel.yTicks.map((tick) => {
+                                                            const y = sessionActivityChartModel.axis.top + (sessionActivityChartModel.height - sessionActivityChartModel.axis.top - sessionActivityChartModel.axis.bottom) - (tick / Math.max(sessionActivityChartModel.maxValue, 1)) * (sessionActivityChartModel.height - sessionActivityChartModel.axis.top - sessionActivityChartModel.axis.bottom);
+                                                            return (
+                                                                <g key={`session-y-${tick}`}>
+                                                                    <line x1={sessionActivityChartModel.axis.left} y1={y} x2={sessionActivityChartModel.width - sessionActivityChartModel.axis.right} y2={y} className={clsx(styles.chartGridLine)} />
+                                                                    <text x={sessionActivityChartModel.axis.left - 8} y={y + 4} className={clsx(styles.chartAxisLabel)}>{tick}</text>
+                                                                </g>
+                                                            );
+                                                        })}
+                                                        <polyline points={sessionActivityChartModel.lines.totalSessions} className={clsx(styles.chartLineTotal)} />
+                                                        <polyline points={sessionActivityChartModel.lines.activeSessions} className={clsx(styles.chartLineActive)} />
+                                                        <polyline points={sessionActivityChartModel.lines.activeTransactions} className={clsx(styles.chartLineTransactions)} />
+                                                        {sessionActivityChartModel.xTickLabels.map((tick) => (
+                                                            <text key={`session-x-${tick.label}`} x={tick.x} y={sessionActivityChartModel.height - 12} className={clsx(styles.chartAxisLabel)} textAnchor="middle">{tick.label}</text>
+                                                        ))}
+                                                    </svg>
+
+                                                    <div className={clsx(styles.metricsUsersTable)}>
+                                                        <div className={clsx(styles.metricsUsersHeader)}>Top пользователей по транзакциям</div>
+                                                        {(sessionActivitySnapshot?.users ?? []).map((item) => (
+                                                            <div key={item.username} className={clsx(styles.metricsUsersRow)}>
+                                                                <span className={clsx(styles.metricsUsersName)}>{item.username}</span>
+                                                                <span>Сессий: {item.sessions_total}</span>
+                                                                <span>Активных: {item.active_sessions}</span>
+                                                                <span>Tx: {item.active_transactions}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>

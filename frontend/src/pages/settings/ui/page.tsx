@@ -28,6 +28,7 @@ export default function SettingsPage() {
     procedures: t('tabs.procedures'),
     active_sql: t('tabs.transactions'),
     sql_query: t('tabs.query'),
+    monitoring: t('tabs.monitoring'),
   };
 
   useEffect(() => {

@@ -41,6 +41,22 @@ class AllDatabaseMetricsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserActivitySnapshot(BaseModel):
+    username: str
+    sessions_total: int
+    active_sessions: int
+    active_transactions: int
+
+
+class ActivitySnapshotResponse(BaseModel):
+    sessions_total: int
+    active_sessions: int
+    idle_in_transaction_sessions: int
+    lock_waiting_sessions: int
+    longest_transaction_seconds: float
+    users: list[UserActivitySnapshot]
+
+
 class ShowAllItem(BaseModel):
     name: str
     setting: str

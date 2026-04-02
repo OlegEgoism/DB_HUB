@@ -14,11 +14,7 @@ class AppSettingsService:
         settings = result.scalar_one_or_none()
 
         if settings is None:
-            default_visibility = ConnectionTabsVisibility()
-            settings = ConnectionTabSettings(user_id=user_id, tabs_visibility=default_visibility.model_dump())
-            self.db.add(settings)
-            await self.db.flush()
-            return default_visibility
+            return ConnectionTabsVisibility()
 
         return ConnectionTabsVisibility(**(settings.tabs_visibility or {}))
 

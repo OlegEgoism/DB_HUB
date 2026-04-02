@@ -12,6 +12,7 @@ export const CONNECTION_TAB_OPTIONS = [
   { key: 'procedures', label: 'Процедуры' },
   { key: 'active_sql', label: 'Транзакции' },
   { key: 'sql_query', label: 'SQL' },
+  { key: 'monitoring', label: 'Мониторинг' },
 ] as const;
 
 export type ConnectionTabKey = (typeof CONNECTION_TAB_OPTIONS)[number]['key'];

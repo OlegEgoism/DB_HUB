@@ -393,6 +393,7 @@ export const translations = {
     'tabs.procedures': 'Процедуры',
     'tabs.transactions': 'Транзакции',
     'tabs.query': 'SQL-запрос',
+    'tabs.monitoring': 'Мониторинг',
 
     'login.close': 'Закрыть окно авторизации',
     'login.welcome': 'Добро пожаловать!',
@@ -838,6 +839,7 @@ export const translations = {
     'tabs.procedures': 'Procedures',
     'tabs.transactions': 'Transactions',
     'tabs.query': 'SQL Query',
+    'tabs.monitoring': 'Monitoring',
 
     'login.close': 'Close login modal',
     'login.welcome': 'Welcome!',

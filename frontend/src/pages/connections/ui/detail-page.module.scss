@@ -153,6 +153,23 @@
   min-width: 0;
 }
 
+
+
+.cardHeaderActions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+
+  @media (max-width: 1200px) {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+    margin-top: 12px;
+  }
+}
 .cardTitleRow {
   display: flex;
   align-items: center;
@@ -1892,3 +1909,183 @@
 .activityChartLine_update { color: #f59e0b; stroke: #f59e0b; }
 .activityChartLine_delete { color: #dc2626; stroke: #dc2626; }
 .activityChartLine_other { color: #6b7280; stroke: #6b7280; }
+
+.metricsWideCard {
+  grid-column: 1 / -1;
+  background: var(--color-surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.metricsInlineRefresh {
+  margin-left: auto;
+  border: 1px solid var(--border-glass);
+  background: white;
+  color: var(--color-text-main);
+  border-radius: 8px;
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metricsSmallMuted {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.metricsChartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.legendDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.legendDotTotal { background: #2f80ed; }
+.legendDotActive { background: #27ae60; }
+.legendDotTx { background: #9b51e0; }
+
+.metricsLineChart {
+  width: 100%;
+  min-height: 260px;
+}
+
+.chartGridLine {
+  stroke: rgba(0,0,0,0.08);
+  stroke-width: 1;
+}
+
+.chartAxisLabel {
+  fill: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.chartLineTotal,
+.chartLineActive,
+.chartLineTransactions {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chartLineTotal { stroke: #2f80ed; }
+.chartLineActive { stroke: #27ae60; }
+.chartLineTransactions { stroke: #9b51e0; }
+
+.metricsUsersTable {
+  margin-top: 12px;
+  border-top: 1px solid var(--border-glass);
+  padding-top: 12px;
+}
+
+.metricsUsersHeader {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.metricsUsersRow {
+  display: grid;
+  grid-template-columns: 1.5fr repeat(3, 1fr);
+  gap: 8px;
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border-glass);
+}
+
+.metricsUsersName {
+  font-weight: 600;
+}
+
+.activeSqlActivityCard {
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+  background: rgba($clr-indigo-500, 0.02);
+}
+
+.activeSqlActivityHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  h3 {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  span {
+    color: var(--color-text-muted);
+    font-size: 12px;
+  }
+}
+
+.activeSqlBarsWrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.activeSqlUserBar {
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  padding: 8px;
+  background: white;
+}
+
+.activeSqlBarPair {
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+}
+
+.activeSqlBar {
+  width: 24px;
+  border-radius: 6px 6px 0 0;
+}
+
+.activeSqlBarSessions {
+  background: #2f80ed;
+}
+
+.activeSqlBarTransactions {
+  background: #9b51e0;
+}
+
+.activeSqlBarMeta {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activeSqlUserName {
+  font-size: 12px;
+  color: var(--color-text-main);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

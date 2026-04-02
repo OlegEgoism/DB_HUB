@@ -261,3 +261,62 @@ class DBMetricsService:
                 return [{"name": r["name"], "setting": r["setting"]} for r in rows]
         except Exception as e:
             raise Exception("Не удалось получить настройки базы данных") from e
+
+
+    @staticmethod
+    async def get_activity_snapshot(connection: DB_Connection) -> dict[str, Any]:
+        """Снимок активности сессий и транзакций пользователей (PostgreSQL/Greenplum)."""
+        try:
+            async with external_db_connection(connection) as conn:
+                overview_row = await conn.fetchrow(
+                    """
+                    SELECT
+                        COUNT(*)::int AS sessions_total,
+                        COUNT(*) FILTER (WHERE state = 'active')::int AS active_sessions,
+                        COUNT(*) FILTER (WHERE state = 'idle in transaction')::int AS idle_in_transaction_sessions,
+                        COUNT(*) FILTER (WHERE wait_event_type = 'Lock')::int AS lock_waiting_sessions,
+                        COALESCE(
+                            MAX(EXTRACT(EPOCH FROM (now() - xact_start))) FILTER (WHERE xact_start IS NOT NULL),
+                            0
+                        )::float AS longest_transaction_seconds
+                    FROM pg_stat_activity
+                    WHERE pid <> pg_backend_pid();
+                    """
+                )
+
+                user_rows = await conn.fetch(
+                    """
+                    SELECT
+                        COALESCE(NULLIF(usename, ''), '[system process]') AS username,
+                        COUNT(*)::int AS sessions_total,
+                        COUNT(*) FILTER (WHERE state = 'active')::int AS active_sessions,
+                        COUNT(*) FILTER (
+                            WHERE xact_start IS NOT NULL
+                              AND state IS DISTINCT FROM 'idle'
+                        )::int AS active_transactions
+                    FROM pg_stat_activity
+                    WHERE pid <> pg_backend_pid()
+                    GROUP BY COALESCE(NULLIF(usename, ''), '[system process]')
+                    ORDER BY active_transactions DESC, active_sessions DESC, sessions_total DESC, username ASC
+                    LIMIT 10;
+                    """
+                )
+
+                return {
+                    "sessions_total": overview_row["sessions_total"] if overview_row else 0,
+                    "active_sessions": overview_row["active_sessions"] if overview_row else 0,
+                    "idle_in_transaction_sessions": overview_row["idle_in_transaction_sessions"] if overview_row else 0,
+                    "lock_waiting_sessions": overview_row["lock_waiting_sessions"] if overview_row else 0,
+                    "longest_transaction_seconds": float(overview_row["longest_transaction_seconds"]) if overview_row else 0.0,
+                    "users": [
+                        {
+                            "username": row["username"],
+                            "sessions_total": row["sessions_total"],
+                            "active_sessions": row["active_sessions"],
+                            "active_transactions": row["active_transactions"],
+                        }
+                        for row in user_rows
+                    ],
+                }
+        except Exception as e:
+            raise Exception("Не удалось получить срез активности сессий и транзакций") from e
