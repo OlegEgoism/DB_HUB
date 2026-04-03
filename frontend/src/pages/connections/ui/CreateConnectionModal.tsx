@@ -100,7 +100,7 @@ export function CreateConnectionModal({
                         <button className={clsx(styles.modal__successButton)} onClick={onClose}>OK</button>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className={clsx(styles.modal__form)}>
+                    <form onSubmit={handleSubmit} className={clsx(styles.modal__form)} autoComplete="off">
                         {error && <div className={clsx(styles.modal__error)}>{getErrorMessage()}</div>}
 
                         <div className={clsx(styles.modal__formGroup)}>
@@ -169,6 +169,8 @@ export function CreateConnectionModal({
                                         className={clsx(styles.modal__input)}
                                         placeholder="username"
                                         disabled={loading}
+                                        autoComplete="off"
+                                        data-lpignore="true"
                                     />
                                 </div>
                                 <div className={clsx(styles.modal__dualColumn)}>
@@ -183,6 +185,8 @@ export function CreateConnectionModal({
                                             className={clsx(styles.modal__input)}
                                             placeholder="Введите пароль"
                                             disabled={loading}
+                                            autoComplete="new-password"
+                                            data-lpignore="true"
                                         />
                                         <button type="button" className={clsx(styles.modal__togglePassword)} onClick={togglePasswordVisibility} disabled={loading}>
                                             <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye}/>
