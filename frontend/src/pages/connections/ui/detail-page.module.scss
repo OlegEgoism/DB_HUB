@@ -1259,7 +1259,8 @@
 .groupUsersManager__toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
   flex-wrap: nowrap;
 }
 
@@ -1273,16 +1274,16 @@
   min-width: 260px;
 }
 
-.groupUsersManager__select {
-  width: 220px;
-  min-width: 220px;
-  flex: 0 0 220px;
-}
-
 .groupUsersManager__addButton {
   min-height: 40px;
   padding: 10px 20px;
   flex-shrink: 0;
+}
+
+.groupUsersManager__hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 1100px) {
@@ -1298,10 +1299,8 @@
     min-width: 220px;
   }
 
-  .groupUsersManager__select {
-    width: 220px;
-    min-width: 220px;
-    flex: 0 0 220px;
+  .groupUsersManager__toolbar {
+    align-items: stretch;
   }
 }
 
@@ -1315,7 +1314,6 @@
 .groupUsersManager__memberRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
   border-radius: 12px;
@@ -1323,11 +1321,25 @@
   background: white;
 }
 
+.groupUsersManager__checkboxLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.groupUsersManager__checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
 .groupUsersManager__memberInfo {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 3px;
+  flex: 1;
 }
 
 .groupUsersManager__memberName {

@@ -23,7 +23,6 @@ import {
     faChevronCircleLeft,
     faChevronCircleRight,
     faPencilAlt,
-    faUserMinus,
     faUserPlus,
     faLayerGroup,
     faSitemap,
@@ -195,7 +194,7 @@ export default function ConnectionDetailPage() {
     const [groupUsers, setGroupUsers] = useState<GroupUser[]>([]);
     const [allUsersForGroup, setAllUsersForGroup] = useState<GroupUser[]>([]);
     const [groupUserCountOverrides, setGroupUserCountOverrides] = useState<Record<number, number>>({});
-    const [selectedUserOid, setSelectedUserOid] = useState('');
+    const [selectedGroupUserOids, setSelectedGroupUserOids] = useState<number[]>([]);
     const [groupUserSearchQuery, setGroupUserSearchQuery] = useState('');
     const [groupUsersLoading, setGroupUsersLoading] = useState(false);
     const [groupUsersSaving, setGroupUsersSaving] = useState(false);
@@ -1241,8 +1240,10 @@ export default function ConnectionDetailPage() {
             const groupData = await groupResponse.json();
             const usersData = await usersResponse.json();
 
-            setGroupUsers(groupData.users || []);
+            const usersInGroup = groupData.users || [];
+            setGroupUsers(usersInGroup);
             setAllUsersForGroup(usersData.items || []);
+            setSelectedGroupUserOids(usersInGroup.map((user: GroupUser) => user.oid));
         } catch (err) {
             console.error('Ошибка при загрузке пользователей группы:', err);
             setError(err instanceof Error ? err.message : 'Не удалось загрузить пользователей группы');
@@ -1253,7 +1254,7 @@ export default function ConnectionDetailPage() {
 
     const openGroupUsersModal = async (group: { oid: number; name: string; user_count?: number }) => {
         setGroupUsersModal({oid: group.oid, name: group.name, userCount: groupUserCountOverrides[group.oid] ?? group.user_count ?? 0});
-        setSelectedUserOid('');
+        setSelectedGroupUserOids([]);
         setGroupUserSearchQuery('');
         setGroupUsers([]);
         setAllUsersForGroup([]);
@@ -1265,57 +1266,38 @@ export default function ConnectionDetailPage() {
         setGroupUsersModal(null);
         setGroupUsers([]);
         setAllUsersForGroup([]);
-        setSelectedUserOid('');
+        setSelectedGroupUserOids([]);
         setGroupUserSearchQuery('');
     };
 
-    const addUserToGroup = async () => {
-        if (!groupUsersModal || !selectedUserOid) return;
+    const toggleGroupUserSelection = (userOid: number) => {
+        setSelectedGroupUserOids((prev) => (
+            prev.includes(userOid) ? prev.filter((oid) => oid !== userOid) : [...prev, userOid]
+        ));
+    };
 
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
+    const updateGroupUserMembership = async (userOid: number, action: 'add_user' | 'remove_user', token: string) => {
+        if (!groupUsersModal) return;
 
-        setGroupUsersSaving(true);
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups/${groupUsersModal.oid}/add_user`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({user_oid: Number(selectedUserOid)}),
-            });
+        const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups/${groupUsersModal.oid}/${action}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({user_oid: userOid}),
+        });
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData?.detail || 'Не удалось добавить пользователя в группу');
-            }
-
-            const addedUserOid = Number(selectedUserOid);
-            const alreadyInGroup = groupUsers.some((user) => user.oid === addedUserOid);
-            const addedUser = allUsersForGroup.find((user) => user.oid === addedUserOid);
-            if (addedUser) {
-                setGroupUsers((prev) => (prev.some((user) => user.oid === addedUserOid) ? prev : [...prev, addedUser]));
-            }
-            if (!alreadyInGroup) {
-                setGroupUserCountOverrides((prev) => {
-                    const currentCount = prev[groupUsersModal.oid] ?? groupUsersModal.userCount;
-                    return {...prev, [groupUsersModal.oid]: currentCount + 1};
-                });
-            }
-            setSelectedUserOid('');
-        } catch (err) {
-            console.error('Ошибка при добавлении пользователя в группу:', err);
-            setError(err instanceof Error ? err.message : 'Не удалось добавить пользователя в группу');
-        } finally {
-            setGroupUsersSaving(false);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const fallbackMessage = action === 'add_user'
+                ? 'Не удалось добавить пользователя в группу'
+                : 'Не удалось удалить пользователя из группы';
+            throw new Error(errData?.detail || fallbackMessage);
         }
     };
 
-    const removeUserFromGroup = async (userOid: number) => {
+    const saveGroupUsersSelection = async () => {
         if (!groupUsersModal) return;
 
         const token = localStorage.getItem('access_token');
@@ -1324,40 +1306,32 @@ export default function ConnectionDetailPage() {
             return;
         }
 
+        const previousUserOids = new Set(groupUsers.map((user) => user.oid));
+        const selectedUserOidsSet = new Set(selectedGroupUserOids);
+        const usersToAdd = selectedGroupUserOids.filter((userOid) => !previousUserOids.has(userOid));
+        const usersToRemove = groupUsers
+            .map((user) => user.oid)
+            .filter((userOid) => !selectedUserOidsSet.has(userOid));
+
+        if (usersToAdd.length === 0 && usersToRemove.length === 0) return;
+
         setGroupUsersSaving(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups/${groupUsersModal.oid}/remove_user`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({user_oid: userOid}),
-            });
+            await Promise.all(usersToAdd.map((userOid) => updateGroupUserMembership(userOid, 'add_user', token)));
+            await Promise.all(usersToRemove.map((userOid) => updateGroupUserMembership(userOid, 'remove_user', token)));
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData?.detail || 'Не удалось удалить пользователя из группы');
-            }
-
-            const userExists = groupUsers.some((user) => user.oid === userOid);
-            setGroupUsers((prev) => prev.filter((user) => user.oid !== userOid));
-            if (userExists) {
-                setGroupUserCountOverrides((prev) => {
-                    const currentCount = prev[groupUsersModal.oid] ?? groupUsersModal.userCount;
-                    return {...prev, [groupUsersModal.oid]: Math.max(0, currentCount - 1)};
-                });
-            }
+            const updatedUsers = allUsersForGroup.filter((user) => selectedUserOidsSet.has(user.oid));
+            setGroupUsers(updatedUsers);
+            setGroupUserCountOverrides((prev) => ({...prev, [groupUsersModal.oid]: updatedUsers.length}));
         } catch (err) {
-            console.error('Ошибка при удалении пользователя из группы:', err);
-            setError(err instanceof Error ? err.message : 'Не удалось удалить пользователя из группы');
+            console.error('Ошибка при сохранении пользователей группы:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось сохранить состав группы');
         } finally {
             setGroupUsersSaving(false);
         }
     };
 
-    const availableUsersForAdd = allUsersForGroup.filter((user) => !groupUsers.some((groupUser) => groupUser.oid === user.oid));
-    const filteredAvailableUsersForAdd = availableUsersForAdd.filter((user) => user.name.toLowerCase().includes(groupUserSearchQuery.trim().toLowerCase()));
+    const filteredUsersForGroupManagement = allUsersForGroup.filter((user) => user.name.toLowerCase().includes(groupUserSearchQuery.trim().toLowerCase()));
     const filteredTableGroupsForm = tableGroupsForm.filter((group) => group.group.toLowerCase().includes(tableGroupSearchQuery.trim().toLowerCase()));
     const filteredViewGroupsForm = viewGroupsForm.filter((group) => group.role.toLowerCase().includes(viewGroupSearchQuery.trim().toLowerCase()));
 
@@ -4781,7 +4755,6 @@ export default function ConnectionDetailPage() {
                         <div className={clsx(groupModalStyles.modal__form, styles.groupUsersManager)}>
                             <div className={clsx(groupModalStyles.modal__formGroup, styles.groupUsersManager__controls)}>
                                 <div className={clsx(styles.groupUsersManager__toolbar)}>
-                                    {/*<label className={clsx(groupModalStyles.modal__label, styles.groupUsersManager__label)} htmlFor="groupUserSearch">Добавить пользователя</label>*/}
                                     <div className={clsx(styles.usersSearchWrapper, styles.groupUsersManager__search)}>
                                         <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                         <input
@@ -4791,7 +4764,7 @@ export default function ConnectionDetailPage() {
                                             value={groupUserSearchQuery}
                                             onChange={(e) => setGroupUserSearchQuery(e.target.value)}
                                             className={clsx(styles.usersSearchInput)}
-                                            disabled={groupUsersLoading || groupUsersSaving || availableUsersForAdd.length === 0}
+                                            disabled={groupUsersLoading || groupUsersSaving || allUsersForGroup.length === 0}
                                         />
                                         {groupUserSearchQuery && (
                                             <button
@@ -4804,27 +4777,18 @@ export default function ConnectionDetailPage() {
                                             </button>
                                         )}
                                     </div>
-                                    <select
-                                        id="groupUserSelect"
-                                        className={clsx(styles.usersFilterSelect, styles.groupUsersManager__select)}
-                                        value={selectedUserOid}
-                                        onChange={(e) => setSelectedUserOid(e.target.value)}
-                                        disabled={groupUsersLoading || groupUsersSaving || filteredAvailableUsersForAdd.length === 0}
-                                    >
-                                        <option value="">{t('groups.users_manager.select_user')}</option>
-                                        {filteredAvailableUsersForAdd.map((user) => (
-                                            <option key={user.oid} value={user.oid}>{user.name}</option>
-                                        ))}
-                                    </select>
                                     <button
                                         type="button"
                                         className={clsx(styles.createUserButton, styles.groupUsersManager__addButton)}
-                                        onClick={addUserToGroup}
-                                        disabled={!selectedUserOid || groupUsersSaving || groupUsersLoading}
+                                        onClick={saveGroupUsersSelection}
+                                        disabled={groupUsersSaving || groupUsersLoading}
                                     >
-                                        {t('groups.users_manager.add_to_group')}
+                                        {groupUsersSaving ? <><FontAwesomeIcon icon={faSpinner} spin/> {t('groups.saving')}</> : t('groups.save')}
                                     </button>
                                 </div>
+                                <p className={clsx(styles.groupUsersManager__hint)}>
+                                    {t('groups.users_manager.selection_hint')}
+                                </p>
                             </div>
 
                             {groupUsersLoading ? (
@@ -4836,26 +4800,26 @@ export default function ConnectionDetailPage() {
                                 </div>
                             ) : (
                                 <div className={clsx(styles.groupUsersManager__list)}>
-                                    {groupUsers.length > 0 ? groupUsers.map((user) => (
+                                    {filteredUsersForGroupManagement.length > 0 ? filteredUsersForGroupManagement.map((user) => (
                                         <div key={user.oid} className={clsx(styles.groupUsersManager__memberRow)}>
+                                            <label className={clsx(styles.groupUsersManager__checkboxLabel)}>
+                                                <input
+                                                    type="checkbox"
+                                                    className={clsx(styles.groupUsersManager__checkbox)}
+                                                    checked={selectedGroupUserOids.includes(user.oid)}
+                                                    onChange={() => toggleGroupUserSelection(user.oid)}
+                                                    disabled={groupUsersSaving}
+                                                />
+                                            </label>
                                             <div className={clsx(styles.groupUsersManager__memberInfo)}>
                                                 <h3 className={clsx(styles.groupUsersManager__memberName)}>{user.name}</h3>
                                                 <span className={clsx(styles.groupUsersManager__memberMeta)}>OID: {user.oid}</span>
                                             </div>
-                                            <button
-                                                type="button"
-                                                className={clsx(styles.userActionButton, styles.userActionButton_delete, styles.groupUsersManager__memberRemove)}
-                                                onClick={() => removeUserFromGroup(user.oid)}
-                                                disabled={groupUsersSaving}
-                                                title={`Удалить ${user.name} из группы`}
-                                            >
-                                                <FontAwesomeIcon icon={faUserMinus}/>
-                                            </button>
                                         </div>
                                     )) : (
                                         <div className={clsx(styles.usersEmpty, styles.groupUsersManager__empty)}>
                                             <FontAwesomeIcon icon={faUsers} size="2x"/>
-                                            <p>{t('groups.users_manager.empty')}</p>
+                                            <p>{t('groups.users_manager.empty_filtered')}</p>
                                         </div>
                                     )}
                                 </div>
