@@ -66,6 +66,7 @@ const DEFAULT_API_BASE_URL =
         ? `${window.location.protocol}//${window.location.hostname}:8000`
         : 'http://localhost:8000';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
+const ACTIVE_SQL_DURATION_MAX_MS = 120000;
 
 const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring'];
 
@@ -267,8 +268,8 @@ export default function ConnectionDetailPage() {
     const [activeSqlPageSize, setActiveSqlPageSize] = useState(8);
     const [activeSqlUsernameQuery, setActiveSqlUsernameQuery] = useState('');
     const [activeSqlUsername, setActiveSqlUsername] = useState('');
-    const [activeSqlMinDuration, setActiveSqlMinDuration] = useState('');
-    const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState('');
+    const [activeSqlMinDuration, setActiveSqlMinDuration] = useState(0);
+    const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState(ACTIVE_SQL_DURATION_MAX_MS);
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
     const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
     const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
@@ -502,8 +503,8 @@ export default function ConnectionDetailPage() {
         activeSqlPage,
         activeSqlPageSize,
         activeSqlUsername || null,
-        activeSqlMinDuration.trim() ? Number(activeSqlMinDuration) : null,
-        activeSqlMaxDuration.trim() ? Number(activeSqlMaxDuration) : null,
+        activeSqlMinDuration > 0 ? activeSqlMinDuration : null,
+        activeSqlMaxDuration < ACTIVE_SQL_DURATION_MAX_MS ? activeSqlMaxDuration : null,
         activeSqlReloadTrigger,
     );
 
@@ -1621,8 +1622,8 @@ export default function ConnectionDetailPage() {
     const handleActiveSqlFilterClear = () => {
         setActiveSqlUsernameQuery('');
         setActiveSqlUsername('');
-        setActiveSqlMinDuration('');
-        setActiveSqlMaxDuration('');
+        setActiveSqlMinDuration(0);
+        setActiveSqlMaxDuration(ACTIVE_SQL_DURATION_MAX_MS);
         setActiveSqlPage(1);
     };
 
@@ -3804,22 +3805,47 @@ export default function ConnectionDetailPage() {
                                                     className={clsx(styles.usersSearchInput)}
                                                 />
                                             </div>
-                                            <input
-                                                type="number"
-                                                min={0}
-                                                placeholder={t('active_sql.filter.min_duration')}
-                                                value={activeSqlMinDuration}
-                                                onChange={(e) => setActiveSqlMinDuration(e.target.value)}
-                                                className={clsx(styles.activeSqlDurationInput)}
-                                            />
-                                            <input
-                                                type="number"
-                                                min={0}
-                                                placeholder={t('active_sql.filter.max_duration')}
-                                                value={activeSqlMaxDuration}
-                                                onChange={(e) => setActiveSqlMaxDuration(e.target.value)}
-                                                className={clsx(styles.activeSqlDurationInput)}
-                                            />
+                                            <div className={clsx(styles.activeSqlDurationSlider)}>
+                                                <div className={clsx(styles.activeSqlDurationSliderHeader)}>
+                                                    <span>Длительность запроса (мс)</span>
+                                                    <span>{activeSqlMinDuration} — {activeSqlMaxDuration}</span>
+                                                </div>
+                                                <div className={clsx(styles.activeSqlDurationSliderTrackWrap)}>
+                                                    <div className={clsx(styles.activeSqlDurationSliderTrack)} />
+                                                    <div
+                                                        className={clsx(styles.activeSqlDurationSliderRange)}
+                                                        style={{
+                                                            left: `${(activeSqlMinDuration / ACTIVE_SQL_DURATION_MAX_MS) * 100}%`,
+                                                            width: `${((activeSqlMaxDuration - activeSqlMinDuration) / ACTIVE_SQL_DURATION_MAX_MS) * 100}%`,
+                                                        }}
+                                                    />
+                                                    <input
+                                                        type="range"
+                                                        min={0}
+                                                        max={ACTIVE_SQL_DURATION_MAX_MS}
+                                                        step={500}
+                                                        value={activeSqlMinDuration}
+                                                        onChange={(e) => setActiveSqlMinDuration(Math.min(Number(e.target.value), activeSqlMaxDuration - 500))}
+                                                        className={clsx(styles.activeSqlDurationSliderInput, styles.activeSqlDurationSliderInputMin)}
+                                                        aria-label={t('active_sql.filter.min_duration')}
+                                                    />
+                                                    <input
+                                                        type="range"
+                                                        min={0}
+                                                        max={ACTIVE_SQL_DURATION_MAX_MS}
+                                                        step={500}
+                                                        value={activeSqlMaxDuration}
+                                                        onChange={(e) => setActiveSqlMaxDuration(Math.max(Number(e.target.value), activeSqlMinDuration + 500))}
+                                                        className={clsx(styles.activeSqlDurationSliderInput, styles.activeSqlDurationSliderInputMax)}
+                                                        aria-label={t('active_sql.filter.max_duration')}
+                                                    />
+                                                </div>
+                                                <div className={clsx(styles.activeSqlDurationSliderTicks)}>
+                                                    {[0, 30000, 60000, 90000, 120000].map((tick) => (
+                                                        <span key={`active-duration-tick-${tick}`}>{tick / 1000}s</span>
+                                                    ))}
+                                                </div>
+                                            </div>
                                             <button type="submit" className={clsx(styles.usersSearchButton)}>{t('active_sql.filter.apply')}</button>
                                             <button type="button" className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)} onClick={handleActiveSqlFilterClear}>{t('active_sql.filter.reset')}</button>
                                             <button

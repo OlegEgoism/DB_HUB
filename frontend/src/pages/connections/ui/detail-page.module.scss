@@ -1760,6 +1760,113 @@
   }
 }
 
+.activeSqlDurationSlider {
+  width: min(360px, 100%);
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.04);
+  padding: 10px 12px;
+}
+
+.activeSqlDurationSliderHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: #334155;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.activeSqlDurationSliderTrackWrap {
+  position: relative;
+  height: 26px;
+}
+
+.activeSqlDurationSliderTrack {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.activeSqlDurationSliderRange {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+.activeSqlDurationSliderInput {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 26px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+
+  &::-webkit-slider-runnable-track {
+    appearance: none;
+    background: transparent;
+    height: 6px;
+  }
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: 6px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    background: #4f46e5;
+    box-shadow: 0 2px 8px rgba(67, 56, 202, 0.35);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  &::-moz-range-track {
+    background: transparent;
+    border: 0;
+  }
+
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    background: #4f46e5;
+    box-shadow: 0 2px 8px rgba(67, 56, 202, 0.35);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+}
+
+.activeSqlDurationSliderInputMin {
+  z-index: 2;
+}
+
+.activeSqlDurationSliderInputMax {
+  z-index: 3;
+}
+
+.activeSqlDurationSliderTicks {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  font-size: 11px;
+  color: #64748b;
+}
+
 .userItemInfoLabel_aligned {
   display: inline-block;
   min-width: 90px;
