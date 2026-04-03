@@ -4504,12 +4504,12 @@ export default function ConnectionDetailPage() {
                                                                 ))}
                                                             </div>
                                                         </div>
-                                                        <div className={clsx(styles.metricsTimelineTicks)}>
-                                                            <span>Период: {visibleSqlActivityPoints[0]?.timestamp ?? '—'} — {visibleSqlActivityPoints[visibleSqlActivityPoints.length - 1]?.timestamp ?? '—'}</span>
-                                                            <span>Min: {activityChartModel.minValue}</span>
-                                                            <span>Avg: {activityChartModel.avgValue}</span>
-                                                            <span>Max: {activityChartModel.maxValue}</span>
-                                                        </div>
+                                                        {/*<div className={clsx(styles.metricsTimelineTicks)}>*/}
+                                                        {/*    <span>Период: {visibleSqlActivityPoints[0]?.timestamp ?? '—'} — {visibleSqlActivityPoints[visibleSqlActivityPoints.length - 1]?.timestamp ?? '—'}</span>*/}
+                                                        {/*    <span>Min: {activityChartModel.minValue}</span>*/}
+                                                        {/*    <span>Avg: {activityChartModel.avgValue}</span>*/}
+                                                        {/*    <span>Max: {activityChartModel.maxValue}</span>*/}
+                                                        {/*</div>*/}
                                                     </>
                                                 ) : (
                                                     <div className={clsx(styles.metricsSmallMuted)}>
