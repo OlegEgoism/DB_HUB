@@ -235,6 +235,7 @@ export default function ConnectionDetailPage() {
     const [sessionActivityPoints, setSessionActivityPoints] = useState<SessionActivityChartPoint[]>([]);
     const [sessionActivityReloadTrigger, setSessionActivityReloadTrigger] = useState(0);
     const [sessionChartHoverIndex, setSessionChartHoverIndex] = useState<number | null>(null);
+    const [sessionChartWindowSize, setSessionChartWindowSize] = useState(30);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
 
@@ -597,6 +598,11 @@ export default function ConnectionDetailPage() {
         setSessionActivityPoints((prev) => [...prev.slice(-59), point]);
     }, [activeTab, sessionActivitySnapshot]);
 
+    const visibleSessionActivityPoints = useMemo(
+        () => sessionActivityPoints.slice(-sessionChartWindowSize),
+        [sessionActivityPoints, sessionChartWindowSize],
+    );
+
     const sessionActivityChartModel = useMemo(() => {
         const width = 860;
         const height = 260;
@@ -604,7 +610,7 @@ export default function ConnectionDetailPage() {
         const innerWidth = width - axis.left - axis.right;
         const innerHeight = height - axis.top - axis.bottom;
 
-        if (sessionActivityPoints.length === 0) {
+        if (visibleSessionActivityPoints.length === 0) {
             return {
                 width,
                 height,
@@ -616,13 +622,13 @@ export default function ConnectionDetailPage() {
             };
         }
 
-        const values = sessionActivityPoints.flatMap((p) => [p.totalSessions, p.activeSessions, p.activeTransactions]);
+        const values = visibleSessionActivityPoints.flatMap((p) => [p.totalSessions, p.activeSessions, p.activeTransactions]);
         const maxValue = Math.max(...values, 1);
 
         const buildPolyline = (key: keyof Omit<SessionActivityChartPoint, 'timestamp'>) =>
-            sessionActivityPoints
+            visibleSessionActivityPoints
                 .map((point, index) => {
-                    const x = axis.left + (index / Math.max(sessionActivityPoints.length - 1, 1)) * innerWidth;
+                    const x = axis.left + (index / Math.max(visibleSessionActivityPoints.length - 1, 1)) * innerWidth;
                     const y = axis.top + innerHeight - ((point[key] as number) / maxValue) * innerHeight;
                     return `${x},${y}`;
                 })
@@ -630,12 +636,12 @@ export default function ConnectionDetailPage() {
 
         const yTicks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(maxValue * part));
         const xTickIndexes = [0, 0.5, 1]
-            .map((part) => Math.round((sessionActivityPoints.length - 1) * part))
+            .map((part) => Math.round((visibleSessionActivityPoints.length - 1) * part))
             .filter((idx, pos, arr) => arr.indexOf(idx) === pos);
 
         const xTickLabels = xTickIndexes.map((idx) => ({
-            x: axis.left + (idx / Math.max(sessionActivityPoints.length - 1, 1)) * innerWidth,
-            label: sessionActivityPoints[idx]?.timestamp ?? '',
+            x: axis.left + (idx / Math.max(visibleSessionActivityPoints.length - 1, 1)) * innerWidth,
+            label: visibleSessionActivityPoints[idx]?.timestamp ?? '',
         }));
 
         return {
@@ -651,19 +657,19 @@ export default function ConnectionDetailPage() {
             xTickLabels,
             maxValue,
         };
-    }, [sessionActivityPoints]);
+    }, [visibleSessionActivityPoints]);
 
     const hoveredSessionPoint = useMemo(() => {
         if (sessionChartHoverIndex === null) return null;
-        return sessionActivityPoints[sessionChartHoverIndex] ?? null;
-    }, [sessionChartHoverIndex, sessionActivityPoints]);
+        return visibleSessionActivityPoints[sessionChartHoverIndex] ?? null;
+    }, [sessionChartHoverIndex, visibleSessionActivityPoints]);
 
     const hoveredSessionPointX = useMemo(() => {
-        if (sessionChartHoverIndex === null || sessionActivityPoints.length === 0) return null;
+        if (sessionChartHoverIndex === null || visibleSessionActivityPoints.length === 0) return null;
         const chartInnerWidth = sessionActivityChartModel.width - sessionActivityChartModel.axis.left - sessionActivityChartModel.axis.right;
-        const safeIndex = Math.max(0, Math.min(sessionChartHoverIndex, sessionActivityPoints.length - 1));
-        return sessionActivityChartModel.axis.left + (safeIndex / Math.max(sessionActivityPoints.length - 1, 1)) * chartInnerWidth;
-    }, [sessionChartHoverIndex, sessionActivityChartModel, sessionActivityPoints.length]);
+        const safeIndex = Math.max(0, Math.min(sessionChartHoverIndex, visibleSessionActivityPoints.length - 1));
+        return sessionActivityChartModel.axis.left + (safeIndex / Math.max(visibleSessionActivityPoints.length - 1, 1)) * chartInnerWidth;
+    }, [sessionChartHoverIndex, sessionActivityChartModel, visibleSessionActivityPoints.length]);
 
     const activitySnapshotBars = useMemo(() => {
         const users = (sessionActivitySnapshot?.users ?? []).slice(0, 8);
@@ -3916,13 +3922,13 @@ export default function ConnectionDetailPage() {
                                                             aria-label="График активности сессий и транзакций"
                                                             onMouseLeave={() => setSessionChartHoverIndex(null)}
                                                             onMouseMove={(event) => {
-                                                                if (sessionActivityPoints.length === 0) return;
+                                                                if (visibleSessionActivityPoints.length === 0) return;
                                                                 const rect = event.currentTarget.getBoundingClientRect();
                                                                 const relativeX = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * sessionActivityChartModel.width;
                                                                 const chartInnerWidth = sessionActivityChartModel.width - sessionActivityChartModel.axis.left - sessionActivityChartModel.axis.right;
                                                                 const normalizedX = Math.max(0, Math.min(relativeX - sessionActivityChartModel.axis.left, chartInnerWidth));
-                                                                const idx = Math.round((normalizedX / Math.max(chartInnerWidth, 1)) * Math.max(sessionActivityPoints.length - 1, 1));
-                                                                setSessionChartHoverIndex(Math.max(0, Math.min(idx, sessionActivityPoints.length - 1)));
+                                                                const idx = Math.round((normalizedX / Math.max(chartInnerWidth, 1)) * Math.max(visibleSessionActivityPoints.length - 1, 1));
+                                                                setSessionChartHoverIndex(Math.max(0, Math.min(idx, visibleSessionActivityPoints.length - 1)));
                                                             }}
                                                         >
                                                             {sessionActivityChartModel.yTicks.map((tick) => {
@@ -3958,6 +3964,30 @@ export default function ConnectionDetailPage() {
                                                                 <div>Активные транзакции: <b>{hoveredSessionPoint.activeTransactions}</b></div>
                                                             </div>
                                                         )}
+                                                    </div>
+                                                    <div className={clsx(styles.metricsTimelineScale)}>
+                                                        <div className={clsx(styles.metricsTimelineScaleHeader)}>
+                                                            <span>Временная линия масштаба</span>
+                                                            <span>Окно: последние {sessionChartWindowSize} сек.</span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min={10}
+                                                            max={60}
+                                                            step={5}
+                                                            value={sessionChartWindowSize}
+                                                            onChange={(event) => {
+                                                                setSessionChartWindowSize(Number(event.target.value));
+                                                                setSessionChartHoverIndex(null);
+                                                            }}
+                                                            className={clsx(styles.metricsTimelineRange)}
+                                                            aria-label="Масштаб временной линии графика"
+                                                        />
+                                                        <div className={clsx(styles.metricsTimelineTicks)}>
+                                                            {[10, 20, 30, 40, 50, 60].map((tick) => (
+                                                                <span key={`timeline-tick-${tick}`}>{tick}s</span>
+                                                            ))}
+                                                        </div>
                                                     </div>
 
                                                     <div className={clsx(styles.metricsUsersTable)}>
