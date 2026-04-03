@@ -3013,6 +3013,12 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleTablesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.tables')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {totalTables}
+                                                </span>
+                                            </div>
                                             <select value={tablesFilterType} onChange={handleTablesFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
                                                 <option value="regular">{t('tables.filter.regular')}</option>
                                                 <option value="temporary">{t('tables.filter.temporary')}</option>
