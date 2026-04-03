@@ -14,6 +14,7 @@ class ConnectionTabsVisibility(BaseModel):
     active_sql: bool = True
     sql_query: bool = True
     monitoring: bool = True
+    sessions: bool = True
 
 
 class ConnectionTabSettingsResponse(BaseModel):

@@ -29,6 +29,7 @@ export default function SettingsPage() {
     active_sql: t('tabs.transactions'),
     sql_query: t('tabs.query'),
     monitoring: t('tabs.monitoring'),
+    sessions: t('tabs.sessions'),
   };
 
   useEffect(() => {

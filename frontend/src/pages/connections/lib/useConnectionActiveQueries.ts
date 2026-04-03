@@ -7,6 +7,11 @@ export interface ActiveQueryInfo {
   username: string | null;
   application_name: string | null;
   client_addr: string | null;
+  client_hostname: string | null;
+  client_port: number | null;
+  backend_start: string;
+  query_start: string | null;
+  state_change: string | null;
   state: string | null;
   query: string;
   duration_ms: number | null;
@@ -28,6 +33,7 @@ export function useConnectionActiveQueries(
   page: number = 1,
   size: number = 20,
   username: string | null = null,
+  state: string | null = null,
   minDurationMs: number | null = null,
   maxDurationMs: number | null = null,
   reloadTrigger: number = 0,
@@ -50,6 +56,7 @@ export function useConnectionActiveQueries(
           page,
           size,
           username: username?.trim(),
+          state: state?.trim(),
           min_duration_ms: minDurationMs,
           max_duration_ms: maxDurationMs,
         });
@@ -72,7 +79,7 @@ export function useConnectionActiveQueries(
     };
 
     fetchActiveQueries();
-  }, [connectionId, page, size, username, minDurationMs, maxDurationMs, reloadTrigger]);
+  }, [connectionId, page, size, username, state, minDurationMs, maxDurationMs, reloadTrigger]);
 
   return { activeQueries, loading, error, total, pages, hasNext, hasPrev };
 }

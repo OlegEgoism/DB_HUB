@@ -278,6 +278,7 @@ async def list_active_connections(
     page: int = Query(1, ge=1, description="Номер страницы, начиная с 1"),
     size: int = Query(20, ge=1, le=200, description="Количество записей на странице (1–200)"),
     username: str | None = Query(None, description="Поиск по имени пользователя"),
+    state: str | None = Query(None, description="Фильтр по состоянию сессии"),
     min_duration_ms: int | None = Query(None, ge=0, description="Минимальная длительность запроса в миллисекундах"),
     max_duration_ms: int | None = Query(None, ge=0, description="Максимальная длительность запроса в миллисекундах"),
 ):
@@ -289,6 +290,7 @@ async def list_active_connections(
             page=page,
             size=size,
             username=username,
+            state=state,
             min_duration_ms=min_duration_ms,
             max_duration_ms=max_duration_ms,
         )

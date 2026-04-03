@@ -394,6 +394,7 @@ export const translations = {
     'tabs.transactions': 'Транзакции',
     'tabs.query': 'SQL-запрос',
     'tabs.monitoring': 'Мониторинг',
+    'tabs.sessions': 'Сессии',
 
     'login.close': 'Закрыть окно авторизации',
     'login.welcome': 'Добро пожаловать!',
@@ -840,6 +841,7 @@ export const translations = {
     'tabs.transactions': 'Transactions',
     'tabs.query': 'SQL Query',
     'tabs.monitoring': 'Monitoring',
+    'tabs.sessions': 'Sessions',
 
     'login.close': 'Close login modal',
     'login.welcome': 'Welcome!',

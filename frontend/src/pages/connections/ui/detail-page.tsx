@@ -67,7 +67,7 @@ const DEFAULT_API_BASE_URL =
         : 'http://localhost:8000';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
-const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring'];
+const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring', 'sessions'];
 
 const isTabType = (value: string | null): value is TabType => value !== null && TAB_TYPE_VALUES.includes(value as TabType);
 
@@ -270,6 +270,12 @@ export default function ConnectionDetailPage() {
     const [activeSqlMinDuration, setActiveSqlMinDuration] = useState('');
     const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState('');
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
+    const [sessionsPage, setSessionsPage] = useState(1);
+    const [sessionsPageSize, setSessionsPageSize] = useState(8);
+    const [sessionsUsernameQuery, setSessionsUsernameQuery] = useState('');
+    const [sessionsUsername, setSessionsUsername] = useState('');
+    const [sessionsStateFilter, setSessionsStateFilter] = useState<'all' | 'active' | 'idle' | 'idle in transaction'>('all');
+    const [sessionsReloadTrigger, setSessionsReloadTrigger] = useState(0);
     const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
     const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
     const [activityChartPoints, setActivityChartPoints] = useState<ActivityChartPoint[]>([]);
@@ -503,6 +509,7 @@ export default function ConnectionDetailPage() {
         activeSqlPage,
         activeSqlPageSize,
         activeSqlUsername || null,
+        null,
         activeSqlMinDuration.trim() ? Number(activeSqlMinDuration) : null,
         activeSqlMaxDuration.trim() ? Number(activeSqlMaxDuration) : null,
         activeSqlReloadTrigger,
@@ -519,7 +526,27 @@ export default function ConnectionDetailPage() {
         null,
         null,
         null,
+        null,
         activityChartReloadTrigger,
+    );
+
+    const {
+        activeQueries: sessions,
+        loading: loadingSessions,
+        error: sessionsError,
+        total: totalSessions,
+        pages: totalSessionsPages,
+        hasNext: sessionsHasNext,
+        hasPrev: sessionsHasPrev,
+    } = useConnectionActiveQueries(
+        id ? parseInt(id) : 0,
+        sessionsPage,
+        sessionsPageSize,
+        sessionsUsername || null,
+        sessionsStateFilter === 'all' ? null : sessionsStateFilter,
+        null,
+        null,
+        sessionsReloadTrigger,
     );
 
     const isMonitoringRelatedTab = activeTab === 'metrics' || activeTab === 'active_sql' || activeTab === 'monitoring';
@@ -1672,6 +1699,37 @@ export default function ConnectionDetailPage() {
         setActiveSqlPage(1);
     };
 
+    const refreshSessions = () => {
+        setError(null);
+        setTerminateProcessModal(null);
+        setSessionsReloadTrigger((prev) => prev + 1);
+    };
+
+    const handleSessionsFilterSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setSessionsUsername(sessionsUsernameQuery.trim());
+        setSessionsPage(1);
+    };
+
+    const handleSessionsFilterClear = () => {
+        setSessionsUsernameQuery('');
+        setSessionsUsername('');
+        setSessionsStateFilter('all');
+        setSessionsPage(1);
+    };
+
+    const handleSessionsPageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalSessionsPages) {
+            setSessionsPage(newPage);
+        }
+    };
+
+    const handleSessionsPageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSize = parseInt(e.target.value, 10);
+        setSessionsPageSize(newSize);
+        setSessionsPage(1);
+    };
+
     const terminateActiveSqlQuery = async (pid: number) => {
         if (!id) return;
 
@@ -1700,6 +1758,7 @@ export default function ConnectionDetailPage() {
             }
 
             setActiveSqlReloadTrigger((prev) => prev + 1);
+            setSessionsReloadTrigger((prev) => prev + 1);
         } catch (err) {
             console.error('Ошибка завершения активного SQL-запроса:', err);
             const errorMessage = err instanceof Error ? err.message : 'Не удалось завершить активный SQL-запрос';
@@ -2320,6 +2379,7 @@ export default function ConnectionDetailPage() {
                             setProceduresSearchTerm={setProceduresSearchTerm}
                             setProceduresPage={setProceduresPage}
                             setActiveSqlPage={setActiveSqlPage}
+                            setSessionsPage={setSessionsPage}
                             setSqlQueryError={setSqlQueryError}
                             visibleTabs={visibleTabs}
                         />
@@ -4179,6 +4239,143 @@ export default function ConnectionDetailPage() {
                                             )}
                                         </div>
                                     </div>
+                                </div>
+                            )}
+                            {visibleTabs.sessions && activeTab === 'sessions' && (
+                                <div className={clsx(styles.usersContent)}>
+                                    <div className={clsx(styles.usersHeader)}>
+                                        <div className={clsx(styles.usersHeaderLeft)}>
+                                            <h2 className={clsx(styles.usersTitle)}>Активные сессии пользователей</h2>
+                                            <p className={clsx(styles.usersSubtitle)}>
+                                                Управление активными backend-сессиями PostgreSQL и принудительное завершение по PID.
+                                            </p>
+                                        </div>
+                                        <div className={clsx(styles.usersHeaderRight)}>
+                                            <button
+                                                type="button"
+                                                className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)}
+                                                onClick={refreshSessions}
+                                                aria-label="Обновить список сессий"
+                                                title="Обновить список сессий"
+                                            >
+                                                <FontAwesomeIcon icon={faArrowsRotate}/> Обновить
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className={clsx(styles.usersSearch)}>
+                                        <form className={clsx(styles.usersSearchForm)} onSubmit={handleSessionsFilterSubmit}>
+                                            <input
+                                                type="text"
+                                                value={sessionsUsernameQuery}
+                                                onChange={(event) => setSessionsUsernameQuery(event.target.value)}
+                                                placeholder="Фильтр по пользователю"
+                                                className={clsx(styles.usersSearchInput)}
+                                            />
+                                            <select
+                                                value={sessionsStateFilter}
+                                                onChange={(event) => setSessionsStateFilter(event.target.value as 'all' | 'active' | 'idle' | 'idle in transaction')}
+                                                className={clsx(styles.paginationSelect)}
+                                                aria-label="Фильтр по состоянию сессии"
+                                            >
+                                                <option value="all">Все состояния</option>
+                                                <option value="active">active</option>
+                                                <option value="idle">idle</option>
+                                                <option value="idle in transaction">idle in transaction</option>
+                                            </select>
+                                            <button type="submit" className={clsx(styles.usersSearchButton)}>Применить</button>
+                                            <button type="button" className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)} onClick={handleSessionsFilterClear}>Сбросить</button>
+                                        </form>
+                                    </div>
+
+                                    {loadingSessions ? (
+                                        <div className={clsx(styles.usersLoading)}>
+                                            <div className={clsx(styles.spinner)}>
+                                                <FontAwesomeIcon icon={faSpinner} spin size="2x"/>
+                                            </div>
+                                            <p>Загрузка активных сессий...</p>
+                                        </div>
+                                    ) : sessions.length > 0 ? (
+                                        <>
+                                            <div className={clsx(styles.usersList)}>
+                                                {sessions.map((item) => (
+                                                    <div key={item.pid} className={clsx(styles.userItem)}>
+                                                        <div className={clsx(styles.userItemHeader)}>
+                                                            <div className={clsx(styles.userItemHeaderLeft)}>
+                                                                <h3 className={clsx(styles.userItemTitle)}>
+                                                                    PID {item.pid} — {item.username || '—'}
+                                                                </h3>
+                                                            </div>
+                                                            <div className={clsx(styles.userItemHeaderRight)}>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Состояние</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{item.state || '—'}</span>
+                                                                </div>
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel)}>Длительность</span>
+                                                                    <span className={clsx(styles.userItemInfoValue)}>{item.duration_ms ?? '—'} мс</span>
+                                                                </div>
+                                                                <div className={clsx(styles.userActions)}>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton, styles.userActionButton_delete)}
+                                                                        onClick={() => terminateActiveSqlQuery(item.pid)}
+                                                                        disabled={terminatingPid === item.pid}
+                                                                        title="Завершить сессию"
+                                                                    >
+                                                                        {terminatingPid === item.pid ? <FontAwesomeIcon icon={faSpinner} spin/> : <FontAwesomeIcon icon={faTrashAlt}/>}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className={clsx(styles.userItemContent)}>
+                                                            <div className={clsx(styles.metricsUsersRow)}>
+                                                                <span className={clsx(styles.metricsUsersName)}>Приложение: {item.application_name || '—'}</span>
+                                                                <span>IP: {item.client_addr || '—'}</span>
+                                                                <span>Порт: {item.client_port ?? '—'}</span>
+                                                                <span>Старт: {item.backend_start ? formatDateTime(item.backend_start) : '—'}</span>
+                                                            </div>
+                                                            <pre className={clsx(styles.userItemQuery)}>
+                                                                <code>{formatSqlForDisplay(item.query)}</code>
+                                                            </pre>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {totalSessions > 0 && (
+                                                <div className={clsx(styles.pagination)}>
+                                                    <div className={clsx(styles.paginationInfo)}>
+                                                        <span className={clsx(styles.paginationText)}>
+                                                            Показано <span className={clsx(styles.paginationHighlight)}>{((sessionsPage - 1) * sessionsPageSize) + 1}</span>–
+                                                            <span className={clsx(styles.paginationHighlight)}>{Math.min(sessionsPage * sessionsPageSize, totalSessions)}</span> из{' '}
+                                                            <span className={clsx(styles.paginationHighlight)}>{totalSessions}</span> сессий
+                                                        </span>
+                                                    </div>
+                                                    <div className={clsx(styles.paginationControls)}>
+                                                        <select value={sessionsPageSize} onChange={handleSessionsPageSizeChange} className={clsx(styles.paginationSelect)}>
+                                                            {PAGE_SIZES.map((size) => (
+                                                                <option key={size} value={size}>{size} на страницу</option>
+                                                            ))}
+                                                        </select>
+                                                        <div className={clsx(styles.paginationButtons)}>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSessionsPageChange(sessionsPage - 1)} disabled={sessionsPage === 1 || !sessionsHasPrev} title="Предыдущая страница">
+                                                                <FontAwesomeIcon icon={faChevronLeft}/>
+                                                            </button>
+                                                            <span className={clsx(styles.pageInfo)}>Страница {sessionsPage} из {totalSessionsPages}</span>
+                                                            <button className={clsx(styles.paginationButton)} onClick={() => handleSessionsPageChange(sessionsPage + 1)} disabled={sessionsPage === totalSessionsPages || !sessionsHasNext} title="Следующая страница">
+                                                                <FontAwesomeIcon icon={faChevronRight}/>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className={clsx(styles.usersEmpty)}>
+                                            <FontAwesomeIcon icon={faDatabase} size="3x"/>
+                                            <p>Активные сессии не найдены</p>
+                                            {(sessionsError || error) && <p className={clsx(styles.errorMessage)}>{sessionsError || error}</p>}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

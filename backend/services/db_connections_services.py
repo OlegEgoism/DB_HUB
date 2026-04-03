@@ -22,6 +22,7 @@ class DBConnectionService:
         page: int = 1,
         size: int = 20,
         username: str | None = None,
+        state: str | None = None,
         min_duration_ms: int | None = None,
         max_duration_ms: int | None = None,
     ) -> PaginatedActiveConnectionsResponse:
@@ -36,6 +37,11 @@ class DBConnectionService:
         if username and username.strip():
             where_conditions.append(f"usename ILIKE ${param_index}")
             params.append(f"%{username.strip()}%")
+            param_index += 1
+
+        if state and state.strip():
+            where_conditions.append(f"state = ${param_index}")
+            params.append(state.strip())
             param_index += 1
 
         duration_filter_used = min_duration_ms is not None or max_duration_ms is not None

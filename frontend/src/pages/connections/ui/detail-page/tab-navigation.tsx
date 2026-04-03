@@ -31,6 +31,7 @@ interface Props {
   setProceduresSearchTerm: (value: string) => void;
   setProceduresPage: (value: number) => void;
   setActiveSqlPage: (value: number) => void;
+  setSessionsPage: (value: number) => void;
   setSqlQueryError: (value: string | null) => void;
   visibleTabs: ConnectionTabsVisibility;
 }
@@ -64,6 +65,7 @@ export function DetailTabNavigation(props: Props) {
     setProceduresSearchTerm,
     setProceduresPage,
     setActiveSqlPage,
+    setSessionsPage,
     setSqlQueryError,
     visibleTabs,
   } = props;
@@ -82,6 +84,7 @@ export function DetailTabNavigation(props: Props) {
       {visibleTabs.active_sql && <button className={clsx(styles.tabButton, activeTab === 'active_sql' && styles.tabButton_active)} onClick={() => { setActiveTab('active_sql'); setActiveSqlPage(1); }}>Транзакции</button>}
       {visibleTabs.sql_query && <button className={clsx(styles.tabButton, activeTab === 'sql_query' && styles.tabButton_active)} onClick={() => { setActiveTab('sql_query'); setSqlQueryError(null); }}>SQL</button>}
       {visibleTabs.monitoring && <button className={clsx(styles.tabButton, activeTab === 'monitoring' && styles.tabButton_active)} onClick={() => setActiveTab('monitoring')}>Мониторинг</button>}
+      {visibleTabs.sessions && <button className={clsx(styles.tabButton, activeTab === 'sessions' && styles.tabButton_active)} onClick={() => { setActiveTab('sessions'); setSessionsPage(1); }}>Сессии</button>}
     </div>
   );
 }

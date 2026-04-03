@@ -13,6 +13,7 @@ export const CONNECTION_TAB_OPTIONS = [
   { key: 'active_sql', label: 'Транзакции' },
   { key: 'sql_query', label: 'SQL' },
   { key: 'monitoring', label: 'Мониторинг' },
+  { key: 'sessions', label: 'Сессии' },
 ] as const;
 
 export type ConnectionTabKey = (typeof CONNECTION_TAB_OPTIONS)[number]['key'];
