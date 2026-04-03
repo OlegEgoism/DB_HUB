@@ -66,7 +66,7 @@ const DEFAULT_API_BASE_URL =
         ? `${window.location.protocol}//${window.location.hostname}:8000`
         : 'http://localhost:8000';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
-const ACTIVE_SQL_DURATION_MAX_MS = 120000;
+const ACTIVE_SQL_DURATION_DEFAULT_MAX_MS = 120000;
 
 const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring'];
 
@@ -269,7 +269,7 @@ export default function ConnectionDetailPage() {
     const [activeSqlUsernameQuery, setActiveSqlUsernameQuery] = useState('');
     const [activeSqlUsername, setActiveSqlUsername] = useState('');
     const [activeSqlMinDuration, setActiveSqlMinDuration] = useState(0);
-    const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState(ACTIVE_SQL_DURATION_MAX_MS);
+    const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState(ACTIVE_SQL_DURATION_DEFAULT_MAX_MS);
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
     const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
     const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
@@ -504,9 +504,34 @@ export default function ConnectionDetailPage() {
         activeSqlPageSize,
         activeSqlUsername || null,
         activeSqlMinDuration > 0 ? activeSqlMinDuration : null,
-        activeSqlMaxDuration < ACTIVE_SQL_DURATION_MAX_MS ? activeSqlMaxDuration : null,
+        activeSqlMaxDuration < ACTIVE_SQL_DURATION_DEFAULT_MAX_MS ? activeSqlMaxDuration : null,
         activeSqlReloadTrigger,
     );
+
+    const activeSqlDurationMaxMs = useMemo(() => {
+        const maxFromVisible = Math.max(0, ...activeQueries.map((item) => item.duration_ms ?? 0));
+        if (maxFromVisible <= 0) return ACTIVE_SQL_DURATION_DEFAULT_MAX_MS;
+        const withMargin = Math.round(maxFromVisible * 1.15);
+        return Math.max(5000, Math.ceil(withMargin / 1000) * 1000);
+    }, [activeQueries]);
+
+    const activeSqlDurationStep = useMemo(() => {
+        if (activeSqlDurationMaxMs <= 20000) return 100;
+        if (activeSqlDurationMaxMs <= 60000) return 250;
+        return 500;
+    }, [activeSqlDurationMaxMs]);
+
+    useEffect(() => {
+        const minGap = activeSqlDurationStep;
+        setActiveSqlMaxDuration((prevMax) => {
+            const normalizedMax = Math.max(minGap, Math.min(prevMax, activeSqlDurationMaxMs));
+            return normalizedMax;
+        });
+        setActiveSqlMinDuration((prevMin) => {
+            const upperBound = Math.max(activeSqlDurationMaxMs - minGap, 0);
+            return Math.min(prevMin, upperBound);
+        });
+    }, [activeSqlDurationMaxMs, activeSqlDurationStep]);
 
     const {
         activeQueries: chartActiveQueries,
@@ -1623,7 +1648,7 @@ export default function ConnectionDetailPage() {
         setActiveSqlUsernameQuery('');
         setActiveSqlUsername('');
         setActiveSqlMinDuration(0);
-        setActiveSqlMaxDuration(ACTIVE_SQL_DURATION_MAX_MS);
+        setActiveSqlMaxDuration(activeSqlDurationMaxMs);
         setActiveSqlPage(1);
     };
 
@@ -3812,38 +3837,41 @@ export default function ConnectionDetailPage() {
                                                 </div>
                                                 <div className={clsx(styles.activeSqlDurationSliderTrackWrap)}>
                                                     <div className={clsx(styles.activeSqlDurationSliderTrack)} />
-                                                    <div
+                                                            <div
                                                         className={clsx(styles.activeSqlDurationSliderRange)}
                                                         style={{
-                                                            left: `${(activeSqlMinDuration / ACTIVE_SQL_DURATION_MAX_MS) * 100}%`,
-                                                            width: `${((activeSqlMaxDuration - activeSqlMinDuration) / ACTIVE_SQL_DURATION_MAX_MS) * 100}%`,
+                                                            left: `${(activeSqlMinDuration / Math.max(activeSqlDurationMaxMs, 1)) * 100}%`,
+                                                            width: `${((activeSqlMaxDuration - activeSqlMinDuration) / Math.max(activeSqlDurationMaxMs, 1)) * 100}%`,
                                                         }}
                                                     />
                                                     <input
                                                         type="range"
                                                         min={0}
-                                                        max={ACTIVE_SQL_DURATION_MAX_MS}
-                                                        step={500}
+                                                        max={activeSqlDurationMaxMs}
+                                                        step={activeSqlDurationStep}
                                                         value={activeSqlMinDuration}
-                                                        onChange={(e) => setActiveSqlMinDuration(Math.min(Number(e.target.value), activeSqlMaxDuration - 500))}
+                                                        onChange={(e) => setActiveSqlMinDuration(Math.min(Number(e.target.value), activeSqlMaxDuration - activeSqlDurationStep))}
                                                         className={clsx(styles.activeSqlDurationSliderInput, styles.activeSqlDurationSliderInputMin)}
                                                         aria-label={t('active_sql.filter.min_duration')}
                                                     />
                                                     <input
                                                         type="range"
                                                         min={0}
-                                                        max={ACTIVE_SQL_DURATION_MAX_MS}
-                                                        step={500}
+                                                        max={activeSqlDurationMaxMs}
+                                                        step={activeSqlDurationStep}
                                                         value={activeSqlMaxDuration}
-                                                        onChange={(e) => setActiveSqlMaxDuration(Math.max(Number(e.target.value), activeSqlMinDuration + 500))}
+                                                        onChange={(e) => setActiveSqlMaxDuration(Math.max(Number(e.target.value), activeSqlMinDuration + activeSqlDurationStep))}
                                                         className={clsx(styles.activeSqlDurationSliderInput, styles.activeSqlDurationSliderInputMax)}
                                                         aria-label={t('active_sql.filter.max_duration')}
                                                     />
                                                 </div>
                                                 <div className={clsx(styles.activeSqlDurationSliderTicks)}>
-                                                    {[0, 30000, 60000, 90000, 120000].map((tick) => (
-                                                        <span key={`active-duration-tick-${tick}`}>{tick / 1000}s</span>
-                                                    ))}
+                                                    {[0, 0.25, 0.5, 0.75, 1].map((part) => {
+                                                        const tick = Math.round(activeSqlDurationMaxMs * part);
+                                                        return (
+                                                            <span key={`active-duration-tick-${part}`}>{Math.round(tick / 1000)}s</span>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                             <button type="submit" className={clsx(styles.usersSearchButton)}>{t('active_sql.filter.apply')}</button>
