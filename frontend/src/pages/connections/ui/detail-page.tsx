@@ -236,6 +236,7 @@ export default function ConnectionDetailPage() {
     const [sessionActivityReloadTrigger, setSessionActivityReloadTrigger] = useState(0);
     const [sessionChartHoverIndex, setSessionChartHoverIndex] = useState<number | null>(null);
     const [sessionChartWindowSize, setSessionChartWindowSize] = useState(30);
+    const [monitoringRefreshIntervalMs, setMonitoringRefreshIntervalMs] = useState(1000);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
 
@@ -479,7 +480,7 @@ export default function ConnectionDetailPage() {
     );
 
     const isMonitoringRelatedTab = activeTab === 'metrics' || activeTab === 'active_sql' || activeTab === 'monitoring';
-    const sessionActivityRefreshMs = activeTab === 'monitoring' ? 1000 : 3000;
+    const sessionActivityRefreshMs = activeTab === 'monitoring' ? monitoringRefreshIntervalMs : 3000;
     const { snapshot: sessionActivitySnapshot, loading: loadingSessionActivity, error: sessionActivityError } = useConnectionActivitySnapshot(
         isMonitoringRelatedTab && id ? parseInt(id) : null,
         sessionActivityReloadTrigger,
@@ -3898,6 +3899,20 @@ export default function ConnectionDetailPage() {
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate}/> Обновить
                                             </button>
+                                            <label className={clsx(styles.metricsRefreshControl)}>
+                                                Интервал:
+                                                <select
+                                                    className={clsx(styles.metricsRefreshSelect)}
+                                                    value={monitoringRefreshIntervalMs}
+                                                    onChange={(event) => setMonitoringRefreshIntervalMs(Number(event.target.value))}
+                                                    aria-label="Интервал автообновления мониторинга"
+                                                >
+                                                    <option value={1000}>1 сек</option>
+                                                    <option value={2000}>2 сек</option>
+                                                    <option value={5000}>5 сек</option>
+                                                    <option value={10000}>10 сек</option>
+                                                </select>
+                                            </label>
                                         </div>
                                         <div className={clsx(styles.metricsCardContent)}>
                                             {loadingSessionActivity && sessionActivityPoints.length === 0 ? (
