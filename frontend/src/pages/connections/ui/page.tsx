@@ -50,6 +50,7 @@ export default function ConnectionsPage() {
     const [hasNext, setHasNext] = useState(false);
     const [hasPrev, setHasPrev] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [checkingConnectionId, setCheckingConnectionId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const [confirmDeleteName, setConfirmDeleteName] = useState<string>('');
     const [refreshing, setRefreshing] = useState(false); // ✅ Состояние для индикатора обновления
@@ -238,6 +239,15 @@ export default function ConnectionsPage() {
             }
             console.error('Ошибка при изменении статуса избранного:', err);
             setError('Не удалось обновить статус избранного');
+        }
+    };
+
+    const checkConnectionStatus = async (connectionId: number) => {
+        setCheckingConnectionId(connectionId);
+        try {
+            await loadConnections();
+        } finally {
+            setCheckingConnectionId(null);
         }
     };
 
@@ -623,6 +633,22 @@ export default function ConnectionsPage() {
                                                 </div>
                                                 <div className={clsx(styles.cardFooterRight)}>
                                                     <div className={clsx(styles.actionButtons)}>
+                                                        <button
+                                                            className={clsx(styles.actionButton)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                void checkConnectionStatus(connection.id);
+                                                            }}
+                                                            title="Проверить соединение с БД"
+                                                            aria-label="Проверить соединение с БД"
+                                                            disabled={deletingId === connection.id || checkingConnectionId === connection.id}
+                                                        >
+                                                            <FontAwesomeIcon
+                                                                icon={faPlug}
+                                                                spin={checkingConnectionId === connection.id}
+                                                                className={clsx(styles.actionIcon)}
+                                                            />
+                                                        </button>
                                                         <button
                                                             className={clsx(styles.actionButton)}
                                                             onClick={(e) => {
