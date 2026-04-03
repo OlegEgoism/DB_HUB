@@ -98,6 +98,47 @@ const detectQueryOperation = (query: string | null | undefined): keyof Omit<Acti
     return 'other';
 };
 
+const SQL_LINE_BREAK_KEYWORDS = [
+    'SELECT',
+    'FROM',
+    'WHERE',
+    'GROUP BY',
+    'HAVING',
+    'ORDER BY',
+    'LIMIT',
+    'OFFSET',
+    'VALUES',
+    'SET',
+    'RETURNING',
+    'JOIN',
+    'LEFT JOIN',
+    'RIGHT JOIN',
+    'INNER JOIN',
+    'FULL JOIN',
+    'ON',
+    'UNION',
+];
+
+const formatSqlForDisplay = (query: string | null | undefined): string => {
+    if (!query || !query.trim()) return '—';
+
+    let normalized = query.replace(/\s+/g, ' ').trim();
+    for (const keyword of SQL_LINE_BREAK_KEYWORDS) {
+        const escapedKeyword = keyword.replace(' ', '\\s+');
+        const regex = new RegExp(`\\b${escapedKeyword}\\b`, 'gi');
+        normalized = normalized.replace(regex, `\n${keyword}`);
+    }
+
+    normalized = normalized
+        .replace(/\s*,\s*/g, ',\n  ')
+        .replace(/\(\s*/g, '(')
+        .replace(/\s*\)/g, ')')
+        .replace(/\n{2,}/g, '\n')
+        .trim();
+
+    return normalized;
+};
+
 export default function ConnectionDetailPage() {
     const { t } = useI18n();
     const {id} = useParams<{ id: string }>();
@@ -3866,7 +3907,9 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                         </div>
                                                         <div className={clsx(styles.userItemContent)}>
-                                                            <code>{item.query || '—'}</code>
+                                                            <pre className={clsx(styles.userItemQuery)}>
+                                                                <code>{formatSqlForDisplay(item.query)}</code>
+                                                            </pre>
                                                         </div>
                                                     </div>
                                                 ))}
