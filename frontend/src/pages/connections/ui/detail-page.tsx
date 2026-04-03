@@ -678,7 +678,7 @@ export default function ConnectionDetailPage() {
     }, [sessionActivityPoints, sessionChartWindowStartPercent, sessionChartWindowEndPercent]);
 
     const applySessionChartWindow = (nextStart: number, nextEnd: number) => {
-        const minGap = 8;
+        const minGap = 4;
         const safeStart = Math.max(0, Math.min(nextStart, 100 - minGap));
         const safeEnd = Math.max(safeStart + minGap, Math.min(nextEnd, 100));
         setSessionChartWindowStartPercent(safeStart);
@@ -711,7 +711,7 @@ export default function ConnectionDetailPage() {
             return;
         }
         const direction = event.deltaY > 0 ? 1 : -1;
-        shiftSessionChartWindow(direction * 2.5);
+        shiftSessionChartWindow(direction * 1.5);
     };
 
     const handleTimelineScalePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -722,6 +722,14 @@ export default function ConnectionDetailPage() {
         const width = sessionChartWindowEndPercent - sessionChartWindowStartPercent;
         const nextStart = Math.max(0, Math.min(clickPercent - width / 2, 100 - width));
         applySessionChartWindow(nextStart, nextStart + width);
+    };
+
+    const showAllSessionChartWindow = () => {
+        applySessionChartWindow(0, 100);
+    };
+
+    const showLiveSessionChartWindow = () => {
+        applySessionChartWindow(80, 100);
     };
 
     const visibleSessionActivityPoints = useMemo(() => {
@@ -746,7 +754,7 @@ export default function ConnectionDetailPage() {
     }, [activityChartPoints, sqlChartWindowStartPercent, sqlChartWindowEndPercent]);
 
     const applySqlChartWindow = (nextStart: number, nextEnd: number) => {
-        const minGap = 8;
+        const minGap = 4;
         const safeStart = Math.max(0, Math.min(nextStart, 100 - minGap));
         const safeEnd = Math.max(safeStart + minGap, Math.min(nextEnd, 100));
         setSqlChartWindowStartPercent(safeStart);
@@ -779,7 +787,7 @@ export default function ConnectionDetailPage() {
             return;
         }
         const direction = event.deltaY > 0 ? 1 : -1;
-        shiftSqlChartWindow(direction * 2.5);
+        shiftSqlChartWindow(direction * 1.5);
     };
 
     const handleSqlTimelineScalePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -790,6 +798,14 @@ export default function ConnectionDetailPage() {
         const width = sqlChartWindowEndPercent - sqlChartWindowStartPercent;
         const nextStart = Math.max(0, Math.min(clickPercent - width / 2, 100 - width));
         applySqlChartWindow(nextStart, nextStart + width);
+    };
+
+    const showAllSqlChartWindow = () => {
+        applySqlChartWindow(0, 100);
+    };
+
+    const showLiveSqlChartWindow = () => {
+        applySqlChartWindow(80, 100);
     };
 
     const visibleSqlActivityPoints = useMemo(() => {
@@ -4226,13 +4242,19 @@ export default function ConnectionDetailPage() {
                                                             )}
                                                         </div>
                                                         <div className={clsx(styles.metricsTimelineScale)}>
-                                                            <div className={clsx(styles.metricsTimelineScaleHeader)}>
-                                                                <span>Временная линия масштаба</span>
+                                                        <div className={clsx(styles.metricsTimelineScaleHeader)}>
+                                                            <span>Временная линия масштаба</span>
+                                                            <div className={clsx(styles.metricsTimelineActions)}>
                                                                 <span>
                                                                     Диапазон: {sessionChartWindowBoundaries.startIndex + 1}–{sessionChartWindowBoundaries.endIndex + 1}
                                                                     {' '}из {Math.max(sessionActivityPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
                                                                 </span>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSessionChartWindow(true)}>+</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSessionChartWindow(false)}>−</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showLiveSessionChartWindow}>Live</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showAllSessionChartWindow}>Весь период</button>
                                                             </div>
+                                                        </div>
                                                             <div
                                                                 ref={sessionTimelineRangeShellRef}
                                                                 className={clsx(styles.metricsTimelineRangeShell)}
@@ -4422,13 +4444,19 @@ export default function ConnectionDetailPage() {
                                                             )}
                                                         </div>
                                                         <div className={clsx(styles.metricsTimelineScale)}>
-                                                            <div className={clsx(styles.metricsTimelineScaleHeader)}>
-                                                                <span>Временная линия масштаба</span>
+                                                        <div className={clsx(styles.metricsTimelineScaleHeader)}>
+                                                            <span>Временная линия масштаба</span>
+                                                            <div className={clsx(styles.metricsTimelineActions)}>
                                                                 <span>
                                                                     Диапазон: {sqlChartWindowBoundaries.startIndex + 1}–{sqlChartWindowBoundaries.endIndex + 1}
                                                                     {' '}из {Math.max(activityChartPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
                                                                 </span>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSqlChartWindow(true)}>+</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSqlChartWindow(false)}>−</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showLiveSqlChartWindow}>Live</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showAllSqlChartWindow}>Весь период</button>
                                                             </div>
+                                                        </div>
                                                             <div
                                                                 ref={sqlTimelineRangeShellRef}
                                                                 className={clsx(styles.metricsTimelineRangeShell)}

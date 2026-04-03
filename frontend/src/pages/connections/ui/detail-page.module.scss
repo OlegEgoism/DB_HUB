@@ -2092,7 +2092,7 @@
 .chartLineActive,
 .chartLineTransactions {
   fill: none;
-  stroke-width: 2.5;
+  stroke-width: 1.7;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
@@ -2107,7 +2107,7 @@
 .chartLineSqlDelete,
 .chartLineSqlOther {
   fill: none;
-  stroke-width: 2.5;
+  stroke-width: 1.7;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
@@ -2176,9 +2176,28 @@
   font-weight: 600;
 }
 
+.metricsTimelineActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.metricsTimelineActionButton {
+  border: 1px solid var(--border-glass);
+  background: white;
+  color: var(--color-text-main);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
 .metricsTimelineRangeShell {
   position: relative;
-  height: 32px;
+  height: 38px;
   border-radius: 10px;
   cursor: ew-resize;
   touch-action: none;
@@ -2189,7 +2208,7 @@
   left: 0;
   right: 0;
   top: 50%;
-  height: 8px;
+  height: 10px;
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.3);
   transform: translateY(-50%);
@@ -2198,7 +2217,7 @@
 .metricsTimelineRangeSelection {
   position: absolute;
   top: 50%;
-  height: 10px;
+  height: 12px;
   border-radius: 999px;
   background: linear-gradient(90deg, #4f46e5 0%, #0ea5e9 100%);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.65), 0 4px 10px rgba(30, 64, 175, 0.25);
