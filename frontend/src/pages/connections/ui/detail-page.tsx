@@ -4229,7 +4229,7 @@ export default function ConnectionDetailPage() {
                                                                     />
                                                                 )}
                                                                 {sessionActivityChartModel.xTickLabels.map((tick) => (
-                                                                    <text key={`session-x-${tick.label}`} x={tick.x} y={sessionActivityChartModel.height - 12} className={clsx(styles.chartAxisLabel)} textAnchor="middle">{tick.label}</text>
+                                                                    <text key={`session-x-${tick.label}`} x={tick.x} y={sessionActivityChartModel.height - 12} className={clsx(styles.chartAxisLabel, styles.chartTimeLabel)} textAnchor="middle">{tick.label}</text>
                                                                 ))}
                                                             </svg>
                                                             {hoveredSessionPoint && (
@@ -4428,7 +4428,7 @@ export default function ConnectionDetailPage() {
                                                                     />
                                                                 )}
                                                                 {activityChartModel.xTickLabels.map((tick) => (
-                                                                    <text key={`sql-x-${tick.label}`} x={tick.x} y={activityChartModel.height - 12} className={clsx(styles.chartAxisLabel)} textAnchor="middle">{tick.label}</text>
+                                                                    <text key={`sql-x-${tick.label}`} x={tick.x} y={activityChartModel.height - 12} className={clsx(styles.chartAxisLabel, styles.chartTimeLabel)} textAnchor="middle">{tick.label}</text>
                                                                 ))}
                                                             </svg>
                                                             {hoveredSqlPoint && (
