@@ -815,7 +815,7 @@
 .usersCountBadge {
   background: var(--color-primary);
   color: white;
-  border-radius: 40%;
+  border-radius: 10%;
   min-width: 40px;
   height: 40px;
   display: flex;
@@ -1777,7 +1777,7 @@
 }
 
 .activeSqlDurationInput {
-  width: min(200px, 100%);
+  width: min(100px, 100%);
   padding: 12px 14px;
   border: 1px solid $clr-gray-300;
   border-radius: 8px;

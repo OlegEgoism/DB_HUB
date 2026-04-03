@@ -3972,7 +3972,7 @@ export default function ConnectionDetailPage() {
                                     <div className={clsx(styles.metricsWideCard)}>
                                         <div className={clsx(styles.metricsCardHeader)}>
                                             <FontAwesomeIcon icon={faChartLine} className={clsx(styles.metricsCardIcon)}/>
-                                            <h3 className={clsx(styles.metricsCardTitle)}>Транзакционная активность и сессии (live)</h3>
+                                            <h3 className={clsx(styles.metricsCardTitle)}>Транзакционная активность</h3>
                                             <button
                                                 type="button"
                                                 className={clsx(styles.metricsInlineRefresh)}
@@ -4003,9 +4003,7 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.errorMessage)}>{sessionActivityError}</div>
                                             ) : (
                                                 <>
-                                                    <div className={clsx(styles.metricsSmallMuted)}>
-                                                        Автообновление: {sessionActivityRefreshMs / 1000} сек.
-                                                    </div>
+
                                                     <div className={clsx(styles.metricsChartLegend)}>
                                                         <span><i className={clsx(styles.legendDot, styles.legendDotTotal)}/>Все сессии: {sessionActivitySnapshot?.sessions_total ?? 0}</span>
                                                         <span><i className={clsx(styles.legendDot, styles.legendDotActive)}/>Активные сессии: {sessionActivitySnapshot?.active_sessions ?? 0}</span>
@@ -4152,9 +4150,6 @@ export default function ConnectionDetailPage() {
                             </button>
                         </div>
                         <div className={clsx(styles.activityChartBody)}>
-                            <p className={clsx(styles.activityChartMeta)}>
-                                {t('chart.current_active')}: <b>{chartTotalActiveQueries}</b>
-                            </p>
                             <div className={clsx(styles.activityChartSvgWrap)}>
                                 {activityChartPoints.length > 1 ? (
                                     <svg
