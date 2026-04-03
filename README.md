@@ -62,8 +62,8 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 Требуется Node.js (см. `frontend/README.md`).
 
 ```bash
-npm --prefix frontend install
-npm --prefix frontend run dev
+npm install --prefix .\frontend
+npm run dev --prefix .\frontend
 ```
 
 ## Линтинг Python (Ruff)

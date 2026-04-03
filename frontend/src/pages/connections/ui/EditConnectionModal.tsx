@@ -156,7 +156,7 @@ export function EditConnectionModal({
                 setTestConnectionNotice({
                     type: 'success',
                     message: result.resolved_host
-                        ? `Подключение успешно (хост: ${result.resolved_host})`
+                        ? `Подключение успешно!`
                         : 'Подключение успешно',
                 });
             } else {
@@ -453,7 +453,7 @@ export function EditConnectionModal({
                                         <FontAwesomeIcon icon={faSpinner} spin/>
                                         Проверка...
                                     </>
-                                ) : 'Проверить подключение'}
+                                ) : 'Проверить'}
                             </button>
                             <button
                                 type="submit"

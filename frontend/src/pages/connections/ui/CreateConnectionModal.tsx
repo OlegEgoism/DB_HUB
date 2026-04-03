@@ -84,7 +84,7 @@ export function CreateConnectionModal({
         if (!formData.host.trim() || !formData.database_name.trim() || !formData.username.trim()) {
             setTestConnectionNotice({
                 type: 'error',
-                message: 'Для проверки подключения заполните поля: Хост, Имя БД и Пользователь.',
+                message: 'Для проверки подключения заполните необходимые поля.',
             });
             return;
         }
@@ -108,7 +108,7 @@ export function CreateConnectionModal({
                 setTestConnectionNotice({
                     type: 'success',
                     message: result.resolved_host
-                        ? `Подключение успешно (хост: ${result.resolved_host})`
+                        ? `Подключение успешно!`
                         : 'Подключение успешно',
                 });
             } else {
@@ -231,7 +231,7 @@ export function CreateConnectionModal({
                                     />
                                 </div>
                                 <div className={clsx(styles.modal__dualColumn)}>
-                                    <label htmlFor="password" className={clsx(styles.modal__label)}>Пароль</label>
+                                    <label htmlFor="password" className={clsx(styles.modal__label)}>Пароль *</label>
                                     <div className={clsx(styles.modal__passwordWrapper)}>
                                         <input
                                             type={showPassword ? 'text' : 'password'}
@@ -316,14 +316,14 @@ export function CreateConnectionModal({
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/> Проверка...
                                     </>
-                                ) : 'Проверить подключение'}
+                                ) : 'Проверить'}
                             </button>
                             <button type="submit" className={clsx(styles.modal__submitButton)} disabled={loading || isTestingConnection}>
                                 {loading ? (
                                     <>
                                         <FontAwesomeIcon icon={faSpinner} spin/> Создание...
                                     </>
-                                ) : 'Создать подключение'}
+                                ) : 'Создать'}
                             </button>
                         </div>
                     </form>

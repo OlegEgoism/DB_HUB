@@ -62,7 +62,7 @@ const EXACT_RU_TO_EN: Record<string, string> = {
   'Поиск': 'Search',
   'Очистить поиск': 'Clear search',
   'Обновить список подключений': 'Refresh connections',
-  'Создать подключение': 'Create connection',
+  'Создать подключение': 'Create',
   'Создать пользователя': 'Create user',
   'Создать': 'Create',
   'Сохранить': 'Save',
