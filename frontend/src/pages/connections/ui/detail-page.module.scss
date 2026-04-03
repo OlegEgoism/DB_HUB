@@ -801,6 +801,38 @@
   }
 }
 
+.usersSearchTitle {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: auto;
+}
+
+.usersCountBadge {
+  background: var(--color-primary);
+  color: white;
+  border-radius: 40%;
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  font-size: 28px;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(79, 70, 229, 0.3);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  }
+}
+
 .usersSearchWrapper {
   position: relative;
   flex: 0 1 450px;

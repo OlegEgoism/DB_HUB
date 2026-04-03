@@ -736,20 +736,6 @@ export default function ConnectionDetailPage() {
         setSessionChartHoverIndex(null);
     }, [sessionChartHoverIndex, visibleSessionActivityPoints.length]);
 
-    const activitySnapshotBars = useMemo(() => {
-        const users = (sessionActivitySnapshot?.users ?? []).slice(0, 8);
-        const maxValue = Math.max(
-            1,
-            ...users.map((item) => Math.max(item.active_transactions, item.active_sessions)),
-        );
-
-        return users.map((item) => ({
-            ...item,
-            txHeight: Math.max(6, Math.round((item.active_transactions / maxValue) * 140)),
-            sessionsHeight: Math.max(6, Math.round((item.active_sessions / maxValue) * 140)),
-        }));
-    }, [sessionActivitySnapshot]);
-
     const activityChartModel = useMemo(() => {
         const width = 860;
         const height = 280;
@@ -2535,6 +2521,12 @@ export default function ConnectionDetailPage() {
                                             onSubmit={handleUsersSearchSubmit}
                                             className={clsx(styles.usersSearchContainer)}
                                         >
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.users')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {totalUsers}
+                                                </span>
+                                            </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
@@ -3841,36 +3833,6 @@ export default function ConnectionDetailPage() {
                                                 <FontAwesomeIcon icon={faChartLine}/> {t('active_sql.chart')}
                                             </button>
                                         </form>
-                                    </div>
-
-                                    <div className={clsx(styles.activeSqlActivityCard)}>
-                                        <div className={clsx(styles.activeSqlActivityHeader)}>
-                                            <h3>График активности пользователей (activity_snapshot)</h3>
-                                            <span>Источник: GET /api/v1/db_connections/{'{'}connection_id{'}'}/activity_snapshot</span>
-                                        </div>
-
-                                        {loadingSessionActivity && !sessionActivitySnapshot ? (
-                                            <div className={clsx(styles.metricsSmallMuted)}>Загрузка activity snapshot...</div>
-                                        ) : sessionActivityError ? (
-                                            <div className={clsx(styles.errorMessage)}>{sessionActivityError}</div>
-                                        ) : activitySnapshotBars.length === 0 ? (
-                                            <div className={clsx(styles.metricsSmallMuted)}>Нет данных по активным пользователям.</div>
-                                        ) : (
-                                            <div className={clsx(styles.activeSqlBarsWrap)}>
-                                                {activitySnapshotBars.map((item) => (
-                                                    <div key={item.username} className={clsx(styles.activeSqlUserBar)}>
-                                                        <div className={clsx(styles.activeSqlBarPair)}>
-                                                            <div className={clsx(styles.activeSqlBar, styles.activeSqlBarSessions)} style={{ height: `${item.sessionsHeight}px` }} title={`Активные сессии: ${item.active_sessions}`} />
-                                                            <div className={clsx(styles.activeSqlBar, styles.activeSqlBarTransactions)} style={{ height: `${item.txHeight}px` }} title={`Активные транзакции: ${item.active_transactions}`} />
-                                                        </div>
-                                                        <div className={clsx(styles.activeSqlBarMeta)}>
-                                                            <span className={clsx(styles.activeSqlUserName)}>{item.username}</span>
-                                                            <span>S:{item.active_sessions} / Tx:{item.active_transactions}</span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
 
                                     {loadingActiveQueries ? (
