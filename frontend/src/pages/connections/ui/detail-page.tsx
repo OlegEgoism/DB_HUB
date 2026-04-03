@@ -816,8 +816,8 @@ export default function ConnectionDetailPage() {
 
     const sessionActivityChartModel = useMemo(() => {
         const width = 860;
-        const height = 260;
-        const axis = {left: 56, right: 24, top: 20, bottom: 44};
+        const height = 210;
+        const axis = {left: 52, right: 20, top: 16, bottom: 34};
         const innerWidth = width - axis.left - axis.right;
         const innerHeight = height - axis.top - axis.bottom;
 
@@ -890,8 +890,8 @@ export default function ConnectionDetailPage() {
 
     const activityChartModel = useMemo(() => {
         const width = 860;
-        const height = 280;
-        const axis = {left: 56, right: 24, top: 20, bottom: 44};
+        const height = 220;
+        const axis = {left: 52, right: 20, top: 16, bottom: 34};
         const innerWidth = width - axis.left - axis.right;
         const innerHeight = height - axis.top - axis.bottom;
 
