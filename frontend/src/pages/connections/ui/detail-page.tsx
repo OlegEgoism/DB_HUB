@@ -270,15 +270,17 @@ export default function ConnectionDetailPage() {
     const [activeSqlMinDuration, setActiveSqlMinDuration] = useState('');
     const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState('');
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
-    const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
     const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
     const [activityChartPoints, setActivityChartPoints] = useState<ActivityChartPoint[]>([]);
     const [sessionActivityPoints, setSessionActivityPoints] = useState<SessionActivityChartPoint[]>([]);
     const [sessionActivityReloadTrigger, setSessionActivityReloadTrigger] = useState(0);
+    const [activityChartRefreshIntervalMs, setActivityChartRefreshIntervalMs] = useState(2000);
+    const [sessionMonitoringRefreshIntervalMs, setSessionMonitoringRefreshIntervalMs] = useState(1000);
+    const [isSessionActivityCollapsed, setIsSessionActivityCollapsed] = useState(false);
+    const [isSqlActivityCollapsed, setIsSqlActivityCollapsed] = useState(false);
     const [sessionChartHoverIndex, setSessionChartHoverIndex] = useState<number | null>(null);
     const [sessionChartWindowStartPercent, setSessionChartWindowStartPercent] = useState(50);
     const [sessionChartWindowEndPercent, setSessionChartWindowEndPercent] = useState(100);
-    const [monitoringRefreshIntervalMs, setMonitoringRefreshIntervalMs] = useState(1000);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
     const sessionTimelineRangeShellRef = useRef<HTMLDivElement | null>(null);
@@ -512,8 +514,9 @@ export default function ConnectionDetailPage() {
         activeQueries: chartActiveQueries,
         total: chartTotalActiveQueries,
         loading: chartLoadingActiveQueries,
+        error: chartActiveQueriesError,
     } = useConnectionActiveQueries(
-        id ? parseInt(id) : 0,
+        activeTab === 'monitoring' && id ? parseInt(id) : null,
         1,
         200,
         null,
@@ -523,7 +526,7 @@ export default function ConnectionDetailPage() {
     );
 
     const isMonitoringRelatedTab = activeTab === 'metrics' || activeTab === 'active_sql' || activeTab === 'monitoring';
-    const sessionActivityRefreshMs = activeTab === 'monitoring' ? monitoringRefreshIntervalMs : 3000;
+    const sessionActivityRefreshMs = activeTab === 'monitoring' ? sessionMonitoringRefreshIntervalMs : 3000;
     const { snapshot: sessionActivitySnapshot, loading: loadingSessionActivity, error: sessionActivityError } = useConnectionActivitySnapshot(
         isMonitoringRelatedTab && id ? parseInt(id) : null,
         sessionActivityReloadTrigger,
@@ -597,18 +600,18 @@ export default function ConnectionDetailPage() {
     }, [activeTab, visibleTabs, setSearchParams]);
 
     useEffect(() => {
-        if (!isActivityChartModalOpen) return;
+        if (activeTab !== 'monitoring') return;
 
         setActivityChartReloadTrigger((prev) => prev + 1);
         const intervalId = window.setInterval(() => {
             setActivityChartReloadTrigger((prev) => prev + 1);
-        }, 1000);
+        }, activityChartRefreshIntervalMs);
 
         return () => window.clearInterval(intervalId);
-    }, [isActivityChartModalOpen]);
+    }, [activeTab, activityChartRefreshIntervalMs]);
 
     useEffect(() => {
-        if (!isActivityChartModalOpen || chartLoadingActiveQueries) return;
+        if (activeTab !== 'monitoring' || chartLoadingActiveQueries) return;
 
         const point: ActivityChartPoint = {
             timestamp: new Date().toLocaleTimeString('ru-RU'),
@@ -626,7 +629,7 @@ export default function ConnectionDetailPage() {
         });
 
         setActivityChartPoints((prev) => [...prev.slice(-59), point]);
-    }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen, chartActiveQueries]);
+    }, [activeTab, chartTotalActiveQueries, chartLoadingActiveQueries, chartActiveQueries]);
 
     useEffect(() => {
         if ((activeTab !== 'metrics' && activeTab !== 'monitoring') || !sessionActivitySnapshot) return;
@@ -857,11 +860,6 @@ export default function ConnectionDetailPage() {
             avgValue,
         };
     }, [activityChartPoints]);
-
-    const closeActivityChartModal = () => {
-        setIsActivityChartModalOpen(false);
-        setActivityChartPoints([]);
-    };
 
 // Обработчики для поиска и пагинации пользователей
 
@@ -1644,6 +1642,14 @@ export default function ConnectionDetailPage() {
         setError(null);
         setTerminateProcessModal(null);
         setActiveSqlReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshMonitoringSessionActivity = () => {
+        setSessionActivityReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshMonitoringSqlActivity = () => {
+        setActivityChartReloadTrigger((prev) => prev + 1);
     };
 
     const handleActiveSqlFilterSubmit = (e: React.FormEvent) => {
@@ -3926,14 +3932,6 @@ export default function ConnectionDetailPage() {
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingActiveQueries}/>
                                             </button>
-                                            <button
-                                                type="button"
-                                                className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)}
-                                                onClick={() => setIsActivityChartModalOpen(true)}
-                                                title={t('active_sql.open_chart')}
-                                            >
-                                                <FontAwesomeIcon icon={faChartLine}/> {t('active_sql.chart')}
-                                            </button>
                                         </form>
                                     </div>
 
@@ -4016,26 +4014,21 @@ export default function ConnectionDetailPage() {
 
                             )}
                             {visibleTabs.monitoring && activeTab === 'monitoring' && (
-                                <div className={clsx(styles.usersContent)}>
+                                <div className={clsx(styles.usersContent, styles.monitoringCards)}>
                                     <div className={clsx(styles.metricsWideCard)}>
                                         <div className={clsx(styles.metricsCardHeader)}>
                                             <FontAwesomeIcon icon={faChartLine} className={clsx(styles.metricsCardIcon)}/>
                                             <h3 className={clsx(styles.metricsCardTitle)}>Транзакционная активность</h3>
-                                            <button
-                                                type="button"
-                                                className={clsx(styles.metricsInlineRefresh)}
-                                                onClick={() => setSessionActivityReloadTrigger((prev) => prev + 1)}
-                                                title="Обновить график"
-                                            >
+                                            <button type="button" className={clsx(styles.metricsInlineRefresh)} onClick={refreshMonitoringSessionActivity} title="Обновить график">
                                                 <FontAwesomeIcon icon={faArrowsRotate}/> Обновить
                                             </button>
                                             <label className={clsx(styles.metricsRefreshControl)}>
                                                 Интервал:
                                                 <select
                                                     className={clsx(styles.metricsRefreshSelect)}
-                                                    value={monitoringRefreshIntervalMs}
-                                                    onChange={(event) => setMonitoringRefreshIntervalMs(Number(event.target.value))}
-                                                    aria-label="Интервал автообновления мониторинга"
+                                                    value={sessionMonitoringRefreshIntervalMs}
+                                                    onChange={(event) => setSessionMonitoringRefreshIntervalMs(Number(event.target.value))}
+                                                    aria-label="Интервал автообновления графика транзакционной активности"
                                                 >
                                                     <option value={1000}>1 сек</option>
                                                     <option value={2000}>2 сек</option>
@@ -4043,141 +4036,230 @@ export default function ConnectionDetailPage() {
                                                     <option value={10000}>10 сек</option>
                                                 </select>
                                             </label>
+                                            <button type="button" className={clsx(styles.metricsCollapseButton)} onClick={() => setIsSessionActivityCollapsed((prev) => !prev)}>
+                                                {isSessionActivityCollapsed ? 'Развернуть' : 'Свернуть'}
+                                            </button>
                                         </div>
-                                        <div className={clsx(styles.metricsCardContent)}>
-                                            {loadingSessionActivity && sessionActivityPoints.length === 0 ? (
-                                                <div className={clsx(styles.metricsSmallMuted)}>Загрузка данных активности...</div>
-                                            ) : sessionActivityError ? (
-                                                <div className={clsx(styles.errorMessage)}>{sessionActivityError}</div>
-                                            ) : (
-                                                <>
-
-                                                    <div className={clsx(styles.metricsChartLegend)}>
-                                                        <span><i className={clsx(styles.legendDot, styles.legendDotTotal)}/>Все сессии: {sessionActivitySnapshot?.sessions_total ?? 0}</span>
-                                                        <span><i className={clsx(styles.legendDot, styles.legendDotActive)}/>Активные сессии: {sessionActivitySnapshot?.active_sessions ?? 0}</span>
-                                                        <span><i className={clsx(styles.legendDot, styles.legendDotTx)}/>Активные транзакции: {sessionActivitySnapshot?.users.reduce((sum, user) => sum + user.active_transactions, 0) ?? 0}</span>
-                                                    </div>
-                                                    <div className={clsx(styles.metricsLineChartWrap)}>
-                                                        <svg
-                                                            viewBox={`0 0 ${sessionActivityChartModel.width} ${sessionActivityChartModel.height}`}
-                                                            className={clsx(styles.metricsLineChart)}
-                                                            role="img"
-                                                            aria-label="График активности сессий и транзакций"
-                                                            onMouseLeave={() => setSessionChartHoverIndex(null)}
-                                                            onMouseMove={(event) => {
-                                                                if (visibleSessionActivityPoints.length === 0) return;
-                                                                const rect = event.currentTarget.getBoundingClientRect();
-                                                                const relativeX = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * sessionActivityChartModel.width;
-                                                                const chartInnerWidth = sessionActivityChartModel.width - sessionActivityChartModel.axis.left - sessionActivityChartModel.axis.right;
-                                                                const normalizedX = Math.max(0, Math.min(relativeX - sessionActivityChartModel.axis.left, chartInnerWidth));
-                                                                const idx = Math.round((normalizedX / Math.max(chartInnerWidth, 1)) * Math.max(visibleSessionActivityPoints.length - 1, 1));
-                                                                setSessionChartHoverIndex(Math.max(0, Math.min(idx, visibleSessionActivityPoints.length - 1)));
-                                                            }}
-                                                        >
-                                                            {sessionActivityChartModel.yTicks.map((tick) => {
-                                                                const y = sessionActivityChartModel.axis.top + (sessionActivityChartModel.height - sessionActivityChartModel.axis.top - sessionActivityChartModel.axis.bottom) - (tick / Math.max(sessionActivityChartModel.maxValue, 1)) * (sessionActivityChartModel.height - sessionActivityChartModel.axis.top - sessionActivityChartModel.axis.bottom);
-                                                                return (
-                                                                    <g key={`session-y-${tick}`}>
-                                                                        <line x1={sessionActivityChartModel.axis.left} y1={y} x2={sessionActivityChartModel.width - sessionActivityChartModel.axis.right} y2={y} className={clsx(styles.chartGridLine)} />
-                                                                        <text x={sessionActivityChartModel.axis.left - 8} y={y + 4} className={clsx(styles.chartAxisLabel)}>{tick}</text>
-                                                                    </g>
-                                                                );
-                                                            })}
-                                                            <polyline points={sessionActivityChartModel.lines.totalSessions} className={clsx(styles.chartLineTotal)} />
-                                                            <polyline points={sessionActivityChartModel.lines.activeSessions} className={clsx(styles.chartLineActive)} />
-                                                            <polyline points={sessionActivityChartModel.lines.activeTransactions} className={clsx(styles.chartLineTransactions)} />
-                                                            {hoveredSessionPointX !== null && (
-                                                                <line
-                                                                    x1={hoveredSessionPointX}
-                                                                    y1={sessionActivityChartModel.axis.top}
-                                                                    x2={hoveredSessionPointX}
-                                                                    y2={sessionActivityChartModel.height - sessionActivityChartModel.axis.bottom}
-                                                                    className={clsx(styles.chartHoverGuide)}
-                                                                />
-                                                            )}
-                                                            {sessionActivityChartModel.xTickLabels.map((tick) => (
-                                                                <text key={`session-x-${tick.label}`} x={tick.x} y={sessionActivityChartModel.height - 12} className={clsx(styles.chartAxisLabel)} textAnchor="middle">{tick.label}</text>
-                                                            ))}
-                                                        </svg>
-                                                        {hoveredSessionPoint && (
-                                                            <div className={clsx(styles.metricsChartTooltip)} role="status" aria-live="polite">
-                                                                <div className={clsx(styles.metricsChartTooltipTitle)}>{hoveredSessionPoint.timestamp}</div>
-                                                                <div>Все сессии: <b>{hoveredSessionPoint.totalSessions}</b></div>
-                                                                <div>Активные сессии: <b>{hoveredSessionPoint.activeSessions}</b></div>
-                                                                <div>Активные транзакции: <b>{hoveredSessionPoint.activeTransactions}</b></div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className={clsx(styles.metricsTimelineScale)}>
-                                                        <div className={clsx(styles.metricsTimelineScaleHeader)}>
-                                                            <span>Временная линия масштаба</span>
-                                                            <span>
-                                                                Диапазон: {sessionChartWindowBoundaries.startIndex + 1}–{sessionChartWindowBoundaries.endIndex + 1}
-                                                                {' '}из {Math.max(sessionActivityPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
-                                                            </span>
+                                        {!isSessionActivityCollapsed && (
+                                            <div className={clsx(styles.metricsCardContent)}>
+                                                {loadingSessionActivity && sessionActivityPoints.length === 0 ? (
+                                                    <div className={clsx(styles.metricsSmallMuted)}>Загрузка данных активности...</div>
+                                                ) : sessionActivityError ? (
+                                                    <div className={clsx(styles.errorMessage)}>{sessionActivityError}</div>
+                                                ) : (
+                                                    <>
+                                                        <div className={clsx(styles.metricsChartLegend)}>
+                                                            <span><i className={clsx(styles.legendDot, styles.legendDotTotal)}/>Все сессии: {sessionActivitySnapshot?.sessions_total ?? 0}</span>
+                                                            <span><i className={clsx(styles.legendDot, styles.legendDotActive)}/>Активные сессии: {sessionActivitySnapshot?.active_sessions ?? 0}</span>
+                                                            <span><i className={clsx(styles.legendDot, styles.legendDotTx)}/>Активные транзакции: {sessionActivitySnapshot?.users.reduce((sum, user) => sum + user.active_transactions, 0) ?? 0}</span>
                                                         </div>
-                                                        <div
-                                                            ref={sessionTimelineRangeShellRef}
-                                                            className={clsx(styles.metricsTimelineRangeShell)}
-                                                            onWheel={handleTimelineScaleWheel}
-                                                            onPointerDown={handleTimelineScalePointerDown}
-                                                        >
-                                                            <div className={clsx(styles.metricsTimelineRangeTrack)} />
+                                                        <div className={clsx(styles.metricsLineChartWrap)}>
+                                                            <svg
+                                                                viewBox={`0 0 ${sessionActivityChartModel.width} ${sessionActivityChartModel.height}`}
+                                                                className={clsx(styles.metricsLineChart)}
+                                                                role="img"
+                                                                aria-label="График активности сессий и транзакций"
+                                                                onMouseLeave={() => setSessionChartHoverIndex(null)}
+                                                                onMouseMove={(event) => {
+                                                                    if (visibleSessionActivityPoints.length === 0) return;
+                                                                    const rect = event.currentTarget.getBoundingClientRect();
+                                                                    const relativeX = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * sessionActivityChartModel.width;
+                                                                    const chartInnerWidth = sessionActivityChartModel.width - sessionActivityChartModel.axis.left - sessionActivityChartModel.axis.right;
+                                                                    const normalizedX = Math.max(0, Math.min(relativeX - sessionActivityChartModel.axis.left, chartInnerWidth));
+                                                                    const idx = Math.round((normalizedX / Math.max(chartInnerWidth, 1)) * Math.max(visibleSessionActivityPoints.length - 1, 1));
+                                                                    setSessionChartHoverIndex(Math.max(0, Math.min(idx, visibleSessionActivityPoints.length - 1)));
+                                                                }}
+                                                            >
+                                                                {sessionActivityChartModel.yTicks.map((tick) => {
+                                                                    const y = sessionActivityChartModel.axis.top + (sessionActivityChartModel.height - sessionActivityChartModel.axis.top - sessionActivityChartModel.axis.bottom) - (tick / Math.max(sessionActivityChartModel.maxValue, 1)) * (sessionActivityChartModel.height - sessionActivityChartModel.axis.top - sessionActivityChartModel.axis.bottom);
+                                                                    return (
+                                                                        <g key={`session-y-${tick}`}>
+                                                                            <line x1={sessionActivityChartModel.axis.left} y1={y} x2={sessionActivityChartModel.width - sessionActivityChartModel.axis.right} y2={y} className={clsx(styles.chartGridLine)} />
+                                                                            <text x={sessionActivityChartModel.axis.left - 8} y={y + 4} className={clsx(styles.chartAxisLabel)}>{tick}</text>
+                                                                        </g>
+                                                                    );
+                                                                })}
+                                                                <polyline points={sessionActivityChartModel.lines.totalSessions} className={clsx(styles.chartLineTotal)} />
+                                                                <polyline points={sessionActivityChartModel.lines.activeSessions} className={clsx(styles.chartLineActive)} />
+                                                                <polyline points={sessionActivityChartModel.lines.activeTransactions} className={clsx(styles.chartLineTransactions)} />
+                                                                {hoveredSessionPointX !== null && (
+                                                                    <line
+                                                                        x1={hoveredSessionPointX}
+                                                                        y1={sessionActivityChartModel.axis.top}
+                                                                        x2={hoveredSessionPointX}
+                                                                        y2={sessionActivityChartModel.height - sessionActivityChartModel.axis.bottom}
+                                                                        className={clsx(styles.chartHoverGuide)}
+                                                                    />
+                                                                )}
+                                                                {sessionActivityChartModel.xTickLabels.map((tick) => (
+                                                                    <text key={`session-x-${tick.label}`} x={tick.x} y={sessionActivityChartModel.height - 12} className={clsx(styles.chartAxisLabel)} textAnchor="middle">{tick.label}</text>
+                                                                ))}
+                                                            </svg>
+                                                            {hoveredSessionPoint && (
+                                                                <div className={clsx(styles.metricsChartTooltip)} role="status" aria-live="polite">
+                                                                    <div className={clsx(styles.metricsChartTooltipTitle)}>{hoveredSessionPoint.timestamp}</div>
+                                                                    <div>Все сессии: <b>{hoveredSessionPoint.totalSessions}</b></div>
+                                                                    <div>Активные сессии: <b>{hoveredSessionPoint.activeSessions}</b></div>
+                                                                    <div>Активные транзакции: <b>{hoveredSessionPoint.activeTransactions}</b></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className={clsx(styles.metricsTimelineScale)}>
+                                                            <div className={clsx(styles.metricsTimelineScaleHeader)}>
+                                                                <span>Временная линия масштаба</span>
+                                                                <span>
+                                                                    Диапазон: {sessionChartWindowBoundaries.startIndex + 1}–{sessionChartWindowBoundaries.endIndex + 1}
+                                                                    {' '}из {Math.max(sessionActivityPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
+                                                                </span>
+                                                            </div>
                                                             <div
-                                                                className={clsx(styles.metricsTimelineRangeSelection)}
-                                                                style={{
-                                                                    left: `${sessionChartWindowStartPercent}%`,
-                                                                    width: `${Math.max(sessionChartWindowEndPercent - sessionChartWindowStartPercent, 0)}%`,
-                                                                }}
-                                                            />
-                                                            <input
-                                                                type="range"
-                                                                min={0}
-                                                                max={100}
-                                                                step={1}
-                                                                value={sessionChartWindowStartPercent}
-                                                                onChange={(event) => {
-                                                                    const nextStart = Number(event.target.value);
-                                                                    applySessionChartWindow(nextStart, sessionChartWindowEndPercent);
-                                                                }}
-                                                                className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeStart)}
-                                                                aria-label="Начало временного диапазона графика"
-                                                            />
-                                                            <input
-                                                                type="range"
-                                                                min={0}
-                                                                max={100}
-                                                                step={1}
-                                                                value={sessionChartWindowEndPercent}
-                                                                onChange={(event) => {
-                                                                    const nextEnd = Number(event.target.value);
-                                                                    applySessionChartWindow(sessionChartWindowStartPercent, nextEnd);
-                                                                }}
-                                                                className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeEnd)}
-                                                                aria-label="Конец временного диапазона графика"
-                                                            />
+                                                                ref={sessionTimelineRangeShellRef}
+                                                                className={clsx(styles.metricsTimelineRangeShell)}
+                                                                onWheel={handleTimelineScaleWheel}
+                                                                onPointerDown={handleTimelineScalePointerDown}
+                                                            >
+                                                                <div className={clsx(styles.metricsTimelineRangeTrack)} />
+                                                                <div
+                                                                    className={clsx(styles.metricsTimelineRangeSelection)}
+                                                                    style={{
+                                                                        left: `${sessionChartWindowStartPercent}%`,
+                                                                        width: `${Math.max(sessionChartWindowEndPercent - sessionChartWindowStartPercent, 0)}%`,
+                                                                    }}
+                                                                />
+                                                                <input
+                                                                    type="range"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step={1}
+                                                                    value={sessionChartWindowStartPercent}
+                                                                    onChange={(event) => {
+                                                                        const nextStart = Number(event.target.value);
+                                                                        applySessionChartWindow(nextStart, sessionChartWindowEndPercent);
+                                                                    }}
+                                                                    className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeStart)}
+                                                                    aria-label="Начало временного диапазона графика"
+                                                                />
+                                                                <input
+                                                                    type="range"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step={1}
+                                                                    value={sessionChartWindowEndPercent}
+                                                                    onChange={(event) => {
+                                                                        const nextEnd = Number(event.target.value);
+                                                                        applySessionChartWindow(sessionChartWindowStartPercent, nextEnd);
+                                                                    }}
+                                                                    className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeEnd)}
+                                                                    aria-label="Конец временного диапазона графика"
+                                                                />
+                                                            </div>
+                                                            <div className={clsx(styles.metricsTimelineTicks)}>
+                                                                {['История', '25%', '50%', '75%', 'Live'].map((tick) => (
+                                                                    <span key={`timeline-tick-${tick}`}>{tick}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className={clsx(styles.metricsUsersTable)}>
+                                                            <div className={clsx(styles.metricsUsersHeader)}>Top пользователей по транзакциям</div>
+                                                            {(sessionActivitySnapshot?.users ?? []).map((item) => (
+                                                                <div key={item.username} className={clsx(styles.metricsUsersRow)}>
+                                                                    <span className={clsx(styles.metricsUsersName)}>{item.username}</span>
+                                                                    <span>Сессий: {item.sessions_total}</span>
+                                                                    <span>Активных: {item.active_sessions}</span>
+                                                                    <span>Tx: {item.active_transactions}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className={clsx(styles.metricsWideCard)}>
+                                        <div className={clsx(styles.metricsCardHeader)}>
+                                            <FontAwesomeIcon icon={faChartLine} className={clsx(styles.metricsCardIcon)}/>
+                                            <h3 className={clsx(styles.metricsCardTitle)}>График активности</h3>
+                                            <button type="button" className={clsx(styles.metricsInlineRefresh)} onClick={refreshMonitoringSqlActivity} title="Обновить график">
+                                                <FontAwesomeIcon icon={faArrowsRotate}/> Обновить
+                                            </button>
+                                            <label className={clsx(styles.metricsRefreshControl)}>
+                                                Интервал:
+                                                <select
+                                                    className={clsx(styles.metricsRefreshSelect)}
+                                                    value={activityChartRefreshIntervalMs}
+                                                    onChange={(event) => setActivityChartRefreshIntervalMs(Number(event.target.value))}
+                                                    aria-label="Интервал автообновления графика SQL-активности"
+                                                >
+                                                    <option value={1000}>1 сек</option>
+                                                    <option value={2000}>2 сек</option>
+                                                    <option value={5000}>5 сек</option>
+                                                    <option value={10000}>10 сек</option>
+                                                </select>
+                                            </label>
+                                            <button type="button" className={clsx(styles.metricsCollapseButton)} onClick={() => setIsSqlActivityCollapsed((prev) => !prev)}>
+                                                {isSqlActivityCollapsed ? 'Развернуть' : 'Свернуть'}
+                                            </button>
+                                        </div>
+                                        {!isSqlActivityCollapsed && (
+                                            <div className={clsx(styles.metricsCardContent)}>
+                                                <div className={clsx(styles.metricsChartLegend)}>
+                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlTotal)}/>Всего: {activityChartPoints[activityChartPoints.length - 1]?.total ?? 0}</span>
+                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlSelect)}/>SELECT: {activityChartPoints[activityChartPoints.length - 1]?.select ?? 0}</span>
+                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlInsert)}/>INSERT: {activityChartPoints[activityChartPoints.length - 1]?.insert ?? 0}</span>
+                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlUpdate)}/>UPDATE: {activityChartPoints[activityChartPoints.length - 1]?.update ?? 0}</span>
+                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlDelete)}/>DELETE: {activityChartPoints[activityChartPoints.length - 1]?.delete ?? 0}</span>
+                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlOther)}/>OTHER: {activityChartPoints[activityChartPoints.length - 1]?.other ?? 0}</span>
+                                                </div>
+                                                {chartActiveQueriesError ? (
+                                                    <div className={clsx(styles.errorMessage)}>{chartActiveQueriesError}</div>
+                                                ) : activityChartPoints.length > 1 ? (
+                                                    <>
+                                                        <div className={clsx(styles.metricsLineChartWrap)}>
+                                                            <svg
+                                                                viewBox={`0 0 ${activityChartModel.width} ${activityChartModel.height}`}
+                                                                className={clsx(styles.metricsLineChart)}
+                                                                role="img"
+                                                                aria-label={t('chart.aria')}
+                                                            >
+                                                                {activityChartModel.yTicks.map((tick) => {
+                                                                    const y = activityChartModel.axis.top
+                                                                        + (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom)
+                                                                        - (tick / Math.max(activityChartModel.yTicks[activityChartModel.yTicks.length - 1], 1))
+                                                                        * (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom);
+                                                                    return (
+                                                                        <g key={`sql-y-${tick}`}>
+                                                                            <line x1={activityChartModel.axis.left} y1={y} x2={activityChartModel.width - activityChartModel.axis.right} y2={y} className={clsx(styles.chartGridLine)} />
+                                                                            <text x={activityChartModel.axis.left - 8} y={y + 4} className={clsx(styles.chartAxisLabel)}>{tick}</text>
+                                                                        </g>
+                                                                    );
+                                                                })}
+                                                                <polyline points={activityChartModel.lines.total} className={clsx(styles.chartLineSqlTotal)} />
+                                                                <polyline points={activityChartModel.lines.select} className={clsx(styles.chartLineSqlSelect)} />
+                                                                <polyline points={activityChartModel.lines.insert} className={clsx(styles.chartLineSqlInsert)} />
+                                                                <polyline points={activityChartModel.lines.update} className={clsx(styles.chartLineSqlUpdate)} />
+                                                                <polyline points={activityChartModel.lines.delete} className={clsx(styles.chartLineSqlDelete)} />
+                                                                <polyline points={activityChartModel.lines.other} className={clsx(styles.chartLineSqlOther)} />
+                                                                {activityChartModel.xTickLabels.map((tick) => (
+                                                                    <text key={`sql-x-${tick.label}`} x={tick.x} y={activityChartModel.height - 12} className={clsx(styles.chartAxisLabel)} textAnchor="middle">{tick.label}</text>
+                                                                ))}
+                                                            </svg>
                                                         </div>
                                                         <div className={clsx(styles.metricsTimelineTicks)}>
-                                                            {['История', '25%', '50%', '75%', 'Live'].map((tick) => (
-                                                                <span key={`timeline-tick-${tick}`}>{tick}</span>
-                                                            ))}
+                                                            <span>Период: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
+                                                            <span>Min: {activityChartModel.minValue}</span>
+                                                            <span>Avg: {activityChartModel.avgValue}</span>
+                                                            <span>Max: {activityChartModel.maxValue}</span>
                                                         </div>
+                                                    </>
+                                                ) : (
+                                                    <div className={clsx(styles.metricsSmallMuted)}>
+                                                        <FontAwesomeIcon icon={faSpinner} spin={chartLoadingActiveQueries} /> {t('chart.collecting')}
                                                     </div>
-
-                                                    <div className={clsx(styles.metricsUsersTable)}>
-                                                        <div className={clsx(styles.metricsUsersHeader)}>Top пользователей по транзакциям</div>
-                                                        {(sessionActivitySnapshot?.users ?? []).map((item) => (
-                                                            <div key={item.username} className={clsx(styles.metricsUsersRow)}>
-                                                                <span className={clsx(styles.metricsUsersName)}>{item.username}</span>
-                                                                <span>Сессий: {item.sessions_total}</span>
-                                                                <span>Активных: {item.active_sessions}</span>
-                                                                <span>Tx: {item.active_transactions}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -4185,131 +4267,6 @@ export default function ConnectionDetailPage() {
                     </div>
                 </div>
             </div>
-            {isActivityChartModalOpen && (
-                <div className={clsx(styles.modalOverlay)} onClick={closeActivityChartModal}>
-                    <div className={clsx(styles.activityChartModal)} onClick={(e) => e.stopPropagation()}>
-                        <div className={clsx(styles.activityChartHeader)}>
-                            <h2 className={clsx(styles.activityChartTitle)}>{t('chart.title')}</h2>
-                            <button
-                                type="button"
-                                className={clsx(styles.modalCancelButton)}
-                                onClick={closeActivityChartModal}
-                            >
-                                {t('chart.close')}
-                            </button>
-                        </div>
-                        <div className={clsx(styles.activityChartBody)}>
-                            <div className={clsx(styles.activityChartSvgWrap)}>
-                                {activityChartPoints.length > 1 ? (
-                                    <svg
-                                        viewBox={`0 0 ${activityChartModel.width} ${activityChartModel.height}`}
-                                        className={clsx(styles.activityChartSvg)}
-                                        role="img"
-                                        aria-label={t('chart.aria')}
-                                    >
-                                        {activityChartModel.yTicks.map((tick) => {
-                                            const y = activityChartModel.axis.top
-                                                + (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom)
-                                                - (tick / Math.max(activityChartModel.yTicks[activityChartModel.yTicks.length - 1], 1))
-                                                * (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom);
-                                            return (
-                                                <g key={`y-${tick}`}>
-                                                    <line
-                                                        x1={activityChartModel.axis.left}
-                                                        y1={y}
-                                                        x2={activityChartModel.width - activityChartModel.axis.right}
-                                                        y2={y}
-                                                        className={clsx(styles.activityChartGridLine)}
-                                                    />
-                                                    <text
-                                                        x={activityChartModel.axis.left - 10}
-                                                        y={y + 4}
-                                                        textAnchor="end"
-                                                        className={clsx(styles.activityChartAxisText)}
-                                                    >
-                                                        {tick}
-                                                    </text>
-                                                </g>
-                                            );
-                                        })}
-
-                                        <line
-                                            x1={activityChartModel.axis.left}
-                                            y1={activityChartModel.axis.top}
-                                            x2={activityChartModel.axis.left}
-                                            y2={activityChartModel.height - activityChartModel.axis.bottom}
-                                            className={clsx(styles.activityChartAxisLine)}
-                                        />
-                                        <line
-                                            x1={activityChartModel.axis.left}
-                                            y1={activityChartModel.height - activityChartModel.axis.bottom}
-                                            x2={activityChartModel.width - activityChartModel.axis.right}
-                                            y2={activityChartModel.height - activityChartModel.axis.bottom}
-                                            className={clsx(styles.activityChartAxisLine)}
-                                        />
-
-                                        <polyline points={activityChartModel.lines.total} className={clsx(styles.activityChartPolyline, styles.activityChartLine_total)}/>
-                                        <polyline points={activityChartModel.lines.select} className={clsx(styles.activityChartPolyline, styles.activityChartLine_select)}/>
-                                        <polyline points={activityChartModel.lines.insert} className={clsx(styles.activityChartPolyline, styles.activityChartLine_insert)}/>
-                                        <polyline points={activityChartModel.lines.update} className={clsx(styles.activityChartPolyline, styles.activityChartLine_update)}/>
-                                        <polyline points={activityChartModel.lines.delete} className={clsx(styles.activityChartPolyline, styles.activityChartLine_delete)}/>
-                                        <polyline points={activityChartModel.lines.other} className={clsx(styles.activityChartPolyline, styles.activityChartLine_other)}/>
-
-                                        {activityChartModel.xTickLabels.map((tick) => (
-                                            <text
-                                                key={`x-${tick.x}`}
-                                                x={tick.x}
-                                                y={activityChartModel.height - 10}
-                                                textAnchor="middle"
-                                                className={clsx(styles.activityChartAxisText)}
-                                            >
-                                                {tick.label}
-                                            </text>
-                                        ))}
-
-                                        <text
-                                            x={activityChartModel.width / 2}
-                                            y={activityChartModel.height - 28}
-                                            textAnchor="middle"
-                                            className={clsx(styles.activityChartAxisTitle)}
-                                        >
-                                            {t('chart.axis.time')}
-                                        </text>
-                                        <text
-                                            x={16}
-                                            y={activityChartModel.height / 2}
-                                            textAnchor="middle"
-                                            transform={`rotate(-90 16 ${activityChartModel.height / 2})`}
-                                            className={clsx(styles.activityChartAxisTitle)}
-                                        >
-                                            {t('chart.axis.transactions')}
-                                        </text>
-                                    </svg>
-                                ) : (
-                                    <div className={clsx(styles.usersEmpty)}>
-                                        <FontAwesomeIcon icon={faSpinner} spin={chartLoadingActiveQueries} size="2x"/>
-                                        <p>{t('chart.collecting')}</p>
-                                    </div>
-                                )}
-                            </div>
-                            {activityChartPoints.length > 0 && (
-                                <div className={clsx(styles.activityChartTicks)}>
-                                    <span>{t('chart.info')}</span>
-                                    <span>{t('chart.period')}: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
-                                    <span>{t('chart.min')}: {activityChartModel.minValue}</span>
-                                    <span>{t('chart.avg')}: {activityChartModel.avgValue}</span>
-                                    <span>{t('chart.max')}: {activityChartModel.maxValue}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_select)}>SELECT: {activityChartPoints[activityChartPoints.length - 1].select}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_insert)}>INSERT: {activityChartPoints[activityChartPoints.length - 1].insert}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_update)}>UPDATE: {activityChartPoints[activityChartPoints.length - 1].update}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_delete)}>DELETE: {activityChartPoints[activityChartPoints.length - 1].delete}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_other)}>{t('chart.other')}: {activityChartPoints[activityChartPoints.length - 1].other}</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Модальное окно подтверждения удаления */}
             {confirmDeleteId !== null && (

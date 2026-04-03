@@ -24,7 +24,7 @@ interface ActiveQueriesResponse {
 }
 
 export function useConnectionActiveQueries(
-  connectionId: number,
+  connectionId: number | null,
   page: number = 1,
   size: number = 20,
   username: string | null = null,
@@ -41,6 +41,17 @@ export function useConnectionActiveQueries(
   const [hasPrev, setHasPrev] = useState(false);
 
   useEffect(() => {
+    if (!connectionId) {
+      setActiveQueries([]);
+      setTotal(0);
+      setPages(0);
+      setHasNext(false);
+      setHasPrev(false);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     const fetchActiveQueries = async () => {
       try {
         setLoading(true);

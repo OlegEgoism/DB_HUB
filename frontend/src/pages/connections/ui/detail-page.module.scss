@@ -1971,6 +1971,11 @@
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
+.monitoringCards {
+  display: grid;
+  gap: 20px;
+}
+
 .metricsInlineRefresh {
   margin-left: auto;
   border: 1px solid var(--border-glass);
@@ -1983,6 +1988,16 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.metricsCollapseButton {
+  border: 1px solid var(--border-glass);
+  background: white;
+  color: var(--color-text-main);
+  border-radius: 8px;
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
 }
 
 .metricsRefreshControl {
@@ -2027,6 +2042,12 @@
 .legendDotTotal { background: #2f80ed; }
 .legendDotActive { background: #27ae60; }
 .legendDotTx { background: #9b51e0; }
+.legendDotSqlTotal { background: #4f46e5; }
+.legendDotSqlSelect { background: #16a34a; }
+.legendDotSqlInsert { background: #2563eb; }
+.legendDotSqlUpdate { background: #f59e0b; }
+.legendDotSqlDelete { background: #dc2626; }
+.legendDotSqlOther { background: #6b7280; }
 
 .metricsLineChart {
   width: 100%;
@@ -2062,6 +2083,23 @@
 .chartLineTotal { stroke: #2f80ed; }
 .chartLineActive { stroke: #27ae60; }
 .chartLineTransactions { stroke: #9b51e0; }
+.chartLineSqlTotal,
+.chartLineSqlSelect,
+.chartLineSqlInsert,
+.chartLineSqlUpdate,
+.chartLineSqlDelete,
+.chartLineSqlOther {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chartLineSqlTotal { stroke: #4f46e5; }
+.chartLineSqlSelect { stroke: #16a34a; }
+.chartLineSqlInsert { stroke: #2563eb; }
+.chartLineSqlUpdate { stroke: #f59e0b; }
+.chartLineSqlDelete { stroke: #dc2626; }
+.chartLineSqlOther { stroke: #6b7280; }
 
 .chartHoverGuide {
   stroke: rgba(31, 41, 55, 0.36);
