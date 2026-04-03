@@ -235,7 +235,8 @@ export default function ConnectionDetailPage() {
     const [sessionActivityPoints, setSessionActivityPoints] = useState<SessionActivityChartPoint[]>([]);
     const [sessionActivityReloadTrigger, setSessionActivityReloadTrigger] = useState(0);
     const [sessionChartHoverIndex, setSessionChartHoverIndex] = useState<number | null>(null);
-    const [sessionChartWindowSize, setSessionChartWindowSize] = useState(30);
+    const [sessionChartWindowStartPercent, setSessionChartWindowStartPercent] = useState(50);
+    const [sessionChartWindowEndPercent, setSessionChartWindowEndPercent] = useState(100);
     const [monitoringRefreshIntervalMs, setMonitoringRefreshIntervalMs] = useState(1000);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
@@ -599,10 +600,26 @@ export default function ConnectionDetailPage() {
         setSessionActivityPoints((prev) => [...prev.slice(-59), point]);
     }, [activeTab, sessionActivitySnapshot]);
 
-    const visibleSessionActivityPoints = useMemo(
-        () => sessionActivityPoints.slice(-sessionChartWindowSize),
-        [sessionActivityPoints, sessionChartWindowSize],
-    );
+    const sessionChartWindowBoundaries = useMemo(() => {
+        if (sessionActivityPoints.length <= 1) {
+            return { startIndex: 0, endIndex: Math.max(sessionActivityPoints.length - 1, 0) };
+        }
+
+        const maxIndex = sessionActivityPoints.length - 1;
+        const startIndex = Math.floor((sessionChartWindowStartPercent / 100) * maxIndex);
+        const endIndex = Math.ceil((sessionChartWindowEndPercent / 100) * maxIndex);
+
+        return {
+            startIndex: Math.max(0, Math.min(startIndex, maxIndex)),
+            endIndex: Math.max(0, Math.min(endIndex, maxIndex)),
+        };
+    }, [sessionActivityPoints, sessionChartWindowStartPercent, sessionChartWindowEndPercent]);
+
+    const visibleSessionActivityPoints = useMemo(() => {
+        if (sessionActivityPoints.length === 0) return [];
+        const { startIndex, endIndex } = sessionChartWindowBoundaries;
+        return sessionActivityPoints.slice(startIndex, endIndex + 1);
+    }, [sessionActivityPoints, sessionChartWindowBoundaries]);
 
     const sessionActivityChartModel = useMemo(() => {
         const width = 860;
@@ -671,6 +688,12 @@ export default function ConnectionDetailPage() {
         const safeIndex = Math.max(0, Math.min(sessionChartHoverIndex, visibleSessionActivityPoints.length - 1));
         return sessionActivityChartModel.axis.left + (safeIndex / Math.max(visibleSessionActivityPoints.length - 1, 1)) * chartInnerWidth;
     }, [sessionChartHoverIndex, sessionActivityChartModel, visibleSessionActivityPoints.length]);
+
+    useEffect(() => {
+        if (sessionChartHoverIndex === null) return;
+        if (sessionChartHoverIndex <= visibleSessionActivityPoints.length - 1) return;
+        setSessionChartHoverIndex(null);
+    }, [sessionChartHoverIndex, visibleSessionActivityPoints.length]);
 
     const activitySnapshotBars = useMemo(() => {
         const users = (sessionActivitySnapshot?.users ?? []).slice(0, 8);
@@ -3983,24 +4006,54 @@ export default function ConnectionDetailPage() {
                                                     <div className={clsx(styles.metricsTimelineScale)}>
                                                         <div className={clsx(styles.metricsTimelineScaleHeader)}>
                                                             <span>Временная линия масштаба</span>
-                                                            <span>Окно: последние {sessionChartWindowSize} сек.</span>
+                                                            <span>
+                                                                Диапазон: {sessionChartWindowBoundaries.startIndex + 1}–{sessionChartWindowBoundaries.endIndex + 1}
+                                                                {' '}из {Math.max(sessionActivityPoints.length, 1)} точек
+                                                            </span>
                                                         </div>
-                                                        <input
-                                                            type="range"
-                                                            min={10}
-                                                            max={60}
-                                                            step={5}
-                                                            value={sessionChartWindowSize}
-                                                            onChange={(event) => {
-                                                                setSessionChartWindowSize(Number(event.target.value));
-                                                                setSessionChartHoverIndex(null);
-                                                            }}
-                                                            className={clsx(styles.metricsTimelineRange)}
-                                                            aria-label="Масштаб временной линии графика"
-                                                        />
+                                                        <div className={clsx(styles.metricsTimelineRangeShell)}>
+                                                            <div className={clsx(styles.metricsTimelineRangeTrack)} />
+                                                            <div
+                                                                className={clsx(styles.metricsTimelineRangeSelection)}
+                                                                style={{
+                                                                    left: `${sessionChartWindowStartPercent}%`,
+                                                                    width: `${Math.max(sessionChartWindowEndPercent - sessionChartWindowStartPercent, 0)}%`,
+                                                                }}
+                                                            />
+                                                            <input
+                                                                type="range"
+                                                                min={0}
+                                                                max={100}
+                                                                step={1}
+                                                                value={sessionChartWindowStartPercent}
+                                                                onChange={(event) => {
+                                                                    const nextStart = Number(event.target.value);
+                                                                    const minGap = 8;
+                                                                    setSessionChartWindowStartPercent(Math.min(nextStart, sessionChartWindowEndPercent - minGap));
+                                                                    setSessionChartHoverIndex(null);
+                                                                }}
+                                                                className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeStart)}
+                                                                aria-label="Начало временного диапазона графика"
+                                                            />
+                                                            <input
+                                                                type="range"
+                                                                min={0}
+                                                                max={100}
+                                                                step={1}
+                                                                value={sessionChartWindowEndPercent}
+                                                                onChange={(event) => {
+                                                                    const nextEnd = Number(event.target.value);
+                                                                    const minGap = 8;
+                                                                    setSessionChartWindowEndPercent(Math.max(nextEnd, sessionChartWindowStartPercent + minGap));
+                                                                    setSessionChartHoverIndex(null);
+                                                                }}
+                                                                className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeEnd)}
+                                                                aria-label="Конец временного диапазона графика"
+                                                            />
+                                                        </div>
                                                         <div className={clsx(styles.metricsTimelineTicks)}>
-                                                            {[10, 20, 30, 40, 50, 60].map((tick) => (
-                                                                <span key={`timeline-tick-${tick}`}>{tick}s</span>
+                                                            {['История', '25%', '50%', '75%', 'Live'].map((tick) => (
+                                                                <span key={`timeline-tick-${tick}`}>{tick}</span>
                                                             ))}
                                                         </div>
                                                     </div>
