@@ -1,5 +1,5 @@
 // frontend/src/pages/connections/ui/detail-page.tsx
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {useParams, useNavigate, useSearchParams} from 'react-router';
 import clsx from 'clsx';
 import styles from './detail-page.module.scss';
@@ -281,6 +281,7 @@ export default function ConnectionDetailPage() {
     const [monitoringRefreshIntervalMs, setMonitoringRefreshIntervalMs] = useState(1000);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
+    const sessionTimelineRangeShellRef = useRef<HTMLDivElement | null>(null);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -655,6 +656,53 @@ export default function ConnectionDetailPage() {
             endIndex: Math.max(0, Math.min(endIndex, maxIndex)),
         };
     }, [sessionActivityPoints, sessionChartWindowStartPercent, sessionChartWindowEndPercent]);
+
+    const applySessionChartWindow = (nextStart: number, nextEnd: number) => {
+        const minGap = 8;
+        const safeStart = Math.max(0, Math.min(nextStart, 100 - minGap));
+        const safeEnd = Math.max(safeStart + minGap, Math.min(nextEnd, 100));
+        setSessionChartWindowStartPercent(safeStart);
+        setSessionChartWindowEndPercent(safeEnd);
+        setSessionChartHoverIndex(null);
+    };
+
+    const shiftSessionChartWindow = (deltaPercent: number) => {
+        const width = sessionChartWindowEndPercent - sessionChartWindowStartPercent;
+        const nextStart = Math.max(0, Math.min(sessionChartWindowStartPercent + deltaPercent, 100 - width));
+        applySessionChartWindow(nextStart, nextStart + width);
+    };
+
+    const zoomSessionChartWindow = (zoomIn: boolean) => {
+        const currentWidth = sessionChartWindowEndPercent - sessionChartWindowStartPercent;
+        const minWidth = 8;
+        const maxWidth = 100;
+        const nextWidth = zoomIn
+            ? Math.max(minWidth, currentWidth * 0.88)
+            : Math.min(maxWidth, currentWidth * 1.12);
+        const center = (sessionChartWindowStartPercent + sessionChartWindowEndPercent) / 2;
+        const nextStart = Math.max(0, Math.min(center - nextWidth / 2, 100 - nextWidth));
+        applySessionChartWindow(nextStart, nextStart + nextWidth);
+    };
+
+    const handleTimelineScaleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        if (event.shiftKey || event.ctrlKey || event.metaKey) {
+            zoomSessionChartWindow(event.deltaY < 0);
+            return;
+        }
+        const direction = event.deltaY > 0 ? 1 : -1;
+        shiftSessionChartWindow(direction * 2.5);
+    };
+
+    const handleTimelineScalePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+        const shell = sessionTimelineRangeShellRef.current;
+        if (!shell) return;
+        const rect = shell.getBoundingClientRect();
+        const clickPercent = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 100;
+        const width = sessionChartWindowEndPercent - sessionChartWindowStartPercent;
+        const nextStart = Math.max(0, Math.min(clickPercent - width / 2, 100 - width));
+        applySessionChartWindow(nextStart, nextStart + width);
+    };
 
     const visibleSessionActivityPoints = useMemo(() => {
         if (sessionActivityPoints.length === 0) return [];
@@ -4065,10 +4113,15 @@ export default function ConnectionDetailPage() {
                                                             <span>Временная линия масштаба</span>
                                                             <span>
                                                                 Диапазон: {sessionChartWindowBoundaries.startIndex + 1}–{sessionChartWindowBoundaries.endIndex + 1}
-                                                                {' '}из {Math.max(sessionActivityPoints.length, 1)} точек
+                                                                {' '}из {Math.max(sessionActivityPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
                                                             </span>
                                                         </div>
-                                                        <div className={clsx(styles.metricsTimelineRangeShell)}>
+                                                        <div
+                                                            ref={sessionTimelineRangeShellRef}
+                                                            className={clsx(styles.metricsTimelineRangeShell)}
+                                                            onWheel={handleTimelineScaleWheel}
+                                                            onPointerDown={handleTimelineScalePointerDown}
+                                                        >
                                                             <div className={clsx(styles.metricsTimelineRangeTrack)} />
                                                             <div
                                                                 className={clsx(styles.metricsTimelineRangeSelection)}
@@ -4085,9 +4138,7 @@ export default function ConnectionDetailPage() {
                                                                 value={sessionChartWindowStartPercent}
                                                                 onChange={(event) => {
                                                                     const nextStart = Number(event.target.value);
-                                                                    const minGap = 8;
-                                                                    setSessionChartWindowStartPercent(Math.min(nextStart, sessionChartWindowEndPercent - minGap));
-                                                                    setSessionChartHoverIndex(null);
+                                                                    applySessionChartWindow(nextStart, sessionChartWindowEndPercent);
                                                                 }}
                                                                 className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeStart)}
                                                                 aria-label="Начало временного диапазона графика"
@@ -4100,9 +4151,7 @@ export default function ConnectionDetailPage() {
                                                                 value={sessionChartWindowEndPercent}
                                                                 onChange={(event) => {
                                                                     const nextEnd = Number(event.target.value);
-                                                                    const minGap = 8;
-                                                                    setSessionChartWindowEndPercent(Math.max(nextEnd, sessionChartWindowStartPercent + minGap));
-                                                                    setSessionChartHoverIndex(null);
+                                                                    applySessionChartWindow(sessionChartWindowStartPercent, nextEnd);
                                                                 }}
                                                                 className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeEnd)}
                                                                 aria-label="Конец временного диапазона графика"
