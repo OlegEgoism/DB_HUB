@@ -476,10 +476,12 @@ export default function ConnectionDetailPage() {
         activityChartReloadTrigger,
     );
 
+    const isMonitoringRelatedTab = activeTab === 'metrics' || activeTab === 'active_sql' || activeTab === 'monitoring';
+    const sessionActivityRefreshMs = activeTab === 'monitoring' ? 1000 : 3000;
     const { snapshot: sessionActivitySnapshot, loading: loadingSessionActivity, error: sessionActivityError } = useConnectionActivitySnapshot(
-        (activeTab === 'metrics' || activeTab === 'active_sql') && id ? parseInt(id) : null,
+        isMonitoringRelatedTab && id ? parseInt(id) : null,
         sessionActivityReloadTrigger,
-        5000,
+        sessionActivityRefreshMs,
     );
 
     useEffect(() => {
@@ -581,7 +583,7 @@ export default function ConnectionDetailPage() {
     }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen, chartActiveQueries]);
 
     useEffect(() => {
-        if (activeTab !== 'metrics' || !sessionActivitySnapshot) return;
+        if ((activeTab !== 'metrics' && activeTab !== 'monitoring') || !sessionActivitySnapshot) return;
 
         const activeTransactions = sessionActivitySnapshot.users.reduce((sum, user) => sum + user.active_transactions, 0);
         const point: SessionActivityChartPoint = {
@@ -3885,6 +3887,9 @@ export default function ConnectionDetailPage() {
                                                 <div className={clsx(styles.errorMessage)}>{sessionActivityError}</div>
                                             ) : (
                                                 <>
+                                                    <div className={clsx(styles.metricsSmallMuted)}>
+                                                        Автообновление: {sessionActivityRefreshMs / 1000} сек.
+                                                    </div>
                                                     <div className={clsx(styles.metricsChartLegend)}>
                                                         <span><i className={clsx(styles.legendDot, styles.legendDotTotal)}/>Все сессии: {sessionActivitySnapshot?.sessions_total ?? 0}</span>
                                                         <span><i className={clsx(styles.legendDot, styles.legendDotActive)}/>Активные сессии: {sessionActivitySnapshot?.active_sessions ?? 0}</span>

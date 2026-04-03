@@ -58,15 +58,32 @@ export function useConnectionActivitySnapshot(
       }
     };
 
-    void fetchSnapshot(true);
+    let timeoutId: number | null = null;
 
-    const timerId = window.setInterval(() => {
-      void fetchSnapshot(false);
-    }, refreshIntervalMs);
+    const scheduleNextFetch = () => {
+      timeoutId = window.setTimeout(() => {
+        void runPollingCycle();
+      }, refreshIntervalMs);
+    };
+
+    const runPollingCycle = async () => {
+      await fetchSnapshot(false);
+      if (!isCancelled) {
+        scheduleNextFetch();
+      }
+    };
+
+    void fetchSnapshot(true).finally(() => {
+      if (!isCancelled) {
+        scheduleNextFetch();
+      }
+    });
 
     return () => {
       isCancelled = true;
-      window.clearInterval(timerId);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
     };
   }, [connectionId, reloadTrigger, refreshIntervalMs]);
 
