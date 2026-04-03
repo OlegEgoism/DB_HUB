@@ -295,9 +295,12 @@ export default function ConnectionDetailPage() {
     });
     const [sessionChartWindowStartPercent, setSessionChartWindowStartPercent] = useState(50);
     const [sessionChartWindowEndPercent, setSessionChartWindowEndPercent] = useState(100);
+    const [sqlChartWindowStartPercent, setSqlChartWindowStartPercent] = useState(50);
+    const [sqlChartWindowEndPercent, setSqlChartWindowEndPercent] = useState(100);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
     const sessionTimelineRangeShellRef = useRef<HTMLDivElement | null>(null);
+    const sqlTimelineRangeShellRef = useRef<HTMLDivElement | null>(null);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -727,6 +730,74 @@ export default function ConnectionDetailPage() {
         return sessionActivityPoints.slice(startIndex, endIndex + 1);
     }, [sessionActivityPoints, sessionChartWindowBoundaries]);
 
+    const sqlChartWindowBoundaries = useMemo(() => {
+        if (activityChartPoints.length <= 1) {
+            return { startIndex: 0, endIndex: Math.max(activityChartPoints.length - 1, 0) };
+        }
+
+        const maxIndex = activityChartPoints.length - 1;
+        const startIndex = Math.floor((sqlChartWindowStartPercent / 100) * maxIndex);
+        const endIndex = Math.ceil((sqlChartWindowEndPercent / 100) * maxIndex);
+
+        return {
+            startIndex: Math.max(0, Math.min(startIndex, maxIndex)),
+            endIndex: Math.max(0, Math.min(endIndex, maxIndex)),
+        };
+    }, [activityChartPoints, sqlChartWindowStartPercent, sqlChartWindowEndPercent]);
+
+    const applySqlChartWindow = (nextStart: number, nextEnd: number) => {
+        const minGap = 8;
+        const safeStart = Math.max(0, Math.min(nextStart, 100 - minGap));
+        const safeEnd = Math.max(safeStart + minGap, Math.min(nextEnd, 100));
+        setSqlChartWindowStartPercent(safeStart);
+        setSqlChartWindowEndPercent(safeEnd);
+        setSqlChartHoverIndex(null);
+    };
+
+    const shiftSqlChartWindow = (deltaPercent: number) => {
+        const width = sqlChartWindowEndPercent - sqlChartWindowStartPercent;
+        const nextStart = Math.max(0, Math.min(sqlChartWindowStartPercent + deltaPercent, 100 - width));
+        applySqlChartWindow(nextStart, nextStart + width);
+    };
+
+    const zoomSqlChartWindow = (zoomIn: boolean) => {
+        const currentWidth = sqlChartWindowEndPercent - sqlChartWindowStartPercent;
+        const minWidth = 8;
+        const maxWidth = 100;
+        const nextWidth = zoomIn
+            ? Math.max(minWidth, currentWidth * 0.88)
+            : Math.min(maxWidth, currentWidth * 1.12);
+        const center = (sqlChartWindowStartPercent + sqlChartWindowEndPercent) / 2;
+        const nextStart = Math.max(0, Math.min(center - nextWidth / 2, 100 - nextWidth));
+        applySqlChartWindow(nextStart, nextStart + nextWidth);
+    };
+
+    const handleSqlTimelineScaleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        if (event.shiftKey || event.ctrlKey || event.metaKey) {
+            zoomSqlChartWindow(event.deltaY < 0);
+            return;
+        }
+        const direction = event.deltaY > 0 ? 1 : -1;
+        shiftSqlChartWindow(direction * 2.5);
+    };
+
+    const handleSqlTimelineScalePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+        const shell = sqlTimelineRangeShellRef.current;
+        if (!shell) return;
+        const rect = shell.getBoundingClientRect();
+        const clickPercent = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 100;
+        const width = sqlChartWindowEndPercent - sqlChartWindowStartPercent;
+        const nextStart = Math.max(0, Math.min(clickPercent - width / 2, 100 - width));
+        applySqlChartWindow(nextStart, nextStart + width);
+    };
+
+    const visibleSqlActivityPoints = useMemo(() => {
+        if (activityChartPoints.length === 0) return [];
+        const { startIndex, endIndex } = sqlChartWindowBoundaries;
+        return activityChartPoints.slice(startIndex, endIndex + 1);
+    }, [activityChartPoints, sqlChartWindowBoundaries]);
+
     const sessionActivityChartModel = useMemo(() => {
         const width = 860;
         const height = 260;
@@ -808,7 +879,7 @@ export default function ConnectionDetailPage() {
         const innerWidth = width - axis.left - axis.right;
         const innerHeight = height - axis.top - axis.bottom;
 
-        if (activityChartPoints.length === 0) {
+        if (visibleSqlActivityPoints.length === 0) {
             return {
                 width,
                 height,
@@ -829,16 +900,16 @@ export default function ConnectionDetailPage() {
             };
         }
 
-        const values = activityChartPoints.flatMap((p) => [p.total, p.select, p.insert, p.update, p.delete, p.other]);
+        const values = visibleSqlActivityPoints.flatMap((p) => [p.total, p.select, p.insert, p.update, p.delete, p.other]);
         const minValue = Math.min(...values);
         const maxValue = Math.max(...values);
         const avgValue = Math.round((values.reduce((sum, val) => sum + val, 0) / values.length) * 10) / 10;
         const topValue = Math.max(maxValue, 1);
 
         const buildPolyline = (key: keyof Omit<ActivityChartPoint, 'timestamp'>) =>
-            activityChartPoints
+            visibleSqlActivityPoints
                 .map((point, index) => {
-                    const x = axis.left + (index / Math.max(activityChartPoints.length - 1, 1)) * innerWidth;
+                    const x = axis.left + (index / Math.max(visibleSqlActivityPoints.length - 1, 1)) * innerWidth;
                     const y = axis.top + innerHeight - ((point[key] as number) / topValue) * innerHeight;
                     return `${x},${y}`;
                 })
@@ -847,12 +918,12 @@ export default function ConnectionDetailPage() {
         const yTicks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(topValue * part));
 
         const xTickIndexes = [0, 0.5, 1]
-            .map((part) => Math.round((activityChartPoints.length - 1) * part))
+            .map((part) => Math.round((visibleSqlActivityPoints.length - 1) * part))
             .filter((idx, pos, arr) => arr.indexOf(idx) === pos);
 
         const xTickLabels = xTickIndexes.map((idx) => ({
-            x: axis.left + (idx / Math.max(activityChartPoints.length - 1, 1)) * innerWidth,
-            label: activityChartPoints[idx]?.timestamp ?? '',
+            x: axis.left + (idx / Math.max(visibleSqlActivityPoints.length - 1, 1)) * innerWidth,
+            label: visibleSqlActivityPoints[idx]?.timestamp ?? '',
         }));
 
         return {
@@ -873,25 +944,25 @@ export default function ConnectionDetailPage() {
             maxValue,
             avgValue,
         };
-    }, [activityChartPoints]);
+    }, [visibleSqlActivityPoints]);
 
     const hoveredSqlPoint = useMemo(() => {
         if (sqlChartHoverIndex === null) return null;
-        return activityChartPoints[sqlChartHoverIndex] ?? null;
-    }, [sqlChartHoverIndex, activityChartPoints]);
+        return visibleSqlActivityPoints[sqlChartHoverIndex] ?? null;
+    }, [sqlChartHoverIndex, visibleSqlActivityPoints]);
 
     const hoveredSqlPointX = useMemo(() => {
-        if (sqlChartHoverIndex === null || activityChartPoints.length === 0) return null;
+        if (sqlChartHoverIndex === null || visibleSqlActivityPoints.length === 0) return null;
         const chartInnerWidth = activityChartModel.width - activityChartModel.axis.left - activityChartModel.axis.right;
-        const safeIndex = Math.max(0, Math.min(sqlChartHoverIndex, activityChartPoints.length - 1));
-        return activityChartModel.axis.left + (safeIndex / Math.max(activityChartPoints.length - 1, 1)) * chartInnerWidth;
-    }, [sqlChartHoverIndex, activityChartModel, activityChartPoints.length]);
+        const safeIndex = Math.max(0, Math.min(sqlChartHoverIndex, visibleSqlActivityPoints.length - 1));
+        return activityChartModel.axis.left + (safeIndex / Math.max(visibleSqlActivityPoints.length - 1, 1)) * chartInnerWidth;
+    }, [sqlChartHoverIndex, activityChartModel, visibleSqlActivityPoints.length]);
 
     useEffect(() => {
         if (sqlChartHoverIndex === null) return;
-        if (sqlChartHoverIndex <= activityChartPoints.length - 1) return;
+        if (sqlChartHoverIndex <= visibleSqlActivityPoints.length - 1) return;
         setSqlChartHoverIndex(null);
-    }, [sqlChartHoverIndex, activityChartPoints.length]);
+    }, [sqlChartHoverIndex, visibleSqlActivityPoints.length]);
 
 // Обработчики для поиска и пагинации пользователей
 
@@ -4286,13 +4357,13 @@ export default function ConnectionDetailPage() {
                                                                 aria-label={t('chart.aria')}
                                                                 onMouseLeave={() => setSqlChartHoverIndex(null)}
                                                                 onMouseMove={(event) => {
-                                                                    if (activityChartPoints.length === 0) return;
+                                                                    if (visibleSqlActivityPoints.length === 0) return;
                                                                     const rect = event.currentTarget.getBoundingClientRect();
                                                                     const relativeX = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * activityChartModel.width;
                                                                     const chartInnerWidth = activityChartModel.width - activityChartModel.axis.left - activityChartModel.axis.right;
                                                                     const normalizedX = Math.max(0, Math.min(relativeX - activityChartModel.axis.left, chartInnerWidth));
-                                                                    const idx = Math.round((normalizedX / Math.max(chartInnerWidth, 1)) * Math.max(activityChartPoints.length - 1, 1));
-                                                                    setSqlChartHoverIndex(Math.max(0, Math.min(idx, activityChartPoints.length - 1)));
+                                                                    const idx = Math.round((normalizedX / Math.max(chartInnerWidth, 1)) * Math.max(visibleSqlActivityPoints.length - 1, 1));
+                                                                    setSqlChartHoverIndex(Math.max(0, Math.min(idx, visibleSqlActivityPoints.length - 1)));
                                                                 }}
                                                             >
                                                                 {activityChartModel.yTicks.map((tick) => {
@@ -4350,8 +4421,63 @@ export default function ConnectionDetailPage() {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                        <div className={clsx(styles.metricsTimelineScale)}>
+                                                            <div className={clsx(styles.metricsTimelineScaleHeader)}>
+                                                                <span>Временная линия масштаба</span>
+                                                                <span>
+                                                                    Диапазон: {sqlChartWindowBoundaries.startIndex + 1}–{sqlChartWindowBoundaries.endIndex + 1}
+                                                                    {' '}из {Math.max(activityChartPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
+                                                                </span>
+                                                            </div>
+                                                            <div
+                                                                ref={sqlTimelineRangeShellRef}
+                                                                className={clsx(styles.metricsTimelineRangeShell)}
+                                                                onWheel={handleSqlTimelineScaleWheel}
+                                                                onPointerDown={handleSqlTimelineScalePointerDown}
+                                                            >
+                                                                <div className={clsx(styles.metricsTimelineRangeTrack)} />
+                                                                <div
+                                                                    className={clsx(styles.metricsTimelineRangeSelection)}
+                                                                    style={{
+                                                                        left: `${sqlChartWindowStartPercent}%`,
+                                                                        width: `${Math.max(sqlChartWindowEndPercent - sqlChartWindowStartPercent, 0)}%`,
+                                                                    }}
+                                                                />
+                                                                <input
+                                                                    type="range"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step={1}
+                                                                    value={sqlChartWindowStartPercent}
+                                                                    onChange={(event) => {
+                                                                        const nextStart = Number(event.target.value);
+                                                                        applySqlChartWindow(nextStart, sqlChartWindowEndPercent);
+                                                                    }}
+                                                                    className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeStart)}
+                                                                    aria-label="Начало временного диапазона графика SQL-активности"
+                                                                />
+                                                                <input
+                                                                    type="range"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step={1}
+                                                                    value={sqlChartWindowEndPercent}
+                                                                    onChange={(event) => {
+                                                                        const nextEnd = Number(event.target.value);
+                                                                        applySqlChartWindow(sqlChartWindowStartPercent, nextEnd);
+                                                                    }}
+                                                                    className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeEnd)}
+                                                                    aria-label="Конец временного диапазона графика SQL-активности"
+                                                                />
+                                                            </div>
+                                                            <div className={clsx(styles.metricsTimelineTicks)}>
+                                                                {['История', '25%', '50%', '75%', 'Live'].map((tick) => (
+                                                                    <span key={`sql-timeline-tick-${tick}`}>{tick}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                         <div className={clsx(styles.metricsTimelineTicks)}>
-                                                            <span>Период: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
+                                                            <span>Период: {visibleSqlActivityPoints[0]?.timestamp ?? '—'} — {visibleSqlActivityPoints[visibleSqlActivityPoints.length - 1]?.timestamp ?? '—'}</span>
                                                             <span>Min: {activityChartModel.minValue}</span>
                                                             <span>Avg: {activityChartModel.avgValue}</span>
                                                             <span>Max: {activityChartModel.maxValue}</span>
