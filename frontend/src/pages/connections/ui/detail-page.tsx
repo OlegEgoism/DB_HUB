@@ -279,6 +279,20 @@ export default function ConnectionDetailPage() {
     const [isSessionActivityCollapsed, setIsSessionActivityCollapsed] = useState(false);
     const [isSqlActivityCollapsed, setIsSqlActivityCollapsed] = useState(false);
     const [sessionChartHoverIndex, setSessionChartHoverIndex] = useState<number | null>(null);
+    const [sqlChartHoverIndex, setSqlChartHoverIndex] = useState<number | null>(null);
+    const [sessionSeriesVisibility, setSessionSeriesVisibility] = useState({
+        totalSessions: true,
+        activeSessions: true,
+        activeTransactions: true,
+    });
+    const [sqlSeriesVisibility, setSqlSeriesVisibility] = useState({
+        total: true,
+        select: true,
+        insert: true,
+        update: true,
+        delete: true,
+        other: true,
+    });
     const [sessionChartWindowStartPercent, setSessionChartWindowStartPercent] = useState(50);
     const [sessionChartWindowEndPercent, setSessionChartWindowEndPercent] = useState(100);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
@@ -860,6 +874,24 @@ export default function ConnectionDetailPage() {
             avgValue,
         };
     }, [activityChartPoints]);
+
+    const hoveredSqlPoint = useMemo(() => {
+        if (sqlChartHoverIndex === null) return null;
+        return activityChartPoints[sqlChartHoverIndex] ?? null;
+    }, [sqlChartHoverIndex, activityChartPoints]);
+
+    const hoveredSqlPointX = useMemo(() => {
+        if (sqlChartHoverIndex === null || activityChartPoints.length === 0) return null;
+        const chartInnerWidth = activityChartModel.width - activityChartModel.axis.left - activityChartModel.axis.right;
+        const safeIndex = Math.max(0, Math.min(sqlChartHoverIndex, activityChartPoints.length - 1));
+        return activityChartModel.axis.left + (safeIndex / Math.max(activityChartPoints.length - 1, 1)) * chartInnerWidth;
+    }, [sqlChartHoverIndex, activityChartModel, activityChartPoints.length]);
+
+    useEffect(() => {
+        if (sqlChartHoverIndex === null) return;
+        if (sqlChartHoverIndex <= activityChartPoints.length - 1) return;
+        setSqlChartHoverIndex(null);
+    }, [sqlChartHoverIndex, activityChartPoints.length]);
 
 // Обработчики для поиска и пагинации пользователей
 
@@ -4049,9 +4081,15 @@ export default function ConnectionDetailPage() {
                                                 ) : (
                                                     <>
                                                         <div className={clsx(styles.metricsChartLegend)}>
-                                                            <span><i className={clsx(styles.legendDot, styles.legendDotTotal)}/>Все сессии: {sessionActivitySnapshot?.sessions_total ?? 0}</span>
-                                                            <span><i className={clsx(styles.legendDot, styles.legendDotActive)}/>Активные сессии: {sessionActivitySnapshot?.active_sessions ?? 0}</span>
-                                                            <span><i className={clsx(styles.legendDot, styles.legendDotTx)}/>Активные транзакции: {sessionActivitySnapshot?.users.reduce((sum, user) => sum + user.active_transactions, 0) ?? 0}</span>
+                                                            <button type="button" className={clsx(styles.legendToggle, !sessionSeriesVisibility.totalSessions && styles.legendToggle_inactive)} onClick={() => setSessionSeriesVisibility((prev) => ({ ...prev, totalSessions: !prev.totalSessions }))}>
+                                                                <i className={clsx(styles.legendDot, styles.legendDotTotal)}/>Все сессии: {sessionActivitySnapshot?.sessions_total ?? 0}
+                                                            </button>
+                                                            <button type="button" className={clsx(styles.legendToggle, !sessionSeriesVisibility.activeSessions && styles.legendToggle_inactive)} onClick={() => setSessionSeriesVisibility((prev) => ({ ...prev, activeSessions: !prev.activeSessions }))}>
+                                                                <i className={clsx(styles.legendDot, styles.legendDotActive)}/>Активные сессии: {sessionActivitySnapshot?.active_sessions ?? 0}
+                                                            </button>
+                                                            <button type="button" className={clsx(styles.legendToggle, !sessionSeriesVisibility.activeTransactions && styles.legendToggle_inactive)} onClick={() => setSessionSeriesVisibility((prev) => ({ ...prev, activeTransactions: !prev.activeTransactions }))}>
+                                                                <i className={clsx(styles.legendDot, styles.legendDotTx)}/>Активные транзакции: {sessionActivitySnapshot?.users.reduce((sum, user) => sum + user.active_transactions, 0) ?? 0}
+                                                            </button>
                                                         </div>
                                                         <div className={clsx(styles.metricsLineChartWrap)}>
                                                             <svg
@@ -4079,9 +4117,21 @@ export default function ConnectionDetailPage() {
                                                                         </g>
                                                                     );
                                                                 })}
-                                                                <polyline points={sessionActivityChartModel.lines.totalSessions} className={clsx(styles.chartLineTotal)} />
-                                                                <polyline points={sessionActivityChartModel.lines.activeSessions} className={clsx(styles.chartLineActive)} />
-                                                                <polyline points={sessionActivityChartModel.lines.activeTransactions} className={clsx(styles.chartLineTransactions)} />
+                                                            <defs>
+                                                                <linearGradient id="session-area-gradient" x1="0" x2="0" y1="0" y2="1">
+                                                                    <stop offset="0%" stopColor="rgba(47, 128, 237, 0.28)" />
+                                                                    <stop offset="100%" stopColor="rgba(47, 128, 237, 0.02)" />
+                                                                </linearGradient>
+                                                            </defs>
+                                                            {sessionSeriesVisibility.totalSessions && (
+                                                                <polygon
+                                                                    points={`${sessionActivityChartModel.axis.left},${sessionActivityChartModel.height - sessionActivityChartModel.axis.bottom} ${sessionActivityChartModel.lines.totalSessions} ${sessionActivityChartModel.width - sessionActivityChartModel.axis.right},${sessionActivityChartModel.height - sessionActivityChartModel.axis.bottom}`}
+                                                                    className={clsx(styles.chartAreaFill)}
+                                                                />
+                                                            )}
+                                                            {sessionSeriesVisibility.totalSessions && <polyline points={sessionActivityChartModel.lines.totalSessions} className={clsx(styles.chartLineTotal)} />}
+                                                            {sessionSeriesVisibility.activeSessions && <polyline points={sessionActivityChartModel.lines.activeSessions} className={clsx(styles.chartLineActive)} />}
+                                                            {sessionSeriesVisibility.activeTransactions && <polyline points={sessionActivityChartModel.lines.activeTransactions} className={clsx(styles.chartLineTransactions)} />}
                                                                 {hoveredSessionPointX !== null && (
                                                                     <line
                                                                         x1={hoveredSessionPointX}
@@ -4205,12 +4255,24 @@ export default function ConnectionDetailPage() {
                                         {!isSqlActivityCollapsed && (
                                             <div className={clsx(styles.metricsCardContent)}>
                                                 <div className={clsx(styles.metricsChartLegend)}>
-                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlTotal)}/>Всего: {activityChartPoints[activityChartPoints.length - 1]?.total ?? 0}</span>
-                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlSelect)}/>SELECT: {activityChartPoints[activityChartPoints.length - 1]?.select ?? 0}</span>
-                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlInsert)}/>INSERT: {activityChartPoints[activityChartPoints.length - 1]?.insert ?? 0}</span>
-                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlUpdate)}/>UPDATE: {activityChartPoints[activityChartPoints.length - 1]?.update ?? 0}</span>
-                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlDelete)}/>DELETE: {activityChartPoints[activityChartPoints.length - 1]?.delete ?? 0}</span>
-                                                    <span><i className={clsx(styles.legendDot, styles.legendDotSqlOther)}/>OTHER: {activityChartPoints[activityChartPoints.length - 1]?.other ?? 0}</span>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.total && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, total: !prev.total }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlTotal)}/>Всего: {activityChartPoints[activityChartPoints.length - 1]?.total ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.select && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, select: !prev.select }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlSelect)}/>SELECT: {activityChartPoints[activityChartPoints.length - 1]?.select ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.insert && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, insert: !prev.insert }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlInsert)}/>INSERT: {activityChartPoints[activityChartPoints.length - 1]?.insert ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.update && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, update: !prev.update }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlUpdate)}/>UPDATE: {activityChartPoints[activityChartPoints.length - 1]?.update ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.delete && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, delete: !prev.delete }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlDelete)}/>DELETE: {activityChartPoints[activityChartPoints.length - 1]?.delete ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.other && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, other: !prev.other }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlOther)}/>OTHER: {activityChartPoints[activityChartPoints.length - 1]?.other ?? 0}
+                                                    </button>
                                                 </div>
                                                 {chartActiveQueriesError ? (
                                                     <div className={clsx(styles.errorMessage)}>{chartActiveQueriesError}</div>
@@ -4222,6 +4284,16 @@ export default function ConnectionDetailPage() {
                                                                 className={clsx(styles.metricsLineChart)}
                                                                 role="img"
                                                                 aria-label={t('chart.aria')}
+                                                                onMouseLeave={() => setSqlChartHoverIndex(null)}
+                                                                onMouseMove={(event) => {
+                                                                    if (activityChartPoints.length === 0) return;
+                                                                    const rect = event.currentTarget.getBoundingClientRect();
+                                                                    const relativeX = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * activityChartModel.width;
+                                                                    const chartInnerWidth = activityChartModel.width - activityChartModel.axis.left - activityChartModel.axis.right;
+                                                                    const normalizedX = Math.max(0, Math.min(relativeX - activityChartModel.axis.left, chartInnerWidth));
+                                                                    const idx = Math.round((normalizedX / Math.max(chartInnerWidth, 1)) * Math.max(activityChartPoints.length - 1, 1));
+                                                                    setSqlChartHoverIndex(Math.max(0, Math.min(idx, activityChartPoints.length - 1)));
+                                                                }}
                                                             >
                                                                 {activityChartModel.yTicks.map((tick) => {
                                                                     const y = activityChartModel.axis.top
@@ -4235,16 +4307,48 @@ export default function ConnectionDetailPage() {
                                                                         </g>
                                                                     );
                                                                 })}
-                                                                <polyline points={activityChartModel.lines.total} className={clsx(styles.chartLineSqlTotal)} />
-                                                                <polyline points={activityChartModel.lines.select} className={clsx(styles.chartLineSqlSelect)} />
-                                                                <polyline points={activityChartModel.lines.insert} className={clsx(styles.chartLineSqlInsert)} />
-                                                                <polyline points={activityChartModel.lines.update} className={clsx(styles.chartLineSqlUpdate)} />
-                                                                <polyline points={activityChartModel.lines.delete} className={clsx(styles.chartLineSqlDelete)} />
-                                                                <polyline points={activityChartModel.lines.other} className={clsx(styles.chartLineSqlOther)} />
+                                                                <defs>
+                                                                    <linearGradient id="sql-area-gradient" x1="0" x2="0" y1="0" y2="1">
+                                                                        <stop offset="0%" stopColor="rgba(79, 70, 229, 0.3)" />
+                                                                        <stop offset="100%" stopColor="rgba(79, 70, 229, 0.02)" />
+                                                                    </linearGradient>
+                                                                </defs>
+                                                                {sqlSeriesVisibility.total && (
+                                                                    <polygon
+                                                                        points={`${activityChartModel.axis.left},${activityChartModel.height - activityChartModel.axis.bottom} ${activityChartModel.lines.total} ${activityChartModel.width - activityChartModel.axis.right},${activityChartModel.height - activityChartModel.axis.bottom}`}
+                                                                        className={clsx(styles.chartAreaFillSql)}
+                                                                    />
+                                                                )}
+                                                                {sqlSeriesVisibility.total && <polyline points={activityChartModel.lines.total} className={clsx(styles.chartLineSqlTotal)} />}
+                                                                {sqlSeriesVisibility.select && <polyline points={activityChartModel.lines.select} className={clsx(styles.chartLineSqlSelect)} />}
+                                                                {sqlSeriesVisibility.insert && <polyline points={activityChartModel.lines.insert} className={clsx(styles.chartLineSqlInsert)} />}
+                                                                {sqlSeriesVisibility.update && <polyline points={activityChartModel.lines.update} className={clsx(styles.chartLineSqlUpdate)} />}
+                                                                {sqlSeriesVisibility.delete && <polyline points={activityChartModel.lines.delete} className={clsx(styles.chartLineSqlDelete)} />}
+                                                                {sqlSeriesVisibility.other && <polyline points={activityChartModel.lines.other} className={clsx(styles.chartLineSqlOther)} />}
+                                                                {hoveredSqlPointX !== null && (
+                                                                    <line
+                                                                        x1={hoveredSqlPointX}
+                                                                        y1={activityChartModel.axis.top}
+                                                                        x2={hoveredSqlPointX}
+                                                                        y2={activityChartModel.height - activityChartModel.axis.bottom}
+                                                                        className={clsx(styles.chartHoverGuide)}
+                                                                    />
+                                                                )}
                                                                 {activityChartModel.xTickLabels.map((tick) => (
                                                                     <text key={`sql-x-${tick.label}`} x={tick.x} y={activityChartModel.height - 12} className={clsx(styles.chartAxisLabel)} textAnchor="middle">{tick.label}</text>
                                                                 ))}
                                                             </svg>
+                                                            {hoveredSqlPoint && (
+                                                                <div className={clsx(styles.metricsChartTooltip)} role="status" aria-live="polite">
+                                                                    <div className={clsx(styles.metricsChartTooltipTitle)}>{hoveredSqlPoint.timestamp}</div>
+                                                                    <div>Всего: <b>{hoveredSqlPoint.total}</b></div>
+                                                                    <div>SELECT: <b>{hoveredSqlPoint.select}</b></div>
+                                                                    <div>INSERT: <b>{hoveredSqlPoint.insert}</b></div>
+                                                                    <div>UPDATE: <b>{hoveredSqlPoint.update}</b></div>
+                                                                    <div>DELETE: <b>{hoveredSqlPoint.delete}</b></div>
+                                                                    <div>OTHER: <b>{hoveredSqlPoint.other}</b></div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className={clsx(styles.metricsTimelineTicks)}>
                                                             <span>Период: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>

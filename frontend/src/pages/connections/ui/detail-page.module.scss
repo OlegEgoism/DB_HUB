@@ -2031,6 +2031,23 @@
   color: var(--color-text-muted);
 }
 
+.legendToggle {
+  border: 1px solid var(--border-glass);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--color-text-main);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.legendToggle_inactive {
+  opacity: 0.45;
+}
+
 .legendDot {
   display: inline-block;
   width: 10px;
@@ -2100,6 +2117,14 @@
 .chartLineSqlUpdate { stroke: #f59e0b; }
 .chartLineSqlDelete { stroke: #dc2626; }
 .chartLineSqlOther { stroke: #6b7280; }
+
+.chartAreaFill {
+  fill: url(#session-area-gradient);
+}
+
+.chartAreaFillSql {
+  fill: url(#sql-area-gradient);
+}
 
 .chartHoverGuide {
   stroke: rgba(31, 41, 55, 0.36);
