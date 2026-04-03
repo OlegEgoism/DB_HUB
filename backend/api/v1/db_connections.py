@@ -13,13 +13,15 @@ from backend.schemas.db_connections_schemas import (
     ConnectionCreate,
     ConnectionFavoriteUpdate,
     ConnectionOut,
+    ConnectionTestRequest,
+    ConnectionTestResponse,
     ConnectionUpdate,
     PaginatedActiveConnectionsResponse,
     PaginatedConnectionResponse,
     TerminateConnectionRequest,
 )
 from backend.services.db_connections_services import DBConnectionService
-from backend.utils.external_db import external_db_connection
+from backend.utils.external_db import external_db_connection, resolve_external_hosts
 
 router = APIRouter(prefix="/db_connections", tags=["DB CONNECTION"])
 
@@ -182,6 +184,42 @@ async def create_connection(connection: ConnectionCreate, db: AsyncSession = Dep
     if is_connected:
         effective_description = await sync_description_if_needed(db, db_connection, db_description)
     return build_connection_out(db_connection, owner_username, status_conn, size, effective_description)
+
+
+@router.post("/test_connection", response_model=ConnectionTestResponse)
+async def test_connection(connection: ConnectionTestRequest):
+    """Проверить подключение к базе без сохранения."""
+    candidate_hosts = resolve_external_hosts(connection.host)
+    last_error: Exception | None = None
+
+    for candidate_host in candidate_hosts:
+        conn = None
+        try:
+            conn = await asyncpg.connect(
+                host=candidate_host,
+                port=connection.port,
+                user=connection.username,
+                password=connection.password,
+                database=connection.database_name,
+                timeout=5,
+            )
+            await conn.fetchval("SELECT 1")
+            return ConnectionTestResponse(
+                success=True,
+                message="Подключение успешно",
+                resolved_host=candidate_host,
+            )
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+        finally:
+            if conn is not None:
+                await conn.close()
+
+    return ConnectionTestResponse(
+        success=False,
+        message=f"Не удалось подключиться: {last_error}",
+        resolved_host=None,
+    )
 
 
 @router.put("/{connection_id}", response_model=ConnectionOut)
