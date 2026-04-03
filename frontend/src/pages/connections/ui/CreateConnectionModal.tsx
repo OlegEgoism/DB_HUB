@@ -15,7 +15,6 @@ export function CreateConnectionModal({
 }) {
     const [formData, setFormData] = useState({
         name: '',
-        description: '',
         database_type: 'postgresql' as const,
         environment: 'development' as const,
         is_favorite: false,
@@ -46,7 +45,7 @@ export function CreateConnectionModal({
 
         const createData = {
             ...formData,
-            description: formData.description.trim() === '' ? null : formData.description,
+            description: null,
             owner_id: currentUser.id,
         };
 
@@ -117,21 +116,6 @@ export function CreateConnectionModal({
                                 placeholder="Например: Основной PostgreSQL"
                                 disabled={loading}
                                 maxLength={30}
-                            />
-                        </div>
-
-                        <div className={clsx(styles.modal__formGroup)}>
-                            <label htmlFor="description" className={clsx(styles.modal__label)}>Описание</label>
-                            <input
-                                type="text"
-                                id="description"
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                className={clsx(styles.modal__input)}
-                                placeholder="Краткое описание подключения"
-                                disabled={loading}
-                                maxLength={100}
                             />
                         </div>
 
