@@ -3133,6 +3133,12 @@ export default function ConnectionDetailPage() {
                                     <div className={clsx(styles.usersHeader)}>
                                         {viewsFilterType === 'views' ? (
                                             <form onSubmit={handleViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                                <div className={clsx(styles.usersSearchTitle)}>
+                                                    {t('tabs.views')}
+                                                    <span className={clsx(styles.usersCountBadge)}>
+                                                        {resolvedViewsTotal}
+                                                    </span>
+                                                </div>
                                                 <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
                                                     <option value="views">{t('views.filter.views')}</option>
                                                     <option value="materialized_views">{t('views.filter.materialized')}</option>
@@ -3166,6 +3172,12 @@ export default function ConnectionDetailPage() {
                                             </form>
                                         ) : (
                                             <form onSubmit={handleMaterializedViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                                <div className={clsx(styles.usersSearchTitle)}>
+                                                    {t('tabs.views')}
+                                                    <span className={clsx(styles.usersCountBadge)}>
+                                                        {resolvedMaterializedViewsTotal}
+                                                    </span>
+                                                </div>
                                                 <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
                                                     <option value="views">{t('views.filter.views')}</option>
                                                     <option value="materialized_views">{t('views.filter.materialized')}</option>
