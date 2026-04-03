@@ -3642,6 +3642,12 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleProceduresSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.procedures')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {resolvedProceduresTotal}
+                                                </span>
+                                            </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
