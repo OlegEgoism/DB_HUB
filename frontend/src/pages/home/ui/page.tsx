@@ -24,6 +24,14 @@ export default function HomePage() {
                                 <p className={clsx(styles.home__subtitle)}>
                                     {t('home.subtitle')}
                                 </p>
+                                <div className={clsx(styles.home__projectInfo)}>
+                                    <h2 className={clsx(styles.home__projectTitle)}>{t('home.project.title')}</h2>
+                                    <p className={clsx(styles.home__projectDescription)}>{t('home.project.description')}</p>
+                                    <ol className={clsx(styles.home__projectSteps)}>
+                                        <li>{t('home.project.step1')}</li>
+                                        <li>{t('home.project.step2')}</li>
+                                    </ol>
+                                </div>
                             </div>
                         </div>
                     </div>
