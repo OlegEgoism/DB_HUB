@@ -135,30 +135,39 @@
     color: var(--color-text-main);
   }
 
-  &__sessionsList {
+  &__sessionsTable {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-  }
-
-  &__sessionItem {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
     border: 1px solid var(--border-glass);
     border-radius: 10px;
-    padding: 10px 12px;
-    background: var(--color-surface-glass);
+    overflow: hidden;
   }
 
-  &__sessionMain {
-    display: flex;
-    gap: 10px;
+  &__sessionHeadRow,
+  &__sessionRow {
+    display: grid;
+    grid-template-columns: 1.2fr 1.4fr 0.8fr 0.8fr 0.9fr;
     align-items: center;
-    flex-wrap: wrap;
-    color: var(--color-text-main);
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  &__sessionHeadRow {
+    background: #f3f4f6;
+    font-weight: 700;
+    font-size: 13px;
+    color: #4b5563;
+  }
+
+  &__sessionRow {
+    background: var(--color-surface-glass);
+    border-top: 1px solid var(--border-glass);
     font-size: 14px;
+    color: var(--color-text-main);
+  }
+
+  &__sessionValueStrong {
+    font-weight: 700;
   }
 
   &__sessionLogoutButton {

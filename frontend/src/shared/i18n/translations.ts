@@ -386,6 +386,10 @@ export const translations = {
     'settings.sessions.loading': 'Загрузка активных сессий...',
     'settings.sessions.empty': 'Нет активных сессий',
     'settings.sessions.count': 'Активных сессий',
+    'settings.sessions.username': 'Логин',
+    'settings.sessions.role': 'Роль',
+    'settings.sessions.superuser': 'Суперпользователь',
+    'settings.sessions.actions': 'Действия',
 
     'tabs.overview': 'Обзор',
     'tabs.metrics': 'Метрики',
@@ -839,6 +843,10 @@ export const translations = {
     'settings.sessions.loading': 'Loading active sessions...',
     'settings.sessions.empty': 'No active sessions',
     'settings.sessions.count': 'Active sessions',
+    'settings.sessions.username': 'Username',
+    'settings.sessions.role': 'Role',
+    'settings.sessions.superuser': 'Superuser',
+    'settings.sessions.actions': 'Actions',
 
     'tabs.overview': 'Overview',
     'tabs.metrics': 'Metrics',

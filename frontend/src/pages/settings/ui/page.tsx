@@ -182,15 +182,20 @@ export default function SettingsPage() {
               ) : activeSessions.length === 0 ? (
                 <p className={clsx(styles.settings__empty)}>{t('settings.sessions.empty')}</p>
               ) : (
-                <div className={clsx(styles.settings__sessionsList)}>
+                <div className={clsx(styles.settings__sessionsTable)}>
+                  <div className={clsx(styles.settings__sessionHeadRow)}>
+                    <span>{t('settings.sessions.username')}</span>
+                    <span>{t('settings.sessions.role')}</span>
+                    <span>{t('settings.sessions.superuser')}</span>
+                    <span>{t('settings.sessions.count')}</span>
+                    <span>{t('settings.sessions.actions')}</span>
+                  </div>
                   {activeSessions.map((session) => (
-                    <div key={session.user_id} className={clsx(styles.settings__sessionItem)}>
-                      <div className={clsx(styles.settings__sessionMain)}>
-                        <strong>{session.username}</strong>
-                        <span>{session.role}</span>
-                        <span>{session.is_superuser ? t('yes') : t('no')}</span>
-                        <span>{t('settings.sessions.count')}: {session.active_sessions}</span>
-                      </div>
+                    <div key={session.user_id} className={clsx(styles.settings__sessionRow)}>
+                      <span className={clsx(styles.settings__sessionValueStrong)}>{session.username}</span>
+                      <span>{session.role}</span>
+                      <span>{session.is_superuser ? t('yes') : t('no')}</span>
+                      <span>{session.active_sessions}</span>
                       <button
                         type="button"
                         className={clsx(styles.settings__sessionLogoutButton)}
