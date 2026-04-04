@@ -3116,16 +3116,20 @@ export default function ConnectionDetailPage() {
                                                     <div key={schema.schema_name} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)}>{schema.schema_name}</h3>
+                                                                <h3 className={clsx(styles.userItemTitle)} title={schema.schema_name}>{schema.schema_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('schemas.owner')}</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{schema.owner}</span>
-                                                                </div>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('schemas.roles')}</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{schema.role_privileges.length}</span>
+                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('schemas.owner')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={schema.owner || '—'}>
+                                                                            {schema.owner || '—'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('schemas.roles')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{schema.role_privileges.length}</span>
+                                                                    </div>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
                                                                     <button className={clsx(styles.userActionButton)} onClick={() => openSchemaEditModal(schema)} title={`Изменить права для ${schema.schema_name}`}>
