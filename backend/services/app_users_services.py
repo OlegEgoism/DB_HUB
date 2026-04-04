@@ -244,9 +244,9 @@ class UserService:
         await self.db.flush()
         return True
 
-    async def list_active_sessions(self) -> list[dict]:
+    async def list_active_sessions(self, exclude_user_id: int | None = None) -> list[dict]:
         now = datetime.utcnow()
-        result = await self.db.execute(
+        query = (
             select(
                 User.id,
                 User.username,
@@ -254,22 +254,24 @@ class UserService:
                 User.role,
                 User.is_active,
                 User.is_superuser,
-                User.last_login,
                 func.max(UserSession.last_seen_at),
                 func.max(UserSession.created_at),
                 func.count(UserSession.id),
             )
-            .outerjoin(
+            .join(
                 UserSession,
                 (UserSession.user_id == User.id)
                 & UserSession.is_active.is_(True)
                 & UserSession.revoked_at.is_(None)
                 & (UserSession.expires_at > now),
             )
-            .where(User.last_login.is_not(None))
-            .group_by(User.id, User.username, User.fio, User.role, User.is_active, User.is_superuser, User.last_login)
-            .order_by(func.coalesce(func.max(UserSession.last_seen_at), User.last_login).desc())
+            .where(User.is_active.is_(True))
+            .group_by(User.id, User.username, User.fio, User.role, User.is_active, User.is_superuser)
+            .order_by(func.max(UserSession.last_seen_at).desc())
         )
+        if exclude_user_id is not None:
+            query = query.where(User.id != exclude_user_id)
+        result = await self.db.execute(query)
         rows = result.all()
         return [
             {
@@ -281,7 +283,7 @@ class UserService:
                 "is_active": is_active,
                 "is_superuser": is_superuser,
                 "created_at": created_at,
-                "last_seen_at": last_seen_at or last_login,
+                "last_seen_at": last_seen_at,
                 "ip_address": None,
                 "user_agent": None,
                 "active_sessions": active_sessions,
@@ -293,7 +295,6 @@ class UserService:
                 role,
                 is_active,
                 is_superuser,
-                last_login,
                 last_seen_at,
                 created_at,
                 active_sessions,

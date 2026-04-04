@@ -161,7 +161,7 @@ async def get_active_sessions(
 ):
     _assert_can_manage_sessions(current_user)
     user_service = UserService(db)
-    return await user_service.list_active_sessions()
+    return await user_service.list_active_sessions(exclude_user_id=current_user.id)
 
 
 @router.post("/sessions/users/{user_id}/revoke")
