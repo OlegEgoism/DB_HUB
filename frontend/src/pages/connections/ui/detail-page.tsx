@@ -2958,15 +2958,15 @@ export default function ConnectionDetailPage() {
                                                                 <h3 className={clsx(styles.userItemTitle)} title={group.name}>{group.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.groupMetaTable)}>
-                                                                    <div className={clsx(styles.userItemInfo, styles.groupMetaInlineItem)}>
-                                                                        <span className={clsx(styles.userItemInfoLabel, styles.groupMetaLabel)}>{t('groups.users_count')}</span>
-                                                                        <span className={clsx(styles.userItemInfoValue, styles.groupMetaValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
+                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('groups.users_count')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
                                                                     </div>
-                                                                    <div className={clsx(styles.userItemInfo, styles.groupMetaInlineItem)}>
-                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.groupMetaLabel)}>{t('groups.description_label')}</span>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('groups.description_label')}</span>
                                                                         <span
-                                                                            className={clsx(styles.userItemInfoValue, styles.groupDescriptionValue, styles.groupMetaValue)}
+                                                                            className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)}
                                                                             title={group.description?.trim() || t('groups.description_empty')}
                                                                         >
                                                                             {group.description?.trim() || t('groups.description_empty')}

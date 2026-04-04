@@ -1043,30 +1043,6 @@
   }
 }
 
-.groupMetaTable {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
-  flex: 1;
-  white-space: nowrap;
-}
-
-.groupMetaInlineItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.groupMetaLabel {
-  flex-shrink: 0;
-}
-
-.groupMetaValue {
-  min-width: 0;
-}
-
 .userItemInfo {
   display: flex;
   flex-grow: 1;
@@ -1199,13 +1175,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-}
-
-.groupDescriptionValue {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .userItemContent {
