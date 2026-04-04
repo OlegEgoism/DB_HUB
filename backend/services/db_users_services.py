@@ -187,7 +187,7 @@ class DBUserService:
             email=updated_user.email,
         )
 
-    async def delete_user(self, connection_id: int, user_oid: int) -> None:
+    async def delete_user(self, connection_id: int, user_oid: int, transfer_owner_to: str | None = None) -> None:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
@@ -203,12 +203,24 @@ class DBUserService:
             if exists:
                 try:
                     quoted_username = _quote_ident(username)
+                    if transfer_owner_to:
+                        if transfer_owner_to == username:
+                            raise ValueError("Нельзя передать владение удаляемой роли самой себе")
+                        target_exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)", transfer_owner_to)
+                        if not target_exists:
+                            raise ValueError(f"Роль-получатель '{transfer_owner_to}' не найдена")
+                        quoted_target_username = _quote_ident(transfer_owner_to)
+                        await conn.execute(f"REASSIGN OWNED BY {quoted_username} TO {quoted_target_username}")
+                        await conn.execute(f"DROP OWNED BY {quoted_username}")
                     drop_sql = f"DROP ROLE IF EXISTS {quoted_username}"
                     await conn.execute(drop_sql)
                 except Exception as e:
                     error_msg = str(e).lower()
                     if "required by other objects" in error_msg or "dependent objects" in error_msg:
-                        raise ValueError(f"Невозможно удалить роль '{username}': существуют зависимые объекты.") from e
+                        raise ValueError(
+                            f"Невозможно удалить роль '{username}': существуют зависимые объекты. "
+                            "Выберите пользователя для передачи владения и повторите удаление."
+                        ) from e
                     else:
                         raise
         await self.db.execute(delete(DB_User).where(DB_User.connection_id == connection_id, DB_User.oid == user_oid))

@@ -189,6 +189,9 @@ export default function ConnectionDetailPage() {
 
     const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
     const [userDeleteTarget, setUserDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
+    const [userDeleteTransferTo, setUserDeleteTransferTo] = useState('');
+    const [userDeleteTransferCandidates, setUserDeleteTransferCandidates] = useState<Array<{ oid: number; name: string }>>([]);
+    const [userDeleteTransferLoading, setUserDeleteTransferLoading] = useState(false);
     const [deletingUserOid, setDeletingUserOid] = useState<number | null>(null);
     const [userDeleteError, setUserDeleteError] = useState<string | null>(null);
     const [usersReloadTrigger, setUsersReloadTrigger] = useState(0);
@@ -2312,12 +2315,16 @@ export default function ConnectionDetailPage() {
     const openUserDeleteConfirm = (user: { oid: number; name: string }) => {
         setUserDeleteTarget({oid: user.oid, name: user.name});
         setUserDeleteError(null);
+        setUserDeleteTransferTo('');
+        setUserDeleteTransferCandidates([]);
     };
 
     const closeUserDeleteConfirm = () => {
         if (deletingUserOid !== null) return;
         setUserDeleteTarget(null);
         setUserDeleteError(null);
+        setUserDeleteTransferTo('');
+        setUserDeleteTransferCandidates([]);
     };
 
     const deleteUser = async () => {
@@ -2332,13 +2339,20 @@ export default function ConnectionDetailPage() {
 
         setDeletingUserOid(userDeleteTarget.oid);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/users/${userDeleteTarget.oid}`, {
+            const query = new URLSearchParams();
+            if (userDeleteTransferTo.trim()) {
+                query.set('transfer_owner_to', userDeleteTransferTo.trim());
+            }
+            const response = await fetch(
+                `${API_BASE_URL}/api/v1/db_connections/${id}/users/${userDeleteTarget.oid}${query.toString() ? `?${query.toString()}` : ''}`,
+                {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-            });
+                },
+            );
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
@@ -2358,6 +2372,36 @@ export default function ConnectionDetailPage() {
             setDeletingUserOid(null);
         }
     };
+
+    useEffect(() => {
+        const loadDeleteTransferCandidates = async () => {
+            if (!userDeleteTarget || !id) return;
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+            setUserDeleteTransferLoading(true);
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/users?page=1&size=200`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(formatDeleteUserError(data));
+                }
+                const items = Array.isArray((data as { items?: unknown }).items) ? (data as { items: Array<{ oid: number; name: string }> }).items : [];
+                setUserDeleteTransferCandidates(items.filter((item) => item.name !== userDeleteTarget.name));
+            } catch (err) {
+                console.error('Ошибка загрузки списка пользователей для передачи владения:', err);
+                setUserDeleteTransferCandidates([]);
+            } finally {
+                setUserDeleteTransferLoading(false);
+            }
+        };
+
+        void loadDeleteTransferCandidates();
+    }, [id, userDeleteTarget]);
 
     if (loading) {
         return (
@@ -4717,6 +4761,25 @@ export default function ConnectionDetailPage() {
                                 <FontAwesomeIcon icon={faExclamationCircle}/>
                                 {t('users.delete.warning')}
                             </p>
+                            <div className={clsx(styles.modalTransferBlock)}>
+                                <label className={clsx(styles.modalTransferLabel)} htmlFor="delete-user-transfer-owner">
+                                    Передать владение объектами пользователю
+                                </label>
+                                <select
+                                    id="delete-user-transfer-owner"
+                                    className={clsx(styles.modalTransferSelect)}
+                                    value={userDeleteTransferTo}
+                                    onChange={(event) => setUserDeleteTransferTo(event.target.value)}
+                                    disabled={deletingUserOid !== null || userDeleteTransferLoading}
+                                >
+                                    <option value="">Не передавать (удаление может завершиться с ошибкой зависимостей)</option>
+                                    {userDeleteTransferCandidates.map((candidate) => (
+                                        <option key={candidate.oid} value={candidate.name}>
+                                            {candidate.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             {userDeleteError && (
                                 <pre className={clsx(styles.modalErrorBox)}>{userDeleteError}</pre>
                             )}
