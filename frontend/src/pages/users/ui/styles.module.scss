@@ -26,6 +26,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-height: var(--control-button-height);
     gap: 16px;
     margin-bottom: 16px;
     flex-wrap: wrap;
@@ -44,6 +45,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    min-height: var(--control-button-height);
     gap: 12px;
     flex-wrap: wrap;
   }
@@ -106,6 +108,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    min-height: var(--control-button-height);
     gap: 10px;
     background: var(--color-surface-glass);
     border-radius: 12px;
@@ -176,11 +179,12 @@
   }
 
   &__searchButton {
+    height: var(--control-button-height);
     border: none;
     border-radius: 8px;
     background: var(--color-primary);
     color: white;
-    padding: 9px 14px;
+    padding: 0 14px;
     font-weight: 600;
     cursor: pointer;
 

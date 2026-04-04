@@ -47,7 +47,8 @@
   &__header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+    min-height: var(--control-button-height);
     gap: 24px;
     margin-bottom: 24px;
     flex-wrap: wrap;
@@ -78,6 +79,7 @@
   &__headerActions {
     display: flex;
     align-items: center;
+    min-height: var(--control-button-height);
     gap: 16px;
     flex-shrink: 0;
     flex-wrap: wrap;
@@ -87,6 +89,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    min-height: var(--control-button-height);
     gap: 12px;
     flex: 1;
     min-width: 350px;
@@ -109,10 +112,11 @@
 
   &__searchInput {
     width: 100%;
-    padding: 12px 48px 12px 48px;
+    height: var(--control-button-height);
+    padding: 0 48px;
     border: 1px solid $clr-gray-300;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 14px;
     color: var(--color-text-main);
     transition: all 0.2s ease;
 
@@ -154,9 +158,10 @@
     background: var(--color-primary);
     color: white;
     border: none;
-    padding: 12px 24px;
+    height: var(--control-button-height);
+    padding: 0 24px;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;

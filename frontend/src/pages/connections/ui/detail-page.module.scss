@@ -786,6 +786,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-height: var(--control-button-height);
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -793,6 +794,7 @@
 .usersSearchContainer {
   display: flex;
   align-items: center;
+  min-height: var(--control-button-height);
   gap: 12px;
   flex: 1;
   min-width: min(420px, 100%);
@@ -854,10 +856,11 @@
 
 .usersSearchInput {
   width: 100%;
-  padding: 12px 48px 12px 48px;
+  height: var(--control-button-height);
+  padding: 0 48px;
   border: 1px solid $clr-gray-300;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--color-text-main);
   transition: all 0.2s ease;
 
@@ -869,14 +872,14 @@
 }
 
 .usersFilterSelect {
-  padding: 12px 16px;
+  height: var(--control-button-height);
+  padding: 0 16px;
   border: 1px solid $clr-gray-300;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--color-text-main);
   background: white;
   cursor: pointer;
-  min-height: 48px;
   min-width: 340px;
   //width: 100%;
   flex: 0 0 220px;
@@ -921,9 +924,10 @@
   background: var(--color-surface-glass);
   color: var(--color-text-main);
   border: 1px solid var(--border-glass);
-  padding: 12px 16px;
+  height: var(--control-button-height);
+  padding: 0 16px;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -949,9 +953,10 @@
   background: var(--color-primary);
   color: white;
   border: none;
-  padding: 12px 24px;
+  height: var(--control-button-height);
+  padding: 0 24px;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
