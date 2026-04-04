@@ -4772,7 +4772,7 @@ export default function ConnectionDetailPage() {
                                     onChange={(event) => setUserDeleteTransferTo(event.target.value)}
                                     disabled={deletingUserOid !== null || userDeleteTransferLoading}
                                 >
-                                    <option value="">Не передавать (удаление может завершиться с ошибкой зависимостей)</option>
+                                    <option value="">Не передавать</option>
                                     {userDeleteTransferCandidates.map((candidate) => (
                                         <option key={candidate.oid} value={candidate.name}>
                                             {candidate.name}
