@@ -2959,11 +2959,11 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.groupMetaTable)}>
-                                                                    <div className={clsx(styles.userItemInfo, styles.groupMetaRow)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.groupMetaInlineItem)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.groupMetaLabel)}>{t('groups.users_count')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue, styles.groupMetaValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
                                                                     </div>
-                                                                    <div className={clsx(styles.userItemInfo, styles.groupMetaRow)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.groupMetaInlineItem)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.groupMetaLabel)}>{t('groups.description_label')}</span>
                                                                         <span
                                                                             className={clsx(styles.userItemInfoValue, styles.groupDescriptionValue, styles.groupMetaValue)}
