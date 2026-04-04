@@ -2955,19 +2955,22 @@ export default function ConnectionDetailPage() {
                                                     <div key={group.oid} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)}>{group.name}</h3>
+                                                                <h3 className={clsx(styles.userItemTitle)} title={group.name}>{group.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.userItemInfo)}>
                                                                     <span className={clsx(styles.userItemInfoLabel)}>{t('groups.users_count')}</span>
                                                                     <span className={clsx(styles.userItemInfoValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
                                                                 </div>
-                                                                {group.description && (
-                                                                    <div className={clsx(styles.userItemInfo)}>
-                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>{t('groups.description_label')}</span>
-                                                                        <span className={clsx(styles.userItemInfoValue)}>{group.description}</span>
-                                                                    </div>
-                                                                )}
+                                                                <div className={clsx(styles.userItemInfo)}>
+                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>{t('groups.description_label')}</span>
+                                                                    <span
+                                                                        className={clsx(styles.userItemInfoValue, styles.groupDescriptionValue)}
+                                                                        title={group.description?.trim() || t('groups.description_empty')}
+                                                                    >
+                                                                        {group.description?.trim() || t('groups.description_empty')}
+                                                                    </span>
+                                                                </div>
                                                                 <div className={clsx(styles.userActions)}>
                                                                     <button
                                                                         className={clsx(styles.userActionButton)}
