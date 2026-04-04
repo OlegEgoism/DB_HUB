@@ -137,6 +137,7 @@ class TableColumnInfo(BaseModel):
     data_type: str
     is_nullable: bool
     column_default: str | None = None
+    description: str | None = None
     character_maximum_length: int | None = None
     numeric_precision: int | None = None
     numeric_scale: int | None = None

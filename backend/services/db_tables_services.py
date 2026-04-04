@@ -429,6 +429,10 @@ class DBTablesService:
                     data_type,
                     is_nullable,
                     column_default,
+                    pg_catalog.col_description(
+                        (quote_ident(table_schema) || '.' || quote_ident(table_name))::regclass::oid,
+                        ordinal_position
+                    ) AS description,
                     character_maximum_length,
                     numeric_precision,
                     numeric_scale
@@ -452,6 +456,7 @@ class DBTablesService:
                         "data_type": row["data_type"],
                         "is_nullable": row["is_nullable"] == "YES",
                         "column_default": row["column_default"],
+                        "description": row["description"],
                         "character_maximum_length": row["character_maximum_length"],
                         "numeric_precision": row["numeric_precision"],
                         "numeric_scale": row["numeric_scale"],

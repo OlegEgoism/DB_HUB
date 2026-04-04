@@ -93,6 +93,7 @@ type TableDetailsColumn = {
     data_type: string;
     is_nullable: boolean;
     column_default?: string | null;
+    description?: string | null;
 };
 
 type TableDetailsInfo = {
@@ -5322,6 +5323,7 @@ export default function ConnectionDetailPage() {
                                     <span>{t('tables.details.type')}</span>
                                     <span>{t('tables.details.nullable')}</span>
                                     <span>{t('tables.details.default')}</span>
+                                    <span>{t('tables.details.comment')}</span>
                                 </div>
                                 {tableDetailsModal.columns.map((column) => (
                                     <div key={column.column_name} className={clsx(styles.tableDetailsRow)}>
@@ -5329,6 +5331,7 @@ export default function ConnectionDetailPage() {
                                         <span>{column.data_type}</span>
                                         <span>{column.is_nullable ? t('yes') : t('no')}</span>
                                         <span>{column.column_default || '—'}</span>
+                                        <span>{column.description || '—'}</span>
                                     </div>
                                 ))}
                             </div>
