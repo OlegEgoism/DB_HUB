@@ -6,15 +6,35 @@ import { useSession } from '@features/auth';
 import { ROUTES } from '@shared/config';
 import { CONNECTION_TAB_OPTIONS, DEFAULT_CONNECTION_TABS_VISIBILITY, connectionTabsSettingsModel, type ConnectionTabsVisibility, type ConnectionTabKey } from '@entities/settings/model';
 import { useI18n, type Language } from '@shared/i18n';
+import { apiRequest } from '@shared/api/http';
+
+type ActiveSession = {
+  session_id: number;
+  user_id: number;
+  username: string;
+  fio: string | null;
+  role: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  created_at: string;
+  last_seen_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+};
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { checkAuth } = useSession();
+  const { checkAuth, getUser } = useSession();
   const isInitializedRef = useRef(false);
   const [visibility, setVisibility] = useState<ConnectionTabsVisibility>(DEFAULT_CONNECTION_TABS_VISIBILITY);
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('ru');
   const [isSaving, setIsSaving] = useState(false);
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [revokingSessionId, setRevokingSessionId] = useState<number | null>(null);
   const { language, setLanguage, t } = useI18n();
+  const currentUser = getUser();
+  const canManageSessions = currentUser?.role === 'Администратор БД' && currentUser?.is_active && currentUser?.is_superuser;
 
   const tabLabelMap: Record<ConnectionTabKey, string> = {
     metrics: t('tabs.overview'),
@@ -47,10 +67,19 @@ export default function SettingsPage() {
       const nextVisibility = await connectionTabsSettingsModel.fetchVisibility();
       setVisibility(nextVisibility);
       setSelectedLanguage(language);
+      if (canManageSessions) {
+        setSessionsLoading(true);
+        try {
+          const sessions = await apiRequest<ActiveSession[]>('/api/v1/app_auth/sessions/active', { withAuth: true });
+          setActiveSessions(sessions);
+        } finally {
+          setSessionsLoading(false);
+        }
+      }
     };
 
     void loadSettings();
-  }, [checkAuth, language, navigate]);
+  }, [canManageSessions, checkAuth, language, navigate]);
 
   useEffect(() => {
     setSelectedLanguage(language);
@@ -78,6 +107,19 @@ export default function SettingsPage() {
       setVisibility(savedVisibility);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: number) => {
+    setRevokingSessionId(sessionId);
+    try {
+      await apiRequest('/api/v1/app_auth/sessions/' + sessionId + '/revoke', {
+        method: 'POST',
+        withAuth: true,
+      });
+      setActiveSessions((prev) => prev.filter((session) => session.session_id !== sessionId));
+    } finally {
+      setRevokingSessionId(null);
     }
   };
 
@@ -127,6 +169,38 @@ export default function SettingsPage() {
               {isSaving ? t('settings.saving') : t('settings.save')}
             </button>
           </div>
+
+          {canManageSessions && (
+            <div className={clsx(styles.settings__sessions)}>
+              <h2 className={clsx(styles.settings__subtitle)}>{t('settings.sessions.title')}</h2>
+              <p className={clsx(styles.settings__description)}>{t('settings.sessions.description')}</p>
+              {sessionsLoading ? (
+                <p className={clsx(styles.settings__empty)}>{t('settings.sessions.loading')}</p>
+              ) : activeSessions.length === 0 ? (
+                <p className={clsx(styles.settings__empty)}>{t('settings.sessions.empty')}</p>
+              ) : (
+                <div className={clsx(styles.settings__sessionsList)}>
+                  {activeSessions.map((session) => (
+                    <div key={session.session_id} className={clsx(styles.settings__sessionItem)}>
+                      <div className={clsx(styles.settings__sessionMain)}>
+                        <strong>{session.username}</strong>
+                        <span>{session.role}</span>
+                        <span>{session.is_superuser ? t('yes') : t('no')}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={clsx(styles.settings__sessionLogoutButton)}
+                        onClick={() => handleRevokeSession(session.session_id)}
+                        disabled={revokingSessionId === session.session_id}
+                      >
+                        {revokingSessionId === session.session_id ? t('settings.saving') : t('header.logout')}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </section>

@@ -15,6 +15,7 @@ from backend.api.v1 import api_v1_router
 from backend.core.limiter import limiter
 from backend.database.session import AsyncSessionLocal, Base, engine
 from backend.models.user import User
+from backend.models.user_session import UserSession  # noqa: F401
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

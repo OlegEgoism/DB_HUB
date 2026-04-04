@@ -381,6 +381,10 @@ export const translations = {
     'settings.language': 'Язык интерфейса',
     'settings.save': 'Сохранить',
     'settings.saving': 'Сохранение настроек...',
+    'settings.sessions.title': 'Активные сессии пользователей',
+    'settings.sessions.description': 'Завершение сессий доступно только Администратору БД (активному суперпользователю).',
+    'settings.sessions.loading': 'Загрузка активных сессий...',
+    'settings.sessions.empty': 'Нет активных сессий',
 
     'tabs.overview': 'Обзор',
     'tabs.metrics': 'Метрики',
@@ -828,6 +832,10 @@ export const translations = {
     'settings.language': 'Interface language',
     'settings.save': 'Save',
     'settings.saving': 'Save',
+    'settings.sessions.title': 'Active user sessions',
+    'settings.sessions.description': 'Session termination is available only for active superusers with the Database Administrator role.',
+    'settings.sessions.loading': 'Loading active sessions...',
+    'settings.sessions.empty': 'No active sessions',
 
     'tabs.overview': 'Overview',
     'tabs.metrics': 'Metrics',

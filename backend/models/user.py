@@ -70,6 +70,13 @@ class User(Base, DateTimeMixin):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    sessions = relationship(
+        "UserSession",
+        foreign_keys="UserSession.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}', role='{self.role}')>"
