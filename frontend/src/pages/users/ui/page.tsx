@@ -8,7 +8,6 @@ import {
   faChevronCircleRight,
   faSpinner,
   faExclamationCircle,
-  faPlus,
   faPen,
   faTrash,
   faXmark,
@@ -80,7 +79,6 @@ export default function UsersPage() {
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasUsersLoaded, setHasUsersLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -151,7 +149,6 @@ export default function UsersPage() {
       setTotalPages(data.pages);
       setHasNext(data.has_next);
       setHasPrev(data.has_prev);
-      setHasUsersLoaded(true);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         setError('Сервер долго не отвечает. Проверьте, что backend запущен и доступен.');
@@ -329,7 +326,6 @@ export default function UsersPage() {
 
   const shownFrom = users.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0;
   const shownTo = users.length > 0 ? shownFrom + users.length - 1 : 0;
-  const usersCountBadge = hasUsersLoaded ? Math.max(totalItems, shownTo) : '—';
 
   const roleLabelMap: Record<string, string> = {
     'Администратор БД': t('roles.admin'),
