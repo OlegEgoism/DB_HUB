@@ -232,6 +232,36 @@ class DBGroupService:
                     await conn.execute(f"DROP OWNED BY {quoted_name}")
                 else:
                     await conn.execute(f"DROP OWNED BY {quoted_name} CASCADE")
+
+                # Снимаем участие удаляемой группы во всех членствах ролей,
+                # чтобы убрать зависимости pg_auth_members перед DROP ROLE.
+                parent_roles = await conn.fetch(
+                    """
+                    SELECT r.rolname
+                    FROM pg_auth_members m
+                    JOIN pg_roles r ON r.oid = m.roleid
+                    JOIN pg_roles g ON g.oid = m.member
+                    WHERE g.rolname = $1
+                    """,
+                    group_name,
+                )
+                for parent_role in parent_roles:
+                    quoted_parent = _quote_ident(parent_role["rolname"])
+                    await conn.execute(f"REVOKE {quoted_parent} FROM {quoted_name}")
+
+                member_roles = await conn.fetch(
+                    """
+                    SELECT r.rolname
+                    FROM pg_auth_members m
+                    JOIN pg_roles r ON r.oid = m.member
+                    JOIN pg_roles g ON g.oid = m.roleid
+                    WHERE g.rolname = $1
+                    """,
+                    group_name,
+                )
+                for member_role in member_roles:
+                    quoted_member = _quote_ident(member_role["rolname"])
+                    await conn.execute(f"REVOKE {quoted_name} FROM {quoted_member}")
                 try:
                     await conn.execute(f"DROP ROLE {quoted_name}")
                 except Exception as drop_error:
