@@ -8,6 +8,7 @@ import {useSession} from "@features/auth";
 import {ROUTES} from "@shared/config";
 
 import '@shared/config'
+import '@app/styles/App.scss'
 
 
 export default function BaseLayout() {

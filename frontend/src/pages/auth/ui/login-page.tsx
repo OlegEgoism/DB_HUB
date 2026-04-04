@@ -5,6 +5,7 @@ import {LoginModal} from '@widgets/auth/ui/LoginModal';
 import {RegisterModal} from '@widgets/auth/ui/RegisterModal';
 import {useLogin} from '@pages/auth/lib/useLogin';
 import {useState} from 'react';
+import '@app/styles/App.scss';
 
 export default function LoginPage() {
     const navigate = useNavigate();
