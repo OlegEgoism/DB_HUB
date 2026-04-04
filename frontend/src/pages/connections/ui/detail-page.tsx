@@ -5314,7 +5314,7 @@ export default function ConnectionDetailPage() {
                         <div className={clsx(groupModalStyles.modal__form)}>
                             <div className={clsx(styles.tableDetailsMeta)}>
                                 <span>{t('tables.owner')} {tableDetailsModal.owner}</span>
-                                <span>{t('groups.description_label')} {tableDetailsModal.description || '—'}</span>
+                                <span>{t('tables.details.comment')}: {tableDetailsModal.description || '—'}</span>
                             </div>
                             <div className={clsx(styles.tableDetailsGrid)}>
                                 <div className={clsx(styles.tableDetailsHead)}>
