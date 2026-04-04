@@ -196,10 +196,30 @@ class DBGroupService:
             quoted_name = _quote_ident(group_name)
             try:
                 effective_transfer_owner = transfer_owner_to
-                if not effective_transfer_owner and connection.username and connection.username != group_name:
-                    default_target_exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)", connection.username)
-                    if default_target_exists:
-                        effective_transfer_owner = connection.username
+                if not effective_transfer_owner:
+                    preferred_targets = [connection.username, "postgres"]
+                    for candidate in preferred_targets:
+                        if not candidate or candidate == group_name:
+                            continue
+                        candidate_exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)", candidate)
+                        if candidate_exists:
+                            effective_transfer_owner = candidate
+                            break
+
+                if not effective_transfer_owner:
+                    fallback_row = await conn.fetchrow(
+                        """
+                        SELECT rolname
+                        FROM pg_roles
+                        WHERE rolname !~ '^pg_'
+                          AND rolname != $1
+                        ORDER BY (rolcanlogin = true) DESC, rolname
+                        LIMIT 1
+                        """,
+                        group_name,
+                    )
+                    if fallback_row:
+                        effective_transfer_owner = fallback_row["rolname"]
 
                 if effective_transfer_owner:
                     if effective_transfer_owner == group_name:
@@ -212,7 +232,30 @@ class DBGroupService:
                     await conn.execute(f"DROP OWNED BY {quoted_name}")
                 else:
                     await conn.execute(f"DROP OWNED BY {quoted_name} CASCADE")
-                await conn.execute(f"DROP ROLE {quoted_name}")
+                try:
+                    await conn.execute(f"DROP ROLE {quoted_name}")
+                except Exception as drop_error:
+                    drop_error_msg = str(drop_error).lower()
+                    if effective_transfer_owner or ("required by other objects" not in drop_error_msg and "dependent objects" not in drop_error_msg):
+                        raise
+                    fallback_row = await conn.fetchrow(
+                        """
+                        SELECT rolname
+                        FROM pg_roles
+                        WHERE rolname !~ '^pg_'
+                          AND rolname != $1
+                        ORDER BY (rolcanlogin = true) DESC, rolname
+                        LIMIT 1
+                        """,
+                        group_name,
+                    )
+                    if not fallback_row:
+                        raise
+                    fallback_owner = fallback_row["rolname"]
+                    quoted_fallback_owner = _quote_ident(fallback_owner)
+                    await conn.execute(f"REASSIGN OWNED BY {quoted_name} TO {quoted_fallback_owner}")
+                    await conn.execute(f"DROP OWNED BY {quoted_name}")
+                    await conn.execute(f"DROP ROLE {quoted_name}")
             except Exception as e:
                 error_msg = str(e).lower()
                 if "does not exist" in error_msg or "could not find role" in error_msg:
