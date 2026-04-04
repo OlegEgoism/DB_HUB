@@ -1244,7 +1244,7 @@ export default function ConnectionDetailPage() {
             if (!token) return;
             setGroupDeleteTransferLoading(true);
             try {
-                const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/users?page=1&size=200`, {
+                const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups?page=1&size=200`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
@@ -1257,7 +1257,7 @@ export default function ConnectionDetailPage() {
                 const items = Array.isArray((data as { items?: unknown }).items) ? (data as { items: Array<{ oid: number; name: string }> }).items : [];
                 setGroupDeleteTransferCandidates(items.filter((item) => item.name !== groupDeleteTarget.name));
             } catch (err) {
-                console.error('Ошибка загрузки списка пользователей для передачи владения группе:', err);
+                console.error('Ошибка загрузки списка групп для передачи владения:', err);
                 setGroupDeleteTransferCandidates([]);
             } finally {
                 setGroupDeleteTransferLoading(false);
@@ -4870,7 +4870,7 @@ export default function ConnectionDetailPage() {
                             </p>
                             <div className={clsx(styles.modalTransferBlock)}>
                                 <label className={clsx(groupModalStyles.modal__label)} htmlFor="delete-group-transfer-owner">
-                                    Передать владение объектами пользователю
+                                    Передать владение объектами группе
                                 </label>
                                 <select
                                     id="delete-group-transfer-owner"
