@@ -37,20 +37,18 @@ export default function SettingsPage() {
   const currentUser = getUser();
   const canManageSessions = currentUser?.role === 'Администратор БД' && currentUser?.is_active && currentUser?.is_superuser;
 
-  const tabLabelMap: Record<ConnectionTabKey, string> = {
-    metrics: t('tabs.overview'),
-    users: t('tabs.users'),
-    groups: t('tabs.groups'),
-    schemas: t('tabs.schemas'),
-    tables: t('tabs.tables'),
-    views: t('tabs.views'),
-    indexes: t('tabs.indexes'),
-    functions: t('tabs.functions'),
-    procedures: t('tabs.procedures'),
-    active_sql: t('tabs.transactions'),
-    sql_query: t('tabs.query'),
-    monitoring: t('tabs.monitoring'),
+  const formatRoleLabel = (role: string) => {
+    const roleMap: Record<string, string> = {
+      'Пользователь': t('roles.user'),
+      'Аналитик': t('roles.analyst'),
+      'Разработчик': t('roles.developer'),
+      'Тестировщик': t('roles.tester'),
+      'Администратор БД': t('roles.admin'),
+    };
+
+    return roleMap[role] ?? role;
   };
+
 
   useEffect(() => {
     if (isInitializedRef.current) {
@@ -143,7 +141,7 @@ export default function SettingsPage() {
                   checked={visibility[tab.key]}
                   onChange={() => handleToggle(tab.key)}
                 />
-                <span>{tabLabelMap[tab.key] ?? tab.label}</span>
+                <span>{t(tab.labelKey)}</span>
               </label>
             ))}
           </div>
@@ -193,7 +191,7 @@ export default function SettingsPage() {
                   {activeSessions.map((session) => (
                     <div key={session.user_id} className={clsx(styles.settings__sessionRow)}>
                       <span className={clsx(styles.settings__sessionValueStrong)}>{session.username}</span>
-                      <span>{session.role}</span>
+                      <span>{formatRoleLabel(session.role)}</span>
                       <span>{session.is_superuser ? t('yes') : t('no')}</span>
                       <span>{session.active_sessions}</span>
                       <button
