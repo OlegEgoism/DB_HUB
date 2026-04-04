@@ -3627,16 +3627,22 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${index.schema_name}.${index.index_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)}>{index.schema_name}.{index.index_name}</h3>
+                                                                <h3 className={clsx(styles.userItemTitle)} title={`${index.schema_name}.${index.index_name}`}>{index.schema_name}.{index.index_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Таблица:</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{index.table_name}</span>
-                                                                </div>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{index.description || '—'}</span>
+                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Таблица:</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={index.table_name || '—'}>
+                                                                            {index.table_name || '—'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Описание:</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={index.description || '—'}>
+                                                                            {index.description || '—'}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
