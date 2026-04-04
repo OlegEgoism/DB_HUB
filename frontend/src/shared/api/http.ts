@@ -4,6 +4,36 @@ const DEFAULT_API_BASE_URL =
     : 'http://localhost:8000';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
+export const DB_CONNECTION_STATUS_EVENT = 'db-connection-status-change';
+
+function emitDbConnectionStatus(hasIssue: boolean, message?: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(DB_CONNECTION_STATUS_EVENT, {
+      detail: { hasIssue, message },
+    }),
+  );
+}
+
+function isDbConnectionProblem(status: number, message: string): boolean {
+  const normalized = message.toLowerCase();
+
+  if (status >= 500) {
+    return true;
+  }
+
+  return (
+    normalized.includes('database') ||
+    normalized.includes('db') ||
+    normalized.includes('подключ') ||
+    normalized.includes('connection') ||
+    normalized.includes('timeout') ||
+    normalized.includes('refused')
+  );
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -36,15 +66,30 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     mergedHeaders.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...restOptions,
-    headers: mergedHeaders,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...restOptions,
+      headers: mergedHeaders,
+    });
+  } catch (error) {
+    emitDbConnectionStatus(true);
+    throw error;
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new ApiError(response.status, errorData?.detail || `HTTP error! status: ${response.status}`);
+    const errorMessage = errorData?.detail || `HTTP error! status: ${response.status}`;
+
+    if (isDbConnectionProblem(response.status, errorMessage)) {
+      emitDbConnectionStatus(true, errorMessage);
+    }
+
+    throw new ApiError(response.status, errorMessage);
   }
+
+  emitDbConnectionStatus(false);
 
   if (response.status === 204) {
     return undefined as T;
