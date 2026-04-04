@@ -257,12 +257,19 @@ const EXACT_EN_TO_RU = Object.fromEntries(Object.entries(EXACT_RU_TO_EN).map(([r
 const PREFIX_EN_TO_RU = PREFIX_RU_TO_EN.map(([ru, en]) => [en, ru] as const);
 const PHRASE_EN_TO_RU = PHRASE_RU_TO_EN.map(([ru, en]) => [en, ru] as const);
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function replacePhrases(value: string, language: Language): string {
-  const dictionary = language === 'en' ? PHRASE_RU_TO_EN : PHRASE_EN_TO_RU;
+  const dictionary = [...(language === 'en' ? PHRASE_RU_TO_EN : PHRASE_EN_TO_RU)]
+    .sort((a, b) => b[0].length - a[0].length);
   let output = value;
 
   for (const [from, to] of dictionary) {
-    output = output.replaceAll(from, to);
+    const isWord = /^[\p{L}\p{N}_-]+$/u.test(from);
+    const pattern = isWord ? `\\b${escapeRegExp(from)}\\b` : escapeRegExp(from);
+    output = output.replace(new RegExp(pattern, 'gu'), to);
   }
 
   return output;
