@@ -173,7 +173,7 @@ class DBGroupService:
                 "description": new_description,
             }
 
-    async def delete_group(self, connection_id: int, group_oid: int) -> dict:
+    async def delete_group(self, connection_id: int, group_oid: int, transfer_owner_to: str | None = None) -> dict:
         connection = await self.get_connection(connection_id)
         if not connection:
             raise ValueError("Подключение не найдено")
@@ -195,14 +195,27 @@ class DBGroupService:
             group_name = row["rolname"]
             quoted_name = _quote_ident(group_name)
             try:
-                await conn.execute(f"DROP OWNED BY {quoted_name} CASCADE")
+                if transfer_owner_to:
+                    if transfer_owner_to == group_name:
+                        raise ValueError("Нельзя передать владение удаляемой группе самой себе")
+                    target_exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)", transfer_owner_to)
+                    if not target_exists:
+                        raise ValueError(f"Роль-получатель '{transfer_owner_to}' не найдена")
+                    quoted_target_name = _quote_ident(transfer_owner_to)
+                    await conn.execute(f"REASSIGN OWNED BY {quoted_name} TO {quoted_target_name}")
+                    await conn.execute(f"DROP OWNED BY {quoted_name}")
+                else:
+                    await conn.execute(f"DROP OWNED BY {quoted_name} CASCADE")
                 await conn.execute(f"DROP ROLE {quoted_name}")
             except Exception as e:
                 error_msg = str(e).lower()
                 if "does not exist" in error_msg or "could not find role" in error_msg:
                     pass
                 else:
-                    raise ValueError(f"Не удалось удалить группу из внешней БД: {e}") from e
+                    raise ValueError(
+                        f"Не удалось удалить группу из внешней БД: {e}. "
+                        "Выберите пользователя/роль для передачи владения и повторите удаление."
+                    ) from e
         return {
             "success": True,
             "oid": group_oid,

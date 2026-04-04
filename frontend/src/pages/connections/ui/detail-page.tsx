@@ -208,6 +208,9 @@ export default function ConnectionDetailPage() {
     const [groupFormDescription, setGroupFormDescription] = useState('');
     const [groupFormLoading, setGroupFormLoading] = useState(false);
     const [groupDeleteTarget, setGroupDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
+    const [groupDeleteTransferTo, setGroupDeleteTransferTo] = useState('');
+    const [groupDeleteTransferCandidates, setGroupDeleteTransferCandidates] = useState<Array<{ oid: number; name: string }>>([]);
+    const [groupDeleteTransferLoading, setGroupDeleteTransferLoading] = useState(false);
     const [deletingGroupOid, setDeletingGroupOid] = useState<number | null>(null);
     const [groupDeleteErrorModal, setGroupDeleteErrorModal] = useState<string | null>(null);
     const [groupUsersModal, setGroupUsersModal] = useState<{ oid: number; name: string; userCount: number } | null>(null);
@@ -1183,11 +1186,15 @@ export default function ConnectionDetailPage() {
     const openGroupDeleteConfirm = (group: { oid: number; name: string }) => {
         setGroupDeleteErrorModal(null);
         setGroupDeleteTarget({oid: group.oid, name: group.name});
+        setGroupDeleteTransferTo('');
+        setGroupDeleteTransferCandidates([]);
     };
 
     const closeGroupDeleteConfirm = () => {
         if (deletingGroupOid !== null) return;
         setGroupDeleteTarget(null);
+        setGroupDeleteTransferTo('');
+        setGroupDeleteTransferCandidates([]);
     };
 
     const deleteGroup = async () => {
@@ -1202,7 +1209,11 @@ export default function ConnectionDetailPage() {
 
         setDeletingGroupOid(groupDeleteTarget.oid);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups/${groupDeleteTarget.oid}`, {
+            const query = new URLSearchParams();
+            if (groupDeleteTransferTo.trim()) {
+                query.set('transfer_owner_to', groupDeleteTransferTo.trim());
+            }
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/groups/${groupDeleteTarget.oid}${query.toString() ? `?${query.toString()}` : ''}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1225,6 +1236,36 @@ export default function ConnectionDetailPage() {
             setDeletingGroupOid(null);
         }
     };
+
+    useEffect(() => {
+        const loadGroupDeleteTransferCandidates = async () => {
+            if (!groupDeleteTarget || !id) return;
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+            setGroupDeleteTransferLoading(true);
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/users?page=1&size=200`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(formatDeleteUserError(data));
+                }
+                const items = Array.isArray((data as { items?: unknown }).items) ? (data as { items: Array<{ oid: number; name: string }> }).items : [];
+                setGroupDeleteTransferCandidates(items.filter((item) => item.name !== groupDeleteTarget.name));
+            } catch (err) {
+                console.error('Ошибка загрузки списка пользователей для передачи владения группе:', err);
+                setGroupDeleteTransferCandidates([]);
+            } finally {
+                setGroupDeleteTransferLoading(false);
+            }
+        };
+
+        void loadGroupDeleteTransferCandidates();
+    }, [groupDeleteTarget, id]);
 
     const loadGroupUsers = async (groupOid: number) => {
         const token = localStorage.getItem('access_token');
@@ -4827,6 +4868,25 @@ export default function ConnectionDetailPage() {
                             <p className={clsx(styles.modalText)}>
                                 {t('groups.delete.confirm_prefix')} <strong>{groupDeleteTarget.name}</strong>?
                             </p>
+                            <div className={clsx(styles.modalTransferBlock)}>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="delete-group-transfer-owner">
+                                    Передать владение объектами пользователю
+                                </label>
+                                <select
+                                    id="delete-group-transfer-owner"
+                                    className={clsx(groupModalStyles.modal__input)}
+                                    value={groupDeleteTransferTo}
+                                    onChange={(event) => setGroupDeleteTransferTo(event.target.value)}
+                                    disabled={deletingGroupOid !== null || groupDeleteTransferLoading}
+                                >
+                                    <option value="">Не передавать (удаление может завершиться с ошибкой зависимостей)</option>
+                                    {groupDeleteTransferCandidates.map((candidate) => (
+                                        <option key={candidate.oid} value={candidate.name}>
+                                            {candidate.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         <div className={clsx(styles.modalFooter)}>
                             <button className={clsx(styles.modalCancelButton)} onClick={closeGroupDeleteConfirm} disabled={deletingGroupOid !== null}>{t('groups.cancel')}</button>

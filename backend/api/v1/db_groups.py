@@ -92,12 +92,13 @@ async def create_group(
 async def delete_group(
     connection_id: int = Path(..., description="id подключения к базе данных"),
     oid: int = Path(..., description="oid группы в базе данных"),
+    transfer_owner_to: str | None = Query(None, description="Имя роли, которой нужно передать владение объектами удаляемой группы"),
     db: AsyncSession = Depends(get_db),
 ):
     """Удалить группу"""
     try:
         service = DBGroupService(db)
-        result = await service.delete_group(connection_id, oid)
+        result = await service.delete_group(connection_id, oid, transfer_owner_to=transfer_owner_to)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
