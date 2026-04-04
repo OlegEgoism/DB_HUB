@@ -118,3 +118,17 @@ class TerminateConnectionRequest(BaseModel):
 
 class ConnectionFavoriteUpdate(BaseModel):
     is_favorite: bool
+
+
+class ConnectionTestRequest(BaseModel):
+    host: str = Field(..., min_length=1)
+    port: int = Field(5432, ge=1, le=65535)
+    database_name: str = Field(..., min_length=1)
+    username: str = Field(..., min_length=1)
+    password: str = Field(default="")
+
+
+class ConnectionTestResponse(BaseModel):
+    success: bool
+    message: str
+    resolved_host: str | None = None

@@ -2,11 +2,15 @@
 import {useEffect} from 'react';
 import {useNavigate} from 'react-router';
 import {LoginModal} from '@widgets/auth/ui/LoginModal';
+import {RegisterModal} from '@widgets/auth/ui/RegisterModal';
 import {useLogin} from '@pages/auth/lib/useLogin';
+import {useState} from 'react';
+import '@app/styles/App.scss';
 
 export default function LoginPage() {
     const navigate = useNavigate();
     const {checkAuth} = useLogin();
+    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
     // Если пользователь уже авторизован, перенаправляем на главную
     useEffect(() => {
@@ -31,10 +35,19 @@ export default function LoginPage() {
             justifyContent: 'center',
             background: 'var(--bg-main-gradient)'
         }}>
-            <LoginModal
-                onClose={handleClose}
-                onLoginSuccess={handleLoginSuccess}
-            />
+            {isRegisterModalOpen ? (
+                <RegisterModal
+                    onClose={() => {
+                        setIsRegisterModalOpen(false);
+                    }}
+                />
+            ) : (
+                <LoginModal
+                    onClose={handleClose}
+                    onLoginSuccess={handleLoginSuccess}
+                    onOpenRegister={() => setIsRegisterModalOpen(true)}
+                />
+            )}
         </div>
     );
 }

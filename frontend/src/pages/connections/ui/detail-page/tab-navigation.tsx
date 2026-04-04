@@ -80,6 +80,7 @@ export function DetailTabNavigation(props: Props) {
       {visibleTabs.functions && <button className={clsx(styles.tabButton, activeTab === 'functions' && styles.tabButton_active)} onClick={() => { setActiveTab('functions'); setFunctionsSearchQuery(''); setFunctionsSearchTerm(''); setFunctionsPage(1); }}>Функции</button>}
       {visibleTabs.procedures && <button className={clsx(styles.tabButton, activeTab === 'procedures' && styles.tabButton_active)} onClick={() => { setActiveTab('procedures'); setProceduresSearchQuery(''); setProceduresSearchTerm(''); setProceduresPage(1); }}>Процедуры</button>}
       {visibleTabs.active_sql && <button className={clsx(styles.tabButton, activeTab === 'active_sql' && styles.tabButton_active)} onClick={() => { setActiveTab('active_sql'); setActiveSqlPage(1); }}>Транзакции</button>}
+      {visibleTabs.monitoring && <button className={clsx(styles.tabButton, activeTab === 'monitoring' && styles.tabButton_active)} onClick={() => setActiveTab('monitoring')}>Мониторинг</button>}
       {visibleTabs.sql_query && <button className={clsx(styles.tabButton, activeTab === 'sql_query' && styles.tabButton_active)} onClick={() => { setActiveTab('sql_query'); setSqlQueryError(null); }}>SQL</button>}
     </div>
   );

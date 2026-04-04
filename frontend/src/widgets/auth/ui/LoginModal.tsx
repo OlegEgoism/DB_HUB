@@ -13,10 +13,12 @@ import { useI18n } from '@shared/i18n';
 
 export function LoginModal({
     onClose,
-    onLoginSuccess
+    onLoginSuccess,
+    onOpenRegister,
 }: {
     onClose: () => void;
     onLoginSuccess?: () => void;
+    onOpenRegister?: () => void;
 }) {
     const [formData, setFormData] = useState({
         username: '',
@@ -53,6 +55,11 @@ export function LoginModal({
         if (!loading) {
             onClose();
         }
+    };
+
+    const handleOpenRegister = () => {
+        if (loading || !onOpenRegister) return;
+        onOpenRegister();
     };
 
     // Функция для форматирования сообщения об ошибке
@@ -210,6 +217,19 @@ export function LoginModal({
                                 {loading ? t('login.loading') : t('login.submit')}
                             </button>
                         </div>
+                        {onOpenRegister && (
+                            <div className={clsx(styles.modal__switchAuth)}>
+                                <span>{t('login.no_account')}</span>
+                                <button
+                                    type="button"
+                                    className={clsx(styles.modal__switchAuthButton)}
+                                    onClick={handleOpenRegister}
+                                    disabled={loading}
+                                >
+                                    {t('header.register')}
+                                </button>
+                            </div>
+                        )}
                     </form>
                 )}
             </div>

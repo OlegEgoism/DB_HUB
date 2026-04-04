@@ -101,12 +101,13 @@ async def update_user(
 async def delete_user(
     connection_id: int = Path(..., description="id подключения к базе данных"),
     oid: int = Path(..., description="oid пользователя в базе данных"),
+    transfer_owner_to: str | None = Query(None, description="Имя роли, которой нужно передать владение объектами удаляемого пользователя"),
     db: AsyncSession = Depends(get_db),
 ):
     """Удалить пользователя"""
     try:
         service = DBUserService(db)
-        await service.delete_user(connection_id=connection_id, user_oid=oid)
+        await service.delete_user(connection_id=connection_id, user_oid=oid, transfer_owner_to=transfer_owner_to)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:

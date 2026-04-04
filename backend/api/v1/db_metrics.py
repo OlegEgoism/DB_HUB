@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.session import get_db
 from backend.models.db import DB_Connection
 from backend.schemas.db_metrics_schemas import (
+    ActivitySnapshotResponse,
     AllDatabaseMetricsResponse,
     ShowAllResponse,
 )
@@ -47,6 +48,27 @@ async def get_database_metrics(connection_id: int, db: AsyncSession = Depends(ge
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при получении метрик: {str(e)}",
+        ) from e
+
+
+@router.get("/activity_snapshot", response_model=ActivitySnapshotResponse)
+async def get_activity_snapshot(connection_id: int, db: AsyncSession = Depends(get_db)):
+    """Получить срез сессий и транзакционной активности пользователей."""
+    result = await db.execute(select(DB_Connection).where(DB_Connection.id == connection_id))
+    connection = result.scalar_one_or_none()
+    if not connection:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Подключение с ID {connection_id} не найдено",
+        )
+
+    try:
+        snapshot = await DBMetricsService.get_activity_snapshot(connection)
+        return ActivitySnapshotResponse(**snapshot)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при получении среза активности: {str(e)}",
         ) from e
 
 

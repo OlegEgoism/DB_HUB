@@ -1,16 +1,19 @@
 # backend/services/app_users_services.py
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timedelta
+from uuid import uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.config import settings
 from backend.core.security import (
     create_access_token,
     get_password_hash,
     verify_password,
 )
 from backend.models.user import User
+from backend.models.user_session import UserSession
 from backend.schemas.app_users_schemas import UserCreate, UserUpdate
 
 
@@ -135,15 +138,37 @@ class UserService:
 
     async def update_last_login(self, user_id: int) -> None:
         """Обновление времени последнего входа"""
-        await self.db.execute(update(User).where(User.id == user_id).values(last_login=datetime.now(UTC)))
+        await self.db.execute(update(User).where(User.id == user_id).values(last_login=datetime.utcnow()))
 
-    async def login_user(self, username: str, password: str) -> dict | None:
+    async def login_user(
+        self,
+        username: str,
+        password: str,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> dict | None:
         """Вход пользователя и генерация токена"""
         user = await self.authenticate_user(username, password)
         if not user:
             return None
         await self.update_last_login(user.id)
-        access_token = create_access_token(data={"sub": user.username, "user_id": user.id, "role": user.role})
+        token_jti = str(uuid4())
+        expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.username, "user_id": user.id, "role": user.role, "jti": token_jti},
+            expires_delta=expires_delta,
+        )
+        expires_at = datetime.utcnow() + expires_delta
+        self.db.add(
+            UserSession(
+                user_id=user.id,
+                token_jti=token_jti,
+                ip_address=ip_address,
+                user_agent=user_agent[:500] if user_agent else None,
+                expires_at=expires_at,
+            )
+        )
+        await self.db.flush()
         return {
             "user": {
                 "id": user.id,
@@ -158,6 +183,123 @@ class UserService:
             "access_token": access_token,
             "token_type": "bearer",
         }
+
+    async def is_session_active(self, token_jti: str) -> bool:
+        now = datetime.utcnow()
+        result = await self.db.execute(
+            select(UserSession).where(
+                UserSession.token_jti == token_jti,
+                UserSession.is_active.is_(True),
+                UserSession.revoked_at.is_(None),
+                UserSession.expires_at > now,
+            )
+        )
+        session = result.scalar_one_or_none()
+        if not session:
+            return False
+        session.last_seen_at = now
+        await self.db.flush()
+        return True
+
+    async def revoke_session_by_jti(self, token_jti: str, revoked_by_user_id: int | None = None) -> bool:
+        result = await self.db.execute(select(UserSession).where(UserSession.token_jti == token_jti))
+        session = result.scalar_one_or_none()
+        if not session:
+            return False
+        session.is_active = False
+        session.revoked_at = datetime.utcnow()
+        session.revoked_by_user_id = revoked_by_user_id
+        await self.db.flush()
+        return True
+
+    async def revoke_session_by_id(self, session_id: int, revoked_by_user_id: int) -> bool:
+        result = await self.db.execute(
+            select(UserSession).where(UserSession.id == session_id, UserSession.is_active.is_(True))
+        )
+        session = result.scalar_one_or_none()
+        if not session:
+            return False
+        session.is_active = False
+        session.revoked_at = datetime.utcnow()
+        session.revoked_by_user_id = revoked_by_user_id
+        await self.db.flush()
+        return True
+
+    async def revoke_user_sessions(self, user_id: int, revoked_by_user_id: int) -> bool:
+        now = datetime.utcnow()
+        result = await self.db.execute(
+            select(UserSession).where(
+                UserSession.user_id == user_id,
+                UserSession.is_active.is_(True),
+                UserSession.revoked_at.is_(None),
+            )
+        )
+        sessions = result.scalars().all()
+        if not sessions:
+            return False
+        for session in sessions:
+            session.is_active = False
+            session.revoked_at = now
+            session.revoked_by_user_id = revoked_by_user_id
+        await self.db.flush()
+        return True
+
+    async def list_active_sessions(self, exclude_user_id: int | None = None) -> list[dict]:
+        now = datetime.utcnow()
+        query = (
+            select(
+                User.id,
+                User.username,
+                User.fio,
+                User.role,
+                User.is_active,
+                User.is_superuser,
+                func.max(UserSession.last_seen_at),
+                func.max(UserSession.created_at),
+                func.count(UserSession.id),
+            )
+            .join(
+                UserSession,
+                (UserSession.user_id == User.id)
+                & UserSession.is_active.is_(True)
+                & UserSession.revoked_at.is_(None)
+                & (UserSession.expires_at > now),
+            )
+            .where(User.is_active.is_(True))
+            .group_by(User.id, User.username, User.fio, User.role, User.is_active, User.is_superuser)
+            .order_by(func.max(UserSession.last_seen_at).desc())
+        )
+        if exclude_user_id is not None:
+            query = query.where(User.id != exclude_user_id)
+        result = await self.db.execute(query)
+        rows = result.all()
+        return [
+            {
+                "session_id": None,
+                "user_id": user_id,
+                "username": username,
+                "fio": fio,
+                "role": role,
+                "is_active": is_active,
+                "is_superuser": is_superuser,
+                "created_at": created_at,
+                "last_seen_at": last_seen_at,
+                "ip_address": None,
+                "user_agent": None,
+                "active_sessions": active_sessions,
+            }
+            for (
+                user_id,
+                username,
+                fio,
+                role,
+                is_active,
+                is_superuser,
+                last_seen_at,
+                created_at,
+                active_sessions,
+            ) in rows
+        ]
 
     async def get_current_user_from_token(self, token: str) -> User | None:
         """Получение текущего пользователя из токена"""

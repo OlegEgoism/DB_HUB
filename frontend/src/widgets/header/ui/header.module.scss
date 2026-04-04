@@ -53,9 +53,11 @@
   &__logoutButton,
   &__profileButton {
     border: none;
-    padding: 12px 24px;
+    height: var(--control-button-height);
+    min-height: var(--control-button-height);
+    padding: 0 24px;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;

@@ -1,1 +1,0 @@
-import{a as e}from"./http-YX_65AT9.js";function s(r){return e(`/api/v1/app_users/${r}`,{withAuth:!0})}function i(r){return e("/api/v1/app_users",{method:"POST",body:JSON.stringify(r)})}export{s as g,i as r};

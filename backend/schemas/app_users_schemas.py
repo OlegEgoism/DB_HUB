@@ -126,3 +126,18 @@ class PaginatedResponse(BasePaginatedResponse[UserResponse]):
     """Схема для ответа с пагинацией"""
 
     pass
+
+
+class ActiveSessionResponse(BaseModel):
+    session_id: int | None = None
+    user_id: int
+    username: str
+    fio: str | None = None
+    role: str
+    is_active: bool
+    is_superuser: bool
+    created_at: datetime | None = None
+    last_seen_at: datetime
+    ip_address: str | None = None
+    user_agent: str | None = None
+    active_sessions: int = 0

@@ -11,6 +11,7 @@ export const CONNECTION_TAB_OPTIONS = [
   { key: 'functions', label: 'Функции' },
   { key: 'procedures', label: 'Процедуры' },
   { key: 'active_sql', label: 'Транзакции' },
+  { key: 'monitoring', label: 'Мониторинг' },
   { key: 'sql_query', label: 'SQL' },
 ] as const;
 

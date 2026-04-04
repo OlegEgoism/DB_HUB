@@ -1,5 +1,5 @@
 // frontend/src/pages/connections/ui/detail-page.tsx
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {useParams, useNavigate, useSearchParams} from 'react-router';
 import clsx from 'clsx';
 import styles from './detail-page.module.scss';
@@ -51,6 +51,7 @@ import {useConnectionIndexes} from '../lib/useConnectionIndexes';
 import {useConnectionFunctions} from '../lib/useConnectionFunctions';
 import {useConnectionProcedures} from '../lib/useConnectionProcedures';
 import {useConnectionActiveQueries} from '../lib/useConnectionActiveQueries';
+import { useConnectionActivitySnapshot } from '../lib/useConnectionActivitySnapshot';
 import {CreateUserModal} from "@pages/connections/ui/CreateUserModal.tsx";
 import { PAGE_SIZES } from '@pages/connections/model/detail-page-constants';
 import type { Connection, EditingUser, GroupUser, TabType, TablesFilterType, ViewsFilterType } from '@pages/connections/model/detail-page-types';
@@ -60,9 +61,13 @@ import { DetailTabNavigation } from '@pages/connections/ui/detail-page/tab-navig
 import { connectionTabsSettingsModel, DEFAULT_CONNECTION_TABS_VISIBILITY } from '@entities/settings/model';
 import { useI18n } from '@shared/i18n';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const DEFAULT_API_BASE_URL =
+    typeof window !== 'undefined'
+        ? `${window.location.protocol}//${window.location.hostname}:8000`
+        : 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
-const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query'];
+const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring'];
 
 const isTabType = (value: string | null): value is TabType => value !== null && TAB_TYPE_VALUES.includes(value as TabType);
 
@@ -76,6 +81,30 @@ type ActivityChartPoint = {
     other: number;
 };
 
+type SessionActivityChartPoint = {
+    timestamp: string;
+    totalSessions: number;
+    activeSessions: number;
+    activeTransactions: number;
+};
+
+type TableDetailsColumn = {
+    column_name: string;
+    data_type: string;
+    is_nullable: boolean;
+    column_default?: string | null;
+    description?: string | null;
+};
+
+type TableDetailsInfo = {
+    schema_name: string;
+    table_name: string;
+    owner: string;
+    description?: string | null;
+    columns: TableDetailsColumn[];
+};
+
+
 const detectQueryOperation = (query: string | null | undefined): keyof Omit<ActivityChartPoint, 'timestamp' | 'total'> => {
     const normalized = (query || '').trim().toUpperCase();
     if (normalized.startsWith('SELECT')) return 'select';
@@ -83,6 +112,47 @@ const detectQueryOperation = (query: string | null | undefined): keyof Omit<Acti
     if (normalized.startsWith('UPDATE')) return 'update';
     if (normalized.startsWith('DELETE')) return 'delete';
     return 'other';
+};
+
+const SQL_LINE_BREAK_KEYWORDS = [
+    'SELECT',
+    'FROM',
+    'WHERE',
+    'GROUP BY',
+    'HAVING',
+    'ORDER BY',
+    'LIMIT',
+    'OFFSET',
+    'VALUES',
+    'SET',
+    'RETURNING',
+    'JOIN',
+    'LEFT JOIN',
+    'RIGHT JOIN',
+    'INNER JOIN',
+    'FULL JOIN',
+    'ON',
+    'UNION',
+];
+
+const formatSqlForDisplay = (query: string | null | undefined): string => {
+    if (!query || !query.trim()) return '—';
+
+    let normalized = query.replace(/\s+/g, ' ').trim();
+    for (const keyword of SQL_LINE_BREAK_KEYWORDS) {
+        const escapedKeyword = keyword.replace(' ', '\\s+');
+        const regex = new RegExp(`\\b${escapedKeyword}\\b`, 'gi');
+        normalized = normalized.replace(regex, `\n${keyword}`);
+    }
+
+    normalized = normalized
+        .replace(/\s*,\s*/g, ',\n  ')
+        .replace(/\(\s*/g, '(')
+        .replace(/\s*\)/g, ')')
+        .replace(/\n{2,}/g, '\n')
+        .trim();
+
+    return normalized;
 };
 
 export default function ConnectionDetailPage() {
@@ -119,6 +189,9 @@ export default function ConnectionDetailPage() {
 
     const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
     const [userDeleteTarget, setUserDeleteTarget] = useState<{ oid: number; name: string } | null>(null);
+    const [userDeleteTransferTo, setUserDeleteTransferTo] = useState('');
+    const [userDeleteTransferCandidates, setUserDeleteTransferCandidates] = useState<Array<{ oid: number; name: string }>>([]);
+    const [userDeleteTransferLoading, setUserDeleteTransferLoading] = useState(false);
     const [deletingUserOid, setDeletingUserOid] = useState<number | null>(null);
     const [userDeleteError, setUserDeleteError] = useState<string | null>(null);
     const [usersReloadTrigger, setUsersReloadTrigger] = useState(0);
@@ -163,6 +236,8 @@ export default function ConnectionDetailPage() {
     const [tablesFilterType, setTablesFilterType] = useState<TablesFilterType>('regular');
     const [tablesReloadTrigger, setTablesReloadTrigger] = useState(0);
     const [editingTable, setEditingTable] = useState<TablePrivilegeInfo | null>(null);
+    const [tableDetailsModal, setTableDetailsModal] = useState<TableDetailsInfo | null>(null);
+    const [tableDetailsLoading, setTableDetailsLoading] = useState(false);
     const [tableGroupsForm, setTableGroupsForm] = useState<TableGroupPrivilege[]>([]);
     const [tableGroupSearchQuery, setTableGroupSearchQuery] = useState('');
     const [tableModalLoading, setTableModalLoading] = useState(false);
@@ -216,11 +291,37 @@ export default function ConnectionDetailPage() {
     const [activeSqlMinDuration, setActiveSqlMinDuration] = useState('');
     const [activeSqlMaxDuration, setActiveSqlMaxDuration] = useState('');
     const [activeSqlReloadTrigger, setActiveSqlReloadTrigger] = useState(0);
-    const [isActivityChartModalOpen, setIsActivityChartModalOpen] = useState(false);
     const [activityChartReloadTrigger, setActivityChartReloadTrigger] = useState(0);
     const [activityChartPoints, setActivityChartPoints] = useState<ActivityChartPoint[]>([]);
+    const [sessionActivityPoints, setSessionActivityPoints] = useState<SessionActivityChartPoint[]>([]);
+    const [sessionActivityReloadTrigger, setSessionActivityReloadTrigger] = useState(0);
+    const [activityChartRefreshIntervalMs, setActivityChartRefreshIntervalMs] = useState(2000);
+    const [sessionMonitoringRefreshIntervalMs, setSessionMonitoringRefreshIntervalMs] = useState(1000);
+    const [isSessionActivityCollapsed, setIsSessionActivityCollapsed] = useState(false);
+    const [isSqlActivityCollapsed, setIsSqlActivityCollapsed] = useState(false);
+    const [sessionChartHoverIndex, setSessionChartHoverIndex] = useState<number | null>(null);
+    const [sqlChartHoverIndex, setSqlChartHoverIndex] = useState<number | null>(null);
+    const [sessionSeriesVisibility, setSessionSeriesVisibility] = useState({
+        totalSessions: true,
+        activeSessions: true,
+        activeTransactions: true,
+    });
+    const [sqlSeriesVisibility, setSqlSeriesVisibility] = useState({
+        total: true,
+        select: true,
+        insert: true,
+        update: true,
+        delete: true,
+        other: true,
+    });
+    const [sessionChartWindowStartPercent, setSessionChartWindowStartPercent] = useState(50);
+    const [sessionChartWindowEndPercent, setSessionChartWindowEndPercent] = useState(100);
+    const [sqlChartWindowStartPercent, setSqlChartWindowStartPercent] = useState(50);
+    const [sqlChartWindowEndPercent, setSqlChartWindowEndPercent] = useState(100);
     const [terminatingPid, setTerminatingPid] = useState<number | null>(null);
     const [terminateProcessModal, setTerminateProcessModal] = useState<{ title: string; message: string } | null>(null);
+    const sessionTimelineRangeShellRef = useRef<HTMLDivElement | null>(null);
+    const sqlTimelineRangeShellRef = useRef<HTMLDivElement | null>(null);
 
 // Обработчики для создания пользователя
     const openCreateUserModal = () => {
@@ -451,14 +552,23 @@ export default function ConnectionDetailPage() {
         activeQueries: chartActiveQueries,
         total: chartTotalActiveQueries,
         loading: chartLoadingActiveQueries,
+        error: chartActiveQueriesError,
     } = useConnectionActiveQueries(
-        id ? parseInt(id) : 0,
+        activeTab === 'monitoring' && id ? parseInt(id) : null,
         1,
         200,
         null,
         null,
         null,
         activityChartReloadTrigger,
+    );
+
+    const isMonitoringRelatedTab = activeTab === 'metrics' || activeTab === 'active_sql' || activeTab === 'monitoring';
+    const sessionActivityRefreshMs = activeTab === 'monitoring' ? sessionMonitoringRefreshIntervalMs : 3000;
+    const { snapshot: sessionActivitySnapshot, loading: loadingSessionActivity, error: sessionActivityError } = useConnectionActivitySnapshot(
+        isMonitoringRelatedTab && id ? parseInt(id) : null,
+        sessionActivityReloadTrigger,
+        sessionActivityRefreshMs,
     );
 
     useEffect(() => {
@@ -528,18 +638,18 @@ export default function ConnectionDetailPage() {
     }, [activeTab, visibleTabs, setSearchParams]);
 
     useEffect(() => {
-        if (!isActivityChartModalOpen) return;
+        if (activeTab !== 'monitoring') return;
 
         setActivityChartReloadTrigger((prev) => prev + 1);
         const intervalId = window.setInterval(() => {
             setActivityChartReloadTrigger((prev) => prev + 1);
-        }, 1000);
+        }, activityChartRefreshIntervalMs);
 
         return () => window.clearInterval(intervalId);
-    }, [isActivityChartModalOpen]);
+    }, [activeTab, activityChartRefreshIntervalMs]);
 
     useEffect(() => {
-        if (!isActivityChartModalOpen || chartLoadingActiveQueries) return;
+        if (activeTab !== 'monitoring' || chartLoadingActiveQueries) return;
 
         const point: ActivityChartPoint = {
             timestamp: new Date().toLocaleTimeString('ru-RU'),
@@ -557,16 +667,256 @@ export default function ConnectionDetailPage() {
         });
 
         setActivityChartPoints((prev) => [...prev.slice(-59), point]);
-    }, [chartTotalActiveQueries, chartLoadingActiveQueries, isActivityChartModalOpen, chartActiveQueries]);
+    }, [activeTab, chartTotalActiveQueries, chartLoadingActiveQueries, chartActiveQueries]);
 
-    const activityChartModel = useMemo(() => {
+    useEffect(() => {
+        if ((activeTab !== 'metrics' && activeTab !== 'monitoring') || !sessionActivitySnapshot) return;
+
+        const activeTransactions = sessionActivitySnapshot.users.reduce((sum, user) => sum + user.active_transactions, 0);
+        const point: SessionActivityChartPoint = {
+            timestamp: new Date().toLocaleTimeString('ru-RU'),
+            totalSessions: sessionActivitySnapshot.sessions_total,
+            activeSessions: sessionActivitySnapshot.active_sessions,
+            activeTransactions,
+        };
+
+        setSessionActivityPoints((prev) => [...prev.slice(-59), point]);
+    }, [activeTab, sessionActivitySnapshot]);
+
+    const sessionChartWindowBoundaries = useMemo(() => {
+        if (sessionActivityPoints.length <= 1) {
+            return { startIndex: 0, endIndex: Math.max(sessionActivityPoints.length - 1, 0) };
+        }
+
+        const maxIndex = sessionActivityPoints.length - 1;
+        const startIndex = Math.floor((sessionChartWindowStartPercent / 100) * maxIndex);
+        const endIndex = Math.ceil((sessionChartWindowEndPercent / 100) * maxIndex);
+
+        return {
+            startIndex: Math.max(0, Math.min(startIndex, maxIndex)),
+            endIndex: Math.max(0, Math.min(endIndex, maxIndex)),
+        };
+    }, [sessionActivityPoints, sessionChartWindowStartPercent, sessionChartWindowEndPercent]);
+
+    const applySessionChartWindow = (nextStart: number, nextEnd: number) => {
+        const minGap = 4;
+        const safeStart = Math.max(0, Math.min(nextStart, 100 - minGap));
+        const safeEnd = Math.max(safeStart + minGap, Math.min(nextEnd, 100));
+        setSessionChartWindowStartPercent(safeStart);
+        setSessionChartWindowEndPercent(safeEnd);
+        setSessionChartHoverIndex(null);
+    };
+
+    const shiftSessionChartWindow = (deltaPercent: number) => {
+        const width = sessionChartWindowEndPercent - sessionChartWindowStartPercent;
+        const nextStart = Math.max(0, Math.min(sessionChartWindowStartPercent + deltaPercent, 100 - width));
+        applySessionChartWindow(nextStart, nextStart + width);
+    };
+
+    const zoomSessionChartWindow = (zoomIn: boolean) => {
+        const currentWidth = sessionChartWindowEndPercent - sessionChartWindowStartPercent;
+        const minWidth = 8;
+        const maxWidth = 100;
+        const nextWidth = zoomIn
+            ? Math.max(minWidth, currentWidth * 0.88)
+            : Math.min(maxWidth, currentWidth * 1.12);
+        const center = (sessionChartWindowStartPercent + sessionChartWindowEndPercent) / 2;
+        const nextStart = Math.max(0, Math.min(center - nextWidth / 2, 100 - nextWidth));
+        applySessionChartWindow(nextStart, nextStart + nextWidth);
+    };
+
+    const handleTimelineScaleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        if (event.shiftKey || event.ctrlKey || event.metaKey) {
+            zoomSessionChartWindow(event.deltaY < 0);
+            return;
+        }
+        const direction = event.deltaY > 0 ? 1 : -1;
+        shiftSessionChartWindow(direction * 1.5);
+    };
+
+    const handleTimelineScalePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+        const shell = sessionTimelineRangeShellRef.current;
+        if (!shell) return;
+        const rect = shell.getBoundingClientRect();
+        const clickPercent = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 100;
+        const width = sessionChartWindowEndPercent - sessionChartWindowStartPercent;
+        const nextStart = Math.max(0, Math.min(clickPercent - width / 2, 100 - width));
+        applySessionChartWindow(nextStart, nextStart + width);
+    };
+
+    const showAllSessionChartWindow = () => {
+        applySessionChartWindow(0, 100);
+    };
+
+    const showLiveSessionChartWindow = () => {
+        applySessionChartWindow(80, 100);
+    };
+
+    const visibleSessionActivityPoints = useMemo(() => {
+        if (sessionActivityPoints.length === 0) return [];
+        const { startIndex, endIndex } = sessionChartWindowBoundaries;
+        return sessionActivityPoints.slice(startIndex, endIndex + 1);
+    }, [sessionActivityPoints, sessionChartWindowBoundaries]);
+
+    const sqlChartWindowBoundaries = useMemo(() => {
+        if (activityChartPoints.length <= 1) {
+            return { startIndex: 0, endIndex: Math.max(activityChartPoints.length - 1, 0) };
+        }
+
+        const maxIndex = activityChartPoints.length - 1;
+        const startIndex = Math.floor((sqlChartWindowStartPercent / 100) * maxIndex);
+        const endIndex = Math.ceil((sqlChartWindowEndPercent / 100) * maxIndex);
+
+        return {
+            startIndex: Math.max(0, Math.min(startIndex, maxIndex)),
+            endIndex: Math.max(0, Math.min(endIndex, maxIndex)),
+        };
+    }, [activityChartPoints, sqlChartWindowStartPercent, sqlChartWindowEndPercent]);
+
+    const applySqlChartWindow = (nextStart: number, nextEnd: number) => {
+        const minGap = 4;
+        const safeStart = Math.max(0, Math.min(nextStart, 100 - minGap));
+        const safeEnd = Math.max(safeStart + minGap, Math.min(nextEnd, 100));
+        setSqlChartWindowStartPercent(safeStart);
+        setSqlChartWindowEndPercent(safeEnd);
+        setSqlChartHoverIndex(null);
+    };
+
+    const shiftSqlChartWindow = (deltaPercent: number) => {
+        const width = sqlChartWindowEndPercent - sqlChartWindowStartPercent;
+        const nextStart = Math.max(0, Math.min(sqlChartWindowStartPercent + deltaPercent, 100 - width));
+        applySqlChartWindow(nextStart, nextStart + width);
+    };
+
+    const zoomSqlChartWindow = (zoomIn: boolean) => {
+        const currentWidth = sqlChartWindowEndPercent - sqlChartWindowStartPercent;
+        const minWidth = 8;
+        const maxWidth = 100;
+        const nextWidth = zoomIn
+            ? Math.max(minWidth, currentWidth * 0.88)
+            : Math.min(maxWidth, currentWidth * 1.12);
+        const center = (sqlChartWindowStartPercent + sqlChartWindowEndPercent) / 2;
+        const nextStart = Math.max(0, Math.min(center - nextWidth / 2, 100 - nextWidth));
+        applySqlChartWindow(nextStart, nextStart + nextWidth);
+    };
+
+    const handleSqlTimelineScaleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        if (event.shiftKey || event.ctrlKey || event.metaKey) {
+            zoomSqlChartWindow(event.deltaY < 0);
+            return;
+        }
+        const direction = event.deltaY > 0 ? 1 : -1;
+        shiftSqlChartWindow(direction * 1.5);
+    };
+
+    const handleSqlTimelineScalePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+        const shell = sqlTimelineRangeShellRef.current;
+        if (!shell) return;
+        const rect = shell.getBoundingClientRect();
+        const clickPercent = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 100;
+        const width = sqlChartWindowEndPercent - sqlChartWindowStartPercent;
+        const nextStart = Math.max(0, Math.min(clickPercent - width / 2, 100 - width));
+        applySqlChartWindow(nextStart, nextStart + width);
+    };
+
+    const showAllSqlChartWindow = () => {
+        applySqlChartWindow(0, 100);
+    };
+
+    const showLiveSqlChartWindow = () => {
+        applySqlChartWindow(80, 100);
+    };
+
+    const visibleSqlActivityPoints = useMemo(() => {
+        if (activityChartPoints.length === 0) return [];
+        const { startIndex, endIndex } = sqlChartWindowBoundaries;
+        return activityChartPoints.slice(startIndex, endIndex + 1);
+    }, [activityChartPoints, sqlChartWindowBoundaries]);
+
+    const sessionActivityChartModel = useMemo(() => {
         const width = 860;
-        const height = 280;
-        const axis = {left: 56, right: 24, top: 20, bottom: 44};
+        const height = 210;
+        const axis = {left: 52, right: 20, top: 16, bottom: 34};
         const innerWidth = width - axis.left - axis.right;
         const innerHeight = height - axis.top - axis.bottom;
 
-        if (activityChartPoints.length === 0) {
+        if (visibleSessionActivityPoints.length === 0) {
+            return {
+                width,
+                height,
+                axis,
+                lines: { totalSessions: '', activeSessions: '', activeTransactions: '' },
+                yTicks: [0, 1, 2, 3, 4],
+                xTickLabels: [] as Array<{ x: number; label: string }>,
+                maxValue: 0,
+            };
+        }
+
+        const values = visibleSessionActivityPoints.flatMap((p) => [p.totalSessions, p.activeSessions, p.activeTransactions]);
+        const maxValue = Math.max(...values, 1);
+
+        const buildPolyline = (key: keyof Omit<SessionActivityChartPoint, 'timestamp'>) =>
+            visibleSessionActivityPoints
+                .map((point, index) => {
+                    const x = axis.left + (index / Math.max(visibleSessionActivityPoints.length - 1, 1)) * innerWidth;
+                    const y = axis.top + innerHeight - ((point[key] as number) / maxValue) * innerHeight;
+                    return `${x},${y}`;
+                })
+                .join(' ');
+
+        const yTicks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(maxValue * part));
+        const xTickIndexes = [0, 0.5, 1]
+            .map((part) => Math.round((visibleSessionActivityPoints.length - 1) * part))
+            .filter((idx, pos, arr) => arr.indexOf(idx) === pos);
+
+        const xTickLabels = xTickIndexes.map((idx) => ({
+            x: axis.left + (idx / Math.max(visibleSessionActivityPoints.length - 1, 1)) * innerWidth,
+            label: visibleSessionActivityPoints[idx]?.timestamp ?? '',
+        }));
+
+        return {
+            width,
+            height,
+            axis,
+            lines: {
+                totalSessions: buildPolyline('totalSessions'),
+                activeSessions: buildPolyline('activeSessions'),
+                activeTransactions: buildPolyline('activeTransactions'),
+            },
+            yTicks,
+            xTickLabels,
+            maxValue,
+        };
+    }, [visibleSessionActivityPoints]);
+
+    const hoveredSessionPoint = useMemo(() => {
+        if (sessionChartHoverIndex === null) return null;
+        return visibleSessionActivityPoints[sessionChartHoverIndex] ?? null;
+    }, [sessionChartHoverIndex, visibleSessionActivityPoints]);
+
+    const hoveredSessionPointX = useMemo(() => {
+        if (sessionChartHoverIndex === null || visibleSessionActivityPoints.length === 0) return null;
+        const chartInnerWidth = sessionActivityChartModel.width - sessionActivityChartModel.axis.left - sessionActivityChartModel.axis.right;
+        const safeIndex = Math.max(0, Math.min(sessionChartHoverIndex, visibleSessionActivityPoints.length - 1));
+        return sessionActivityChartModel.axis.left + (safeIndex / Math.max(visibleSessionActivityPoints.length - 1, 1)) * chartInnerWidth;
+    }, [sessionChartHoverIndex, sessionActivityChartModel, visibleSessionActivityPoints.length]);
+
+    useEffect(() => {
+        if (sessionChartHoverIndex === null) return;
+        if (sessionChartHoverIndex <= visibleSessionActivityPoints.length - 1) return;
+        setSessionChartHoverIndex(null);
+    }, [sessionChartHoverIndex, visibleSessionActivityPoints.length]);
+
+    const activityChartModel = useMemo(() => {
+        const width = 860;
+        const height = 220;
+        const axis = {left: 52, right: 20, top: 16, bottom: 34};
+        const innerWidth = width - axis.left - axis.right;
+        const innerHeight = height - axis.top - axis.bottom;
+
+        if (visibleSqlActivityPoints.length === 0) {
             return {
                 width,
                 height,
@@ -587,16 +937,16 @@ export default function ConnectionDetailPage() {
             };
         }
 
-        const values = activityChartPoints.flatMap((p) => [p.total, p.select, p.insert, p.update, p.delete, p.other]);
+        const values = visibleSqlActivityPoints.flatMap((p) => [p.total, p.select, p.insert, p.update, p.delete, p.other]);
         const minValue = Math.min(...values);
         const maxValue = Math.max(...values);
         const avgValue = Math.round((values.reduce((sum, val) => sum + val, 0) / values.length) * 10) / 10;
         const topValue = Math.max(maxValue, 1);
 
         const buildPolyline = (key: keyof Omit<ActivityChartPoint, 'timestamp'>) =>
-            activityChartPoints
+            visibleSqlActivityPoints
                 .map((point, index) => {
-                    const x = axis.left + (index / Math.max(activityChartPoints.length - 1, 1)) * innerWidth;
+                    const x = axis.left + (index / Math.max(visibleSqlActivityPoints.length - 1, 1)) * innerWidth;
                     const y = axis.top + innerHeight - ((point[key] as number) / topValue) * innerHeight;
                     return `${x},${y}`;
                 })
@@ -605,12 +955,12 @@ export default function ConnectionDetailPage() {
         const yTicks = [0, 0.25, 0.5, 0.75, 1].map((part) => Math.round(topValue * part));
 
         const xTickIndexes = [0, 0.5, 1]
-            .map((part) => Math.round((activityChartPoints.length - 1) * part))
+            .map((part) => Math.round((visibleSqlActivityPoints.length - 1) * part))
             .filter((idx, pos, arr) => arr.indexOf(idx) === pos);
 
         const xTickLabels = xTickIndexes.map((idx) => ({
-            x: axis.left + (idx / Math.max(activityChartPoints.length - 1, 1)) * innerWidth,
-            label: activityChartPoints[idx]?.timestamp ?? '',
+            x: axis.left + (idx / Math.max(visibleSqlActivityPoints.length - 1, 1)) * innerWidth,
+            label: visibleSqlActivityPoints[idx]?.timestamp ?? '',
         }));
 
         return {
@@ -631,12 +981,25 @@ export default function ConnectionDetailPage() {
             maxValue,
             avgValue,
         };
-    }, [activityChartPoints]);
+    }, [visibleSqlActivityPoints]);
 
-    const closeActivityChartModal = () => {
-        setIsActivityChartModalOpen(false);
-        setActivityChartPoints([]);
-    };
+    const hoveredSqlPoint = useMemo(() => {
+        if (sqlChartHoverIndex === null) return null;
+        return visibleSqlActivityPoints[sqlChartHoverIndex] ?? null;
+    }, [sqlChartHoverIndex, visibleSqlActivityPoints]);
+
+    const hoveredSqlPointX = useMemo(() => {
+        if (sqlChartHoverIndex === null || visibleSqlActivityPoints.length === 0) return null;
+        const chartInnerWidth = activityChartModel.width - activityChartModel.axis.left - activityChartModel.axis.right;
+        const safeIndex = Math.max(0, Math.min(sqlChartHoverIndex, visibleSqlActivityPoints.length - 1));
+        return activityChartModel.axis.left + (safeIndex / Math.max(visibleSqlActivityPoints.length - 1, 1)) * chartInnerWidth;
+    }, [sqlChartHoverIndex, activityChartModel, visibleSqlActivityPoints.length]);
+
+    useEffect(() => {
+        if (sqlChartHoverIndex === null) return;
+        if (sqlChartHoverIndex <= visibleSqlActivityPoints.length - 1) return;
+        setSqlChartHoverIndex(null);
+    }, [sqlChartHoverIndex, visibleSqlActivityPoints.length]);
 
 // Обработчики для поиска и пагинации пользователей
 
@@ -963,6 +1326,7 @@ export default function ConnectionDetailPage() {
                     const currentCount = prev[groupUsersModal.oid] ?? groupUsersModal.userCount;
                     return {...prev, [groupUsersModal.oid]: currentCount + 1};
                 });
+                setGroupsReloadTrigger((prev) => prev + 1);
             }
             setSelectedUserOid('');
         } catch (err) {
@@ -1005,6 +1369,7 @@ export default function ConnectionDetailPage() {
                     const currentCount = prev[groupUsersModal.oid] ?? groupUsersModal.userCount;
                     return {...prev, [groupUsersModal.oid]: Math.max(0, currentCount - 1)};
                 });
+                setGroupsReloadTrigger((prev) => prev + 1);
             }
         } catch (err) {
             console.error('Ошибка при удалении пользователя из группы:', err);
@@ -1421,6 +1786,14 @@ export default function ConnectionDetailPage() {
         setActiveSqlReloadTrigger((prev) => prev + 1);
     };
 
+    const refreshMonitoringSessionActivity = () => {
+        setSessionActivityReloadTrigger((prev) => prev + 1);
+    };
+
+    const refreshMonitoringSqlActivity = () => {
+        setActivityChartReloadTrigger((prev) => prev + 1);
+    };
+
     const handleActiveSqlFilterSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setActiveSqlUsername(activeSqlUsernameQuery.trim());
@@ -1549,6 +1922,39 @@ export default function ConnectionDetailPage() {
         setEditingTable(null);
         setTableGroupsForm([]);
         setTableGroupSearchQuery('');
+    };
+
+    const openTableDetailsModal = async (table: TablePrivilegeInfo) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+        setTableDetailsLoading(true);
+        try {
+            const params = new URLSearchParams({ schema_name: table.schema_name, table_name: table.table_name });
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/tables/details?${params.toString()}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data?.detail || 'Не удалось получить детали таблицы');
+            }
+            setTableDetailsModal(data as TableDetailsInfo);
+        } catch (err) {
+            console.error('Ошибка загрузки деталей таблицы:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось получить детали таблицы');
+        } finally {
+            setTableDetailsLoading(false);
+        }
+    };
+
+    const closeTableDetailsModal = () => {
+        if (tableDetailsLoading) return;
+        setTableDetailsModal(null);
     };
 
     const toggleTableGroupPrivilege = (
@@ -1909,12 +2315,16 @@ export default function ConnectionDetailPage() {
     const openUserDeleteConfirm = (user: { oid: number; name: string }) => {
         setUserDeleteTarget({oid: user.oid, name: user.name});
         setUserDeleteError(null);
+        setUserDeleteTransferTo('');
+        setUserDeleteTransferCandidates([]);
     };
 
     const closeUserDeleteConfirm = () => {
         if (deletingUserOid !== null) return;
         setUserDeleteTarget(null);
         setUserDeleteError(null);
+        setUserDeleteTransferTo('');
+        setUserDeleteTransferCandidates([]);
     };
 
     const deleteUser = async () => {
@@ -1929,13 +2339,20 @@ export default function ConnectionDetailPage() {
 
         setDeletingUserOid(userDeleteTarget.oid);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/users/${userDeleteTarget.oid}`, {
+            const query = new URLSearchParams();
+            if (userDeleteTransferTo.trim()) {
+                query.set('transfer_owner_to', userDeleteTransferTo.trim());
+            }
+            const response = await fetch(
+                `${API_BASE_URL}/api/v1/db_connections/${id}/users/${userDeleteTarget.oid}${query.toString() ? `?${query.toString()}` : ''}`,
+                {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-            });
+                },
+            );
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
@@ -1955,6 +2372,36 @@ export default function ConnectionDetailPage() {
             setDeletingUserOid(null);
         }
     };
+
+    useEffect(() => {
+        const loadDeleteTransferCandidates = async () => {
+            if (!userDeleteTarget || !id) return;
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+            setUserDeleteTransferLoading(true);
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/users?page=1&size=200`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(formatDeleteUserError(data));
+                }
+                const items = Array.isArray((data as { items?: unknown }).items) ? (data as { items: Array<{ oid: number; name: string }> }).items : [];
+                setUserDeleteTransferCandidates(items.filter((item) => item.name !== userDeleteTarget.name));
+            } catch (err) {
+                console.error('Ошибка загрузки списка пользователей для передачи владения:', err);
+                setUserDeleteTransferCandidates([]);
+            } finally {
+                setUserDeleteTransferLoading(false);
+            }
+        };
+
+        void loadDeleteTransferCandidates();
+    }, [id, userDeleteTarget]);
 
     if (loading) {
         return (
@@ -2038,6 +2485,34 @@ export default function ConnectionDetailPage() {
                                         : ''}
                                 </div>
                             </div>
+                            {visibleTabs.metrics && activeTab === 'metrics' && (
+                                <div className={clsx(styles.cardHeaderActions)}>
+                                    <button
+                                        className={clsx(styles.actionButton, styles.actionButton_primary)}
+                                        onClick={downloadConnectionSettings}
+                                        title="Скачать настройки"
+                                        disabled={deletingId === connection.id}
+                                    >
+                                        Скачать настройки
+                                    </button>
+                                    <button
+                                        className={clsx(styles.actionButton, styles.actionButton_primary)}
+                                        onClick={openEditModal}
+                                        title="Редактировать подключение"
+                                        disabled={deletingId === connection.id}
+                                    >
+                                        Редактировать
+                                    </button>
+                                    <button
+                                        className={clsx(styles.actionButton, styles.actionButton_delete)}
+                                        onClick={() => openDeleteConfirm(connection.id, connection.name || 'Без имени')}
+                                        title="Удалить подключение"
+                                        disabled={deletingId !== null}
+                                    >
+                                        Удалить
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <DetailTabNavigation
                             activeTab={activeTab}
@@ -2296,38 +2771,9 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {/* Кнопки действий - отображаются ТОЛЬКО на вкладке "Информация" */}
-                                            {visibleTabs.metrics && activeTab === 'metrics' && (
-                                                <div className={clsx(styles.cardFooter)}>
-                                                    <div className={clsx(styles.cardFooterRight)}>
-                                                        <button
-                                                            className={clsx(styles.actionButton, styles.actionButton_primary)}
-                                                            onClick={downloadConnectionSettings}
-                                                            title="Скачать настройки"
-                                                            disabled={deletingId === connection.id}
-                                                        >
-                                                            Скачать настройки
-                                                        </button>
-                                                        <button
-                                                            className={clsx(styles.actionButton, styles.actionButton_primary)}
-                                                            onClick={openEditModal}
-                                                            title="Редактировать подключение"
-                                                            disabled={deletingId === connection.id}
-                                                        >
-                                                            Редактировать
-                                                        </button>
-                                                        <button
-                                                            className={clsx(styles.actionButton, styles.actionButton_delete)}
-                                                            onClick={() => openDeleteConfirm(connection.id, connection.name || 'Без имени')}
-                                                            title="Удалить подключение"
-                                                            disabled={deletingId !== null}
-                                                        >
-                                                            Удалить
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </>
+
+
+                                                                                    </>
                                     ) : (
                                         <div className={clsx(styles.metricsEmpty)}>
                                             <FontAwesomeIcon icon={faInfoCircle} size="3x"/>
@@ -2345,6 +2791,12 @@ export default function ConnectionDetailPage() {
                                             onSubmit={handleUsersSearchSubmit}
                                             className={clsx(styles.usersSearchContainer)}
                                         >
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.users')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {totalUsers}
+                                                </span>
+                                            </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
@@ -2535,6 +2987,12 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleGroupsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.groups')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {totalGroups}
+                                                </span>
+                                            </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
@@ -2592,19 +3050,24 @@ export default function ConnectionDetailPage() {
                                                     <div key={group.oid} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)}>{group.name}</h3>
+                                                                <h3 className={clsx(styles.userItemTitle)} title={group.name}>{group.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('groups.users_count')}</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
-                                                                </div>
-                                                                {group.description && (
-                                                                    <div className={clsx(styles.userItemInfo)}>
-                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>{t('groups.description_label')}</span>
-                                                                        <span className={clsx(styles.userItemInfoValue)}>{group.description}</span>
+                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('groups.users_count')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
                                                                     </div>
-                                                                )}
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('groups.description_label')}</span>
+                                                                        <span
+                                                                            className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)}
+                                                                            title={group.description?.trim() || t('groups.description_empty')}
+                                                                        >
+                                                                            {group.description?.trim() || t('groups.description_empty')}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
                                                                 <div className={clsx(styles.userActions)}>
                                                                     <button
                                                                         className={clsx(styles.userActionButton)}
@@ -2699,6 +3162,12 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleSchemasSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.schemas')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {totalSchemas}
+                                                </span>
+                                            </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
@@ -2742,16 +3211,20 @@ export default function ConnectionDetailPage() {
                                                     <div key={schema.schema_name} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)}>{schema.schema_name}</h3>
+                                                                <h3 className={clsx(styles.userItemTitle)} title={schema.schema_name}>{schema.schema_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('schemas.owner')}</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{schema.owner}</span>
-                                                                </div>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('schemas.roles')}</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{schema.role_privileges.length}</span>
+                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('schemas.owner')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={schema.owner || '—'}>
+                                                                            {schema.owner || '—'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('schemas.roles')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{schema.role_privileges.length}</span>
+                                                                    </div>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
                                                                     <button className={clsx(styles.userActionButton)} onClick={() => openSchemaEditModal(schema)} title={`Изменить права для ${schema.schema_name}`}>
@@ -2819,6 +3292,12 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleTablesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.tables')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {totalTables}
+                                                </span>
+                                            </div>
                                             <select value={tablesFilterType} onChange={handleTablesFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
                                                 <option value="regular">{t('tables.filter.regular')}</option>
                                                 <option value="temporary">{t('tables.filter.temporary')}</option>
@@ -2867,18 +3346,31 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${table.schema_name}.${table.table_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)}>{table.schema_name}.{table.table_name}</h3>
+                                                                <h3
+                                                                    className={clsx(styles.userItemTitle, styles.clickableTableTitle)}
+                                                                    title={`${table.schema_name}.${table.table_name}`}
+                                                                    onClick={() => void openTableDetailsModal(table)}
+                                                                >
+                                                                    {table.schema_name}.{table.table_name}
+                                                                </h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('tables.owner')}</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{table.owner}</span>
-                                                                </div>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('tables.groups')}</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{table.group_privileges.length}</span>
+                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.owner')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={table.owner || '—'}>
+                                                                            {table.owner || '—'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.groups')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{table.group_privileges.length}</span>
+                                                                    </div>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
+                                                                    <button className={clsx(styles.userActionButton)} onClick={() => void openTableDetailsModal(table)} title={`Открыть детали ${table.table_name}`}>
+                                                                        <FontAwesomeIcon icon={faEye}/>
+                                                                    </button>
                                                                     <button className={clsx(styles.userActionButton)} onClick={() => openTableEditModal(table)} title={`Изменить права для ${table.table_name}`}>
                                                                         <FontAwesomeIcon icon={faPencilAlt}/>
                                                                     </button>
@@ -2945,6 +3437,12 @@ export default function ConnectionDetailPage() {
                                     <div className={clsx(styles.usersHeader)}>
                                         {viewsFilterType === 'views' ? (
                                             <form onSubmit={handleViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                                <div className={clsx(styles.usersSearchTitle)}>
+                                                    {t('tabs.views')}
+                                                    <span className={clsx(styles.usersCountBadge)}>
+                                                        {resolvedViewsTotal}
+                                                    </span>
+                                                </div>
                                                 <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
                                                     <option value="views">{t('views.filter.views')}</option>
                                                     <option value="materialized_views">{t('views.filter.materialized')}</option>
@@ -2978,6 +3476,12 @@ export default function ConnectionDetailPage() {
                                             </form>
                                         ) : (
                                             <form onSubmit={handleMaterializedViewsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                                <div className={clsx(styles.usersSearchTitle)}>
+                                                    {t('tabs.views')}
+                                                    <span className={clsx(styles.usersCountBadge)}>
+                                                        {resolvedMaterializedViewsTotal}
+                                                    </span>
+                                                </div>
                                                 <select value={viewsFilterType} onChange={handleViewsFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
                                                     <option value="views">{t('views.filter.views')}</option>
                                                     <option value="materialized_views">{t('views.filter.materialized')}</option>
@@ -3182,6 +3686,12 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleIndexesSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.indexes')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {resolvedIndexesTotal}
+                                                </span>
+                                            </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
@@ -3225,16 +3735,22 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${index.schema_name}.${index.index_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)}>{index.schema_name}.{index.index_name}</h3>
+                                                                <h3 className={clsx(styles.userItemTitle)} title={`${index.schema_name}.${index.index_name}`}>{index.schema_name}.{index.index_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>Таблица:</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{index.table_name}</span>
-                                                                </div>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned)}>Описание:</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{index.description || '—'}</span>
+                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Таблица:</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={index.table_name || '—'}>
+                                                                            {index.table_name || '—'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Описание:</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={index.description || '—'}>
+                                                                            {index.description || '—'}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -3307,6 +3823,12 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleFunctionsSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.functions')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {resolvedFunctionsTotal}
+                                                </span>
+                                            </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
@@ -3418,6 +3940,12 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleProceduresSearchSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.procedures')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {resolvedProceduresTotal}
+                                                </span>
+                                            </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
@@ -3604,6 +4132,12 @@ export default function ConnectionDetailPage() {
                                 <div className={clsx(styles.usersContent)}>
                                     <div className={clsx(styles.usersHeader)}>
                                         <form onSubmit={handleActiveSqlFilterSubmit} className={clsx(styles.usersSearchContainer)}>
+                                            <div className={clsx(styles.usersSearchTitle)}>
+                                                {t('tabs.transactions')}
+                                                <span className={clsx(styles.usersCountBadge)}>
+                                                    {totalActiveQueries}
+                                                </span>
+                                            </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
                                                 <FontAwesomeIcon icon={faSearch} className={clsx(styles.usersSearchIcon)}/>
                                                 <input
@@ -3642,14 +4176,6 @@ export default function ConnectionDetailPage() {
                                             >
                                                 <FontAwesomeIcon icon={faArrowsRotate} spin={loadingActiveQueries}/>
                                             </button>
-                                            <button
-                                                type="button"
-                                                className={clsx(styles.usersSearchButton, styles.usersSearchButton_secondary)}
-                                                onClick={() => setIsActivityChartModalOpen(true)}
-                                                title={t('active_sql.open_chart')}
-                                            >
-                                                <FontAwesomeIcon icon={faChartLine}/> {t('active_sql.chart')}
-                                            </button>
                                         </form>
                                     </div>
 
@@ -3687,7 +4213,9 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                         </div>
                                                         <div className={clsx(styles.userItemContent)}>
-                                                            <code>{item.query || '—'}</code>
+                                                            <pre className={clsx(styles.userItemQuery)}>
+                                                                <code>{formatSqlForDisplay(item.query)}</code>
+                                                            </pre>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -3727,139 +4255,401 @@ export default function ConnectionDetailPage() {
                                         </div>
                                     )}
                                 </div>
+
                             )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {isActivityChartModalOpen && (
-                <div className={clsx(styles.modalOverlay)} onClick={closeActivityChartModal}>
-                    <div className={clsx(styles.activityChartModal)} onClick={(e) => e.stopPropagation()}>
-                        <div className={clsx(styles.activityChartHeader)}>
-                            <h2 className={clsx(styles.activityChartTitle)}>{t('chart.title')}</h2>
-                            <button
-                                type="button"
-                                className={clsx(styles.modalCancelButton)}
-                                onClick={closeActivityChartModal}
-                            >
-                                {t('chart.close')}
-                            </button>
-                        </div>
-                        <div className={clsx(styles.activityChartBody)}>
-                            <p className={clsx(styles.activityChartMeta)}>
-                                {t('chart.current_active')}: <b>{chartTotalActiveQueries}</b>
-                            </p>
-                            <div className={clsx(styles.activityChartSvgWrap)}>
-                                {activityChartPoints.length > 1 ? (
-                                    <svg
-                                        viewBox={`0 0 ${activityChartModel.width} ${activityChartModel.height}`}
-                                        className={clsx(styles.activityChartSvg)}
-                                        role="img"
-                                        aria-label={t('chart.aria')}
-                                    >
-                                        {activityChartModel.yTicks.map((tick) => {
-                                            const y = activityChartModel.axis.top
-                                                + (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom)
-                                                - (tick / Math.max(activityChartModel.yTicks[activityChartModel.yTicks.length - 1], 1))
-                                                * (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom);
-                                            return (
-                                                <g key={`y-${tick}`}>
-                                                    <line
-                                                        x1={activityChartModel.axis.left}
-                                                        y1={y}
-                                                        x2={activityChartModel.width - activityChartModel.axis.right}
-                                                        y2={y}
-                                                        className={clsx(styles.activityChartGridLine)}
-                                                    />
-                                                    <text
-                                                        x={activityChartModel.axis.left - 10}
-                                                        y={y + 4}
-                                                        textAnchor="end"
-                                                        className={clsx(styles.activityChartAxisText)}
-                                                    >
-                                                        {tick}
-                                                    </text>
-                                                </g>
-                                            );
-                                        })}
+                            {visibleTabs.monitoring && activeTab === 'monitoring' && (
+                                <div className={clsx(styles.usersContent, styles.monitoringCards)}>
+                                    <div className={clsx(styles.metricsWideCard)}>
+                                        <div className={clsx(styles.metricsCardHeader)}>
+                                            <FontAwesomeIcon icon={faChartLine} className={clsx(styles.metricsCardIcon)}/>
+                                            <h3 className={clsx(styles.metricsCardTitle)}>Транзакционная активность</h3>
+                                            <button type="button" className={clsx(styles.metricsInlineRefresh)} onClick={refreshMonitoringSessionActivity} title="Обновить график">
+                                                <FontAwesomeIcon icon={faArrowsRotate}/> Обновить
+                                            </button>
+                                            <label className={clsx(styles.metricsRefreshControl)}>
+                                                Интервал:
+                                                <select
+                                                    className={clsx(styles.metricsRefreshSelect)}
+                                                    value={sessionMonitoringRefreshIntervalMs}
+                                                    onChange={(event) => setSessionMonitoringRefreshIntervalMs(Number(event.target.value))}
+                                                    aria-label="Интервал автообновления графика транзакционной активности"
+                                                >
+                                                    <option value={1000}>1 сек</option>
+                                                    <option value={2000}>2 сек</option>
+                                                    <option value={5000}>5 сек</option>
+                                                    <option value={10000}>10 сек</option>
+                                                </select>
+                                            </label>
+                                            <button type="button" className={clsx(styles.metricsCollapseButton)} onClick={() => setIsSessionActivityCollapsed((prev) => !prev)}>
+                                                {isSessionActivityCollapsed ? 'Развернуть' : 'Свернуть'}
+                                            </button>
+                                        </div>
+                                        {!isSessionActivityCollapsed && (
+                                            <div className={clsx(styles.metricsCardContent)}>
+                                                {loadingSessionActivity && sessionActivityPoints.length === 0 ? (
+                                                    <div className={clsx(styles.metricsSmallMuted)}>Загрузка данных активности...</div>
+                                                ) : sessionActivityError ? (
+                                                    <div className={clsx(styles.errorMessage)}>{sessionActivityError}</div>
+                                                ) : (
+                                                    <>
+                                                        <div className={clsx(styles.metricsChartLegend)}>
+                                                            <button type="button" className={clsx(styles.legendToggle, !sessionSeriesVisibility.totalSessions && styles.legendToggle_inactive)} onClick={() => setSessionSeriesVisibility((prev) => ({ ...prev, totalSessions: !prev.totalSessions }))}>
+                                                                <i className={clsx(styles.legendDot, styles.legendDotTotal)}/>Все сессии: {sessionActivitySnapshot?.sessions_total ?? 0}
+                                                            </button>
+                                                            <button type="button" className={clsx(styles.legendToggle, !sessionSeriesVisibility.activeSessions && styles.legendToggle_inactive)} onClick={() => setSessionSeriesVisibility((prev) => ({ ...prev, activeSessions: !prev.activeSessions }))}>
+                                                                <i className={clsx(styles.legendDot, styles.legendDotActive)}/>Активные сессии: {sessionActivitySnapshot?.active_sessions ?? 0}
+                                                            </button>
+                                                            <button type="button" className={clsx(styles.legendToggle, !sessionSeriesVisibility.activeTransactions && styles.legendToggle_inactive)} onClick={() => setSessionSeriesVisibility((prev) => ({ ...prev, activeTransactions: !prev.activeTransactions }))}>
+                                                                <i className={clsx(styles.legendDot, styles.legendDotTx)}/>Активные транзакции: {sessionActivitySnapshot?.users.reduce((sum, user) => sum + user.active_transactions, 0) ?? 0}
+                                                            </button>
+                                                        </div>
+                                                        <div className={clsx(styles.metricsLineChartWrap)}>
+                                                            <svg
+                                                                viewBox={`0 0 ${sessionActivityChartModel.width} ${sessionActivityChartModel.height}`}
+                                                                className={clsx(styles.metricsLineChart)}
+                                                                role="img"
+                                                                aria-label="График активности сессий и транзакций"
+                                                                onMouseLeave={() => setSessionChartHoverIndex(null)}
+                                                                onMouseMove={(event) => {
+                                                                    if (visibleSessionActivityPoints.length === 0) return;
+                                                                    const rect = event.currentTarget.getBoundingClientRect();
+                                                                    const relativeX = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * sessionActivityChartModel.width;
+                                                                    const chartInnerWidth = sessionActivityChartModel.width - sessionActivityChartModel.axis.left - sessionActivityChartModel.axis.right;
+                                                                    const normalizedX = Math.max(0, Math.min(relativeX - sessionActivityChartModel.axis.left, chartInnerWidth));
+                                                                    const idx = Math.round((normalizedX / Math.max(chartInnerWidth, 1)) * Math.max(visibleSessionActivityPoints.length - 1, 1));
+                                                                    setSessionChartHoverIndex(Math.max(0, Math.min(idx, visibleSessionActivityPoints.length - 1)));
+                                                                }}
+                                                            >
+                                                                {sessionActivityChartModel.yTicks.map((tick) => {
+                                                                    const y = sessionActivityChartModel.axis.top + (sessionActivityChartModel.height - sessionActivityChartModel.axis.top - sessionActivityChartModel.axis.bottom) - (tick / Math.max(sessionActivityChartModel.maxValue, 1)) * (sessionActivityChartModel.height - sessionActivityChartModel.axis.top - sessionActivityChartModel.axis.bottom);
+                                                                    return (
+                                                                        <g key={`session-y-${tick}`}>
+                                                                            <line x1={sessionActivityChartModel.axis.left} y1={y} x2={sessionActivityChartModel.width - sessionActivityChartModel.axis.right} y2={y} className={clsx(styles.chartGridLine)} />
+                                                                            <text x={sessionActivityChartModel.axis.left - 8} y={y + 4} className={clsx(styles.chartAxisLabel)}>{tick}</text>
+                                                                        </g>
+                                                                    );
+                                                                })}
+                                                            <defs>
+                                                                <linearGradient id="session-area-gradient" x1="0" x2="0" y1="0" y2="1">
+                                                                    <stop offset="0%" stopColor="rgba(47, 128, 237, 0.28)" />
+                                                                    <stop offset="100%" stopColor="rgba(47, 128, 237, 0.02)" />
+                                                                </linearGradient>
+                                                            </defs>
+                                                            {sessionSeriesVisibility.totalSessions && (
+                                                                <polygon
+                                                                    points={`${sessionActivityChartModel.axis.left},${sessionActivityChartModel.height - sessionActivityChartModel.axis.bottom} ${sessionActivityChartModel.lines.totalSessions} ${sessionActivityChartModel.width - sessionActivityChartModel.axis.right},${sessionActivityChartModel.height - sessionActivityChartModel.axis.bottom}`}
+                                                                    className={clsx(styles.chartAreaFill)}
+                                                                />
+                                                            )}
+                                                            {sessionSeriesVisibility.totalSessions && <polyline points={sessionActivityChartModel.lines.totalSessions} className={clsx(styles.chartLineTotal)} />}
+                                                            {sessionSeriesVisibility.activeSessions && <polyline points={sessionActivityChartModel.lines.activeSessions} className={clsx(styles.chartLineActive)} />}
+                                                            {sessionSeriesVisibility.activeTransactions && <polyline points={sessionActivityChartModel.lines.activeTransactions} className={clsx(styles.chartLineTransactions)} />}
+                                                                {hoveredSessionPointX !== null && (
+                                                                    <line
+                                                                        x1={hoveredSessionPointX}
+                                                                        y1={sessionActivityChartModel.axis.top}
+                                                                        x2={hoveredSessionPointX}
+                                                                        y2={sessionActivityChartModel.height - sessionActivityChartModel.axis.bottom}
+                                                                        className={clsx(styles.chartHoverGuide)}
+                                                                    />
+                                                                )}
+                                                                {sessionActivityChartModel.xTickLabels.map((tick) => (
+                                                                    <text key={`session-x-${tick.label}`} x={tick.x} y={sessionActivityChartModel.height - 12} className={clsx(styles.chartAxisLabel, styles.chartTimeLabel)} textAnchor="middle">{tick.label}</text>
+                                                                ))}
+                                                            </svg>
+                                                            {hoveredSessionPoint && (
+                                                                <div className={clsx(styles.metricsChartTooltip)} role="status" aria-live="polite">
+                                                                    <div className={clsx(styles.metricsChartTooltipTitle)}>{hoveredSessionPoint.timestamp}</div>
+                                                                    <div>Все сессии: <b>{hoveredSessionPoint.totalSessions}</b></div>
+                                                                    <div>Активные сессии: <b>{hoveredSessionPoint.activeSessions}</b></div>
+                                                                    <div>Активные транзакции: <b>{hoveredSessionPoint.activeTransactions}</b></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className={clsx(styles.metricsTimelineScale)}>
+                                                        <div className={clsx(styles.metricsTimelineScaleHeader)}>
+                                                            <span>Временная линия масштаба</span>
+                                                            <div className={clsx(styles.metricsTimelineActions)}>
+                                                                <span>
+                                                                    Диапазон: {sessionChartWindowBoundaries.startIndex + 1}–{sessionChartWindowBoundaries.endIndex + 1}
+                                                                    {' '}из {Math.max(sessionActivityPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
+                                                                </span>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSessionChartWindow(true)}>+</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSessionChartWindow(false)}>−</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showLiveSessionChartWindow}>Live</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showAllSessionChartWindow}>Весь период</button>
+                                                            </div>
+                                                        </div>
+                                                            <div
+                                                                ref={sessionTimelineRangeShellRef}
+                                                                className={clsx(styles.metricsTimelineRangeShell)}
+                                                                onWheel={handleTimelineScaleWheel}
+                                                                onPointerDown={handleTimelineScalePointerDown}
+                                                            >
+                                                                <div className={clsx(styles.metricsTimelineRangeTrack)} />
+                                                                <div
+                                                                    className={clsx(styles.metricsTimelineRangeSelection)}
+                                                                    style={{
+                                                                        left: `${sessionChartWindowStartPercent}%`,
+                                                                        width: `${Math.max(sessionChartWindowEndPercent - sessionChartWindowStartPercent, 0)}%`,
+                                                                    }}
+                                                                />
+                                                                <input
+                                                                    type="range"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step={1}
+                                                                    value={sessionChartWindowStartPercent}
+                                                                    onChange={(event) => {
+                                                                        const nextStart = Number(event.target.value);
+                                                                        applySessionChartWindow(nextStart, sessionChartWindowEndPercent);
+                                                                    }}
+                                                                    className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeStart)}
+                                                                    aria-label="Начало временного диапазона графика"
+                                                                />
+                                                                <input
+                                                                    type="range"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step={1}
+                                                                    value={sessionChartWindowEndPercent}
+                                                                    onChange={(event) => {
+                                                                        const nextEnd = Number(event.target.value);
+                                                                        applySessionChartWindow(sessionChartWindowStartPercent, nextEnd);
+                                                                    }}
+                                                                    className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeEnd)}
+                                                                    aria-label="Конец временного диапазона графика"
+                                                                />
+                                                            </div>
+                                                            <div className={clsx(styles.metricsTimelineTicks)}>
+                                                                {['История', '25%', '50%', '75%', 'Live'].map((tick) => (
+                                                                    <span key={`timeline-tick-${tick}`}>{tick}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
 
-                                        <line
-                                            x1={activityChartModel.axis.left}
-                                            y1={activityChartModel.axis.top}
-                                            x2={activityChartModel.axis.left}
-                                            y2={activityChartModel.height - activityChartModel.axis.bottom}
-                                            className={clsx(styles.activityChartAxisLine)}
-                                        />
-                                        <line
-                                            x1={activityChartModel.axis.left}
-                                            y1={activityChartModel.height - activityChartModel.axis.bottom}
-                                            x2={activityChartModel.width - activityChartModel.axis.right}
-                                            y2={activityChartModel.height - activityChartModel.axis.bottom}
-                                            className={clsx(styles.activityChartAxisLine)}
-                                        />
-
-                                        <polyline points={activityChartModel.lines.total} className={clsx(styles.activityChartPolyline, styles.activityChartLine_total)}/>
-                                        <polyline points={activityChartModel.lines.select} className={clsx(styles.activityChartPolyline, styles.activityChartLine_select)}/>
-                                        <polyline points={activityChartModel.lines.insert} className={clsx(styles.activityChartPolyline, styles.activityChartLine_insert)}/>
-                                        <polyline points={activityChartModel.lines.update} className={clsx(styles.activityChartPolyline, styles.activityChartLine_update)}/>
-                                        <polyline points={activityChartModel.lines.delete} className={clsx(styles.activityChartPolyline, styles.activityChartLine_delete)}/>
-                                        <polyline points={activityChartModel.lines.other} className={clsx(styles.activityChartPolyline, styles.activityChartLine_other)}/>
-
-                                        {activityChartModel.xTickLabels.map((tick) => (
-                                            <text
-                                                key={`x-${tick.x}`}
-                                                x={tick.x}
-                                                y={activityChartModel.height - 10}
-                                                textAnchor="middle"
-                                                className={clsx(styles.activityChartAxisText)}
-                                            >
-                                                {tick.label}
-                                            </text>
-                                        ))}
-
-                                        <text
-                                            x={activityChartModel.width / 2}
-                                            y={activityChartModel.height - 28}
-                                            textAnchor="middle"
-                                            className={clsx(styles.activityChartAxisTitle)}
-                                        >
-                                            {t('chart.axis.time')}
-                                        </text>
-                                        <text
-                                            x={16}
-                                            y={activityChartModel.height / 2}
-                                            textAnchor="middle"
-                                            transform={`rotate(-90 16 ${activityChartModel.height / 2})`}
-                                            className={clsx(styles.activityChartAxisTitle)}
-                                        >
-                                            {t('chart.axis.transactions')}
-                                        </text>
-                                    </svg>
-                                ) : (
-                                    <div className={clsx(styles.usersEmpty)}>
-                                        <FontAwesomeIcon icon={faSpinner} spin={chartLoadingActiveQueries} size="2x"/>
-                                        <p>{t('chart.collecting')}</p>
+                                                        <div className={clsx(styles.metricsUsersTable)}>
+                                                            <div className={clsx(styles.metricsUsersHeader)}>Top пользователей по транзакциям</div>
+                                                            {(sessionActivitySnapshot?.users ?? []).map((item) => (
+                                                                <div key={item.username} className={clsx(styles.metricsUsersRow)}>
+                                                                    <span className={clsx(styles.metricsUsersName)}>{item.username}</span>
+                                                                    <span>Сессий: {item.sessions_total}</span>
+                                                                    <span>Активных: {item.active_sessions}</span>
+                                                                    <span>Tx: {item.active_transactions}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                            {activityChartPoints.length > 0 && (
-                                <div className={clsx(styles.activityChartTicks)}>
-                                    <span>{t('chart.info')}</span>
-                                    <span>{t('chart.period')}: {activityChartPoints[0].timestamp} — {activityChartPoints[activityChartPoints.length - 1].timestamp}</span>
-                                    <span>{t('chart.min')}: {activityChartModel.minValue}</span>
-                                    <span>{t('chart.avg')}: {activityChartModel.avgValue}</span>
-                                    <span>{t('chart.max')}: {activityChartModel.maxValue}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_select)}>SELECT: {activityChartPoints[activityChartPoints.length - 1].select}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_insert)}>INSERT: {activityChartPoints[activityChartPoints.length - 1].insert}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_update)}>UPDATE: {activityChartPoints[activityChartPoints.length - 1].update}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_delete)}>DELETE: {activityChartPoints[activityChartPoints.length - 1].delete}</span>
-                                    <span className={clsx(styles.activityChartValueItem, styles.activityChartLine_other)}>{t('chart.other')}: {activityChartPoints[activityChartPoints.length - 1].other}</span>
+
+                                    <div className={clsx(styles.metricsWideCard)}>
+                                        <div className={clsx(styles.metricsCardHeader)}>
+                                            <FontAwesomeIcon icon={faChartLine} className={clsx(styles.metricsCardIcon)}/>
+                                            <h3 className={clsx(styles.metricsCardTitle)}>График активности</h3>
+                                            <button type="button" className={clsx(styles.metricsInlineRefresh)} onClick={refreshMonitoringSqlActivity} title="Обновить график">
+                                                <FontAwesomeIcon icon={faArrowsRotate}/> Обновить
+                                            </button>
+                                            <label className={clsx(styles.metricsRefreshControl)}>
+                                                Интервал:
+                                                <select
+                                                    className={clsx(styles.metricsRefreshSelect)}
+                                                    value={activityChartRefreshIntervalMs}
+                                                    onChange={(event) => setActivityChartRefreshIntervalMs(Number(event.target.value))}
+                                                    aria-label="Интервал автообновления графика SQL-активности"
+                                                >
+                                                    <option value={1000}>1 сек</option>
+                                                    <option value={2000}>2 сек</option>
+                                                    <option value={5000}>5 сек</option>
+                                                    <option value={10000}>10 сек</option>
+                                                </select>
+                                            </label>
+                                            <button type="button" className={clsx(styles.metricsCollapseButton)} onClick={() => setIsSqlActivityCollapsed((prev) => !prev)}>
+                                                {isSqlActivityCollapsed ? 'Развернуть' : 'Свернуть'}
+                                            </button>
+                                        </div>
+                                        {!isSqlActivityCollapsed && (
+                                            <div className={clsx(styles.metricsCardContent)}>
+                                                <div className={clsx(styles.metricsChartLegend)}>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.total && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, total: !prev.total }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlTotal)}/>Всего: {activityChartPoints[activityChartPoints.length - 1]?.total ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.select && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, select: !prev.select }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlSelect)}/>SELECT: {activityChartPoints[activityChartPoints.length - 1]?.select ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.insert && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, insert: !prev.insert }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlInsert)}/>INSERT: {activityChartPoints[activityChartPoints.length - 1]?.insert ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.update && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, update: !prev.update }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlUpdate)}/>UPDATE: {activityChartPoints[activityChartPoints.length - 1]?.update ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.delete && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, delete: !prev.delete }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlDelete)}/>DELETE: {activityChartPoints[activityChartPoints.length - 1]?.delete ?? 0}
+                                                    </button>
+                                                    <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.other && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, other: !prev.other }))}>
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlOther)}/>OTHER: {activityChartPoints[activityChartPoints.length - 1]?.other ?? 0}
+                                                    </button>
+                                                </div>
+                                                {chartActiveQueriesError ? (
+                                                    <div className={clsx(styles.errorMessage)}>{chartActiveQueriesError}</div>
+                                                ) : activityChartPoints.length > 1 ? (
+                                                    <>
+                                                        <div className={clsx(styles.metricsLineChartWrap)}>
+                                                            <svg
+                                                                viewBox={`0 0 ${activityChartModel.width} ${activityChartModel.height}`}
+                                                                className={clsx(styles.metricsLineChart)}
+                                                                role="img"
+                                                                aria-label={t('chart.aria')}
+                                                                onMouseLeave={() => setSqlChartHoverIndex(null)}
+                                                                onMouseMove={(event) => {
+                                                                    if (visibleSqlActivityPoints.length === 0) return;
+                                                                    const rect = event.currentTarget.getBoundingClientRect();
+                                                                    const relativeX = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * activityChartModel.width;
+                                                                    const chartInnerWidth = activityChartModel.width - activityChartModel.axis.left - activityChartModel.axis.right;
+                                                                    const normalizedX = Math.max(0, Math.min(relativeX - activityChartModel.axis.left, chartInnerWidth));
+                                                                    const idx = Math.round((normalizedX / Math.max(chartInnerWidth, 1)) * Math.max(visibleSqlActivityPoints.length - 1, 1));
+                                                                    setSqlChartHoverIndex(Math.max(0, Math.min(idx, visibleSqlActivityPoints.length - 1)));
+                                                                }}
+                                                            >
+                                                                {activityChartModel.yTicks.map((tick) => {
+                                                                    const y = activityChartModel.axis.top
+                                                                        + (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom)
+                                                                        - (tick / Math.max(activityChartModel.yTicks[activityChartModel.yTicks.length - 1], 1))
+                                                                        * (activityChartModel.height - activityChartModel.axis.top - activityChartModel.axis.bottom);
+                                                                    return (
+                                                                        <g key={`sql-y-${tick}`}>
+                                                                            <line x1={activityChartModel.axis.left} y1={y} x2={activityChartModel.width - activityChartModel.axis.right} y2={y} className={clsx(styles.chartGridLine)} />
+                                                                            <text x={activityChartModel.axis.left - 8} y={y + 4} className={clsx(styles.chartAxisLabel)}>{tick}</text>
+                                                                        </g>
+                                                                    );
+                                                                })}
+                                                                <defs>
+                                                                    <linearGradient id="sql-area-gradient" x1="0" x2="0" y1="0" y2="1">
+                                                                        <stop offset="0%" stopColor="rgba(79, 70, 229, 0.3)" />
+                                                                        <stop offset="100%" stopColor="rgba(79, 70, 229, 0.02)" />
+                                                                    </linearGradient>
+                                                                </defs>
+                                                                {sqlSeriesVisibility.total && (
+                                                                    <polygon
+                                                                        points={`${activityChartModel.axis.left},${activityChartModel.height - activityChartModel.axis.bottom} ${activityChartModel.lines.total} ${activityChartModel.width - activityChartModel.axis.right},${activityChartModel.height - activityChartModel.axis.bottom}`}
+                                                                        className={clsx(styles.chartAreaFillSql)}
+                                                                    />
+                                                                )}
+                                                                {sqlSeriesVisibility.total && <polyline points={activityChartModel.lines.total} className={clsx(styles.chartLineSqlTotal)} />}
+                                                                {sqlSeriesVisibility.select && <polyline points={activityChartModel.lines.select} className={clsx(styles.chartLineSqlSelect)} />}
+                                                                {sqlSeriesVisibility.insert && <polyline points={activityChartModel.lines.insert} className={clsx(styles.chartLineSqlInsert)} />}
+                                                                {sqlSeriesVisibility.update && <polyline points={activityChartModel.lines.update} className={clsx(styles.chartLineSqlUpdate)} />}
+                                                                {sqlSeriesVisibility.delete && <polyline points={activityChartModel.lines.delete} className={clsx(styles.chartLineSqlDelete)} />}
+                                                                {sqlSeriesVisibility.other && <polyline points={activityChartModel.lines.other} className={clsx(styles.chartLineSqlOther)} />}
+                                                                {hoveredSqlPointX !== null && (
+                                                                    <line
+                                                                        x1={hoveredSqlPointX}
+                                                                        y1={activityChartModel.axis.top}
+                                                                        x2={hoveredSqlPointX}
+                                                                        y2={activityChartModel.height - activityChartModel.axis.bottom}
+                                                                        className={clsx(styles.chartHoverGuide)}
+                                                                    />
+                                                                )}
+                                                                {activityChartModel.xTickLabels.map((tick) => (
+                                                                    <text key={`sql-x-${tick.label}`} x={tick.x} y={activityChartModel.height - 12} className={clsx(styles.chartAxisLabel, styles.chartTimeLabel)} textAnchor="middle">{tick.label}</text>
+                                                                ))}
+                                                            </svg>
+                                                            {hoveredSqlPoint && (
+                                                                <div className={clsx(styles.metricsChartTooltip)} role="status" aria-live="polite">
+                                                                    <div className={clsx(styles.metricsChartTooltipTitle)}>{hoveredSqlPoint.timestamp}</div>
+                                                                    <div>Всего: <b>{hoveredSqlPoint.total}</b></div>
+                                                                    <div>SELECT: <b>{hoveredSqlPoint.select}</b></div>
+                                                                    <div>INSERT: <b>{hoveredSqlPoint.insert}</b></div>
+                                                                    <div>UPDATE: <b>{hoveredSqlPoint.update}</b></div>
+                                                                    <div>DELETE: <b>{hoveredSqlPoint.delete}</b></div>
+                                                                    <div>OTHER: <b>{hoveredSqlPoint.other}</b></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className={clsx(styles.metricsTimelineScale)}>
+                                                        <div className={clsx(styles.metricsTimelineScaleHeader)}>
+                                                            <span>Временная линия масштаба</span>
+                                                            <div className={clsx(styles.metricsTimelineActions)}>
+                                                                <span>
+                                                                    Диапазон: {sqlChartWindowBoundaries.startIndex + 1}–{sqlChartWindowBoundaries.endIndex + 1}
+                                                                    {' '}из {Math.max(activityChartPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
+                                                                </span>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSqlChartWindow(true)}>+</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSqlChartWindow(false)}>−</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showLiveSqlChartWindow}>Live</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showAllSqlChartWindow}>Весь период</button>
+                                                            </div>
+                                                        </div>
+                                                            <div
+                                                                ref={sqlTimelineRangeShellRef}
+                                                                className={clsx(styles.metricsTimelineRangeShell)}
+                                                                onWheel={handleSqlTimelineScaleWheel}
+                                                                onPointerDown={handleSqlTimelineScalePointerDown}
+                                                            >
+                                                                <div className={clsx(styles.metricsTimelineRangeTrack)} />
+                                                                <div
+                                                                    className={clsx(styles.metricsTimelineRangeSelection)}
+                                                                    style={{
+                                                                        left: `${sqlChartWindowStartPercent}%`,
+                                                                        width: `${Math.max(sqlChartWindowEndPercent - sqlChartWindowStartPercent, 0)}%`,
+                                                                    }}
+                                                                />
+                                                                <input
+                                                                    type="range"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step={1}
+                                                                    value={sqlChartWindowStartPercent}
+                                                                    onChange={(event) => {
+                                                                        const nextStart = Number(event.target.value);
+                                                                        applySqlChartWindow(nextStart, sqlChartWindowEndPercent);
+                                                                    }}
+                                                                    className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeStart)}
+                                                                    aria-label="Начало временного диапазона графика SQL-активности"
+                                                                />
+                                                                <input
+                                                                    type="range"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step={1}
+                                                                    value={sqlChartWindowEndPercent}
+                                                                    onChange={(event) => {
+                                                                        const nextEnd = Number(event.target.value);
+                                                                        applySqlChartWindow(sqlChartWindowStartPercent, nextEnd);
+                                                                    }}
+                                                                    className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeEnd)}
+                                                                    aria-label="Конец временного диапазона графика SQL-активности"
+                                                                />
+                                                            </div>
+                                                            <div className={clsx(styles.metricsTimelineTicks)}>
+                                                                {['История', '25%', '50%', '75%', 'Live'].map((tick) => (
+                                                                    <span key={`sql-timeline-tick-${tick}`}>{tick}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        {/*<div className={clsx(styles.metricsTimelineTicks)}>*/}
+                                                        {/*    <span>Период: {visibleSqlActivityPoints[0]?.timestamp ?? '—'} — {visibleSqlActivityPoints[visibleSqlActivityPoints.length - 1]?.timestamp ?? '—'}</span>*/}
+                                                        {/*    <span>Min: {activityChartModel.minValue}</span>*/}
+                                                        {/*    <span>Avg: {activityChartModel.avgValue}</span>*/}
+                                                        {/*    <span>Max: {activityChartModel.maxValue}</span>*/}
+                                                        {/*</div>*/}
+                                                    </>
+                                                ) : (
+                                                    <div className={clsx(styles.metricsSmallMuted)}>
+                                                        <FontAwesomeIcon icon={faSpinner} spin={chartLoadingActiveQueries} /> {t('chart.collecting')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
 
             {/* Модальное окно подтверждения удаления */}
             {confirmDeleteId !== null && (
@@ -3971,6 +4761,25 @@ export default function ConnectionDetailPage() {
                                 <FontAwesomeIcon icon={faExclamationCircle}/>
                                 {t('users.delete.warning')}
                             </p>
+                            <div className={clsx(styles.modalTransferBlock)}>
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="delete-user-transfer-owner">
+                                    Передать владение объектами пользователю
+                                </label>
+                                <select
+                                    id="delete-user-transfer-owner"
+                                    className={clsx(groupModalStyles.modal__input)}
+                                    value={userDeleteTransferTo}
+                                    onChange={(event) => setUserDeleteTransferTo(event.target.value)}
+                                    disabled={deletingUserOid !== null || userDeleteTransferLoading}
+                                >
+                                    <option value="">Не передавать</option>
+                                    {userDeleteTransferCandidates.map((candidate) => (
+                                        <option key={candidate.oid} value={candidate.name}>
+                                            {candidate.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             {userDeleteError && (
                                 <pre className={clsx(styles.modalErrorBox)}>{userDeleteError}</pre>
                             )}
@@ -4547,6 +5356,49 @@ export default function ConnectionDetailPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {tableDetailsModal !== null && (
+                <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeTableDetailsModal}>
+                    <div className={clsx(groupModalStyles.modal__content, groupModalStyles.modal__content_wide)} onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className={clsx(groupModalStyles.modal__closeButton)}
+                            onClick={closeTableDetailsModal}
+                            disabled={tableDetailsLoading}
+                            aria-label={t('tables.details.close')}
+                        >
+                            <FontAwesomeIcon icon={faTimes}/>
+                        </button>
+                        <div className={clsx(groupModalStyles.modal__header)}>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>{t('tables.details.title')}</h2>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>{tableDetailsModal.schema_name}.{tableDetailsModal.table_name}</p>
+                        </div>
+                        <div className={clsx(groupModalStyles.modal__form)}>
+                            <div className={clsx(styles.tableDetailsMeta)}>
+                                <span>{t('tables.owner')} {tableDetailsModal.owner}</span>
+                                <span>{t('tables.details.comment')}: {tableDetailsModal.description || '—'}</span>
+                            </div>
+                            <div className={clsx(styles.tableDetailsGrid)}>
+                                <div className={clsx(styles.tableDetailsHead)}>
+                                    <span>{t('tables.details.column')}</span>
+                                    <span>{t('tables.details.type')}</span>
+                                    <span>{t('tables.details.nullable')}</span>
+                                    <span>{t('tables.details.default')}</span>
+                                    <span>{t('tables.details.comment')}</span>
+                                </div>
+                                {tableDetailsModal.columns.map((column) => (
+                                    <div key={column.column_name} className={clsx(styles.tableDetailsRow)}>
+                                        <span>{column.column_name}</span>
+                                        <span>{column.data_type}</span>
+                                        <span>{column.is_nullable ? t('yes') : t('no')}</span>
+                                        <span>{column.column_default || '—'}</span>
+                                        <span>{column.description || '—'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

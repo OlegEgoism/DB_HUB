@@ -13,6 +13,7 @@ class ConnectionTabsVisibility(BaseModel):
     procedures: bool = True
     active_sql: bool = True
     sql_query: bool = True
+    monitoring: bool = True
 
 
 class ConnectionTabSettingsResponse(BaseModel):

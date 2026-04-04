@@ -62,7 +62,7 @@ const EXACT_RU_TO_EN: Record<string, string> = {
   'Поиск': 'Search',
   'Очистить поиск': 'Clear search',
   'Обновить список подключений': 'Refresh connections',
-  'Создать подключение': 'Create connection',
+  'Создать подключение': 'Create',
   'Создать пользователя': 'Create user',
   'Создать': 'Create',
   'Сохранить': 'Save',
@@ -101,13 +101,13 @@ const EXACT_RU_TO_EN: Record<string, string> = {
   'Обновить список индексов': 'Refresh indexes',
   'Обновить список транзакций': 'Refresh transactions',
   'Поиск пользователей': 'Search users',
-  'Поиск групп': 'Search groups',
+  'Поиск групп': 'Search',
   'Поиск таблиц': 'Search tables',
-  'Поиск представлений': 'Search views',
-  'Поиск схем': 'Search schemas',
-  'Поиск функций': 'Search functions',
-  'Поиск процедур': 'Search procedures',
-  'Поиск индексов': 'Search indexes',
+  'Поиск представлений': 'Search',
+  'Поиск схем': 'Search',
+  'Поиск функций': 'Search',
+  'Поиск процедур': 'Search',
+  'Поиск индексов': 'Search',
   'Информация': 'Overview',
   'Общая информация': 'General information',
   'База данных:': 'Database:',
@@ -257,12 +257,19 @@ const EXACT_EN_TO_RU = Object.fromEntries(Object.entries(EXACT_RU_TO_EN).map(([r
 const PREFIX_EN_TO_RU = PREFIX_RU_TO_EN.map(([ru, en]) => [en, ru] as const);
 const PHRASE_EN_TO_RU = PHRASE_RU_TO_EN.map(([ru, en]) => [en, ru] as const);
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function replacePhrases(value: string, language: Language): string {
-  const dictionary = language === 'en' ? PHRASE_RU_TO_EN : PHRASE_EN_TO_RU;
+  const dictionary = [...(language === 'en' ? PHRASE_RU_TO_EN : PHRASE_EN_TO_RU)]
+    .sort((a, b) => b[0].length - a[0].length);
   let output = value;
 
   for (const [from, to] of dictionary) {
-    output = output.replaceAll(from, to);
+    const isWord = /^[\p{L}\p{N}_-]+$/u.test(from);
+    const pattern = isWord ? `\\b${escapeRegExp(from)}\\b` : escapeRegExp(from);
+    output = output.replace(new RegExp(pattern, 'gu'), to);
   }
 
   return output;

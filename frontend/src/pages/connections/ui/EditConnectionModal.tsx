@@ -12,6 +12,7 @@ import {
     faEyeSlash,
 } from '@fortawesome/free-solid-svg-icons';
 import { useI18n } from '@shared/i18n';
+import {apiRequest} from '@shared/api/http';
 
 interface Connection {
     id: number;
@@ -26,6 +27,12 @@ interface Connection {
     username: string;
     password?: string;
     owner_id: number;
+}
+
+interface ConnectionTestResponse {
+    success: boolean;
+    message: string;
+    resolved_host: string | null;
 }
 
 export function EditConnectionModal({
@@ -51,6 +58,8 @@ export function EditConnectionModal({
     });
 
     const [showPassword, setShowPassword] = useState(false);
+    const [isTestingConnection, setIsTestingConnection] = useState(false);
+    const [testConnectionNotice, setTestConnectionNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [initialData] = useState({ ...formData });
     const {updateConnection, loading, error, success} = useEditConnection(connection.id);
     const { t } = useI18n();
@@ -114,8 +123,56 @@ export function EditConnectionModal({
     };
 
     const handleClose = () => {
-        if (!loading) {
+        if (!loading && !isTestingConnection) {
             onClose();
+        }
+    };
+
+    const handleTestConnection = async () => {
+        if (!formData.host.trim() || !formData.database_name.trim() || !formData.username.trim()) {
+            setTestConnectionNotice({
+                type: 'error',
+                message: 'Для проверки подключения заполните поля: Хост, Имя БД и Пользователь.',
+            });
+            return;
+        }
+
+        setIsTestingConnection(true);
+        setTestConnectionNotice(null);
+        try {
+            const result = await apiRequest<ConnectionTestResponse>('/api/v1/db_connections/test_connection', {
+                method: 'POST',
+                body: JSON.stringify({
+                    host: formData.host.trim(),
+                    port: formData.port,
+                    database_name: formData.database_name.trim(),
+                    username: formData.username.trim(),
+                    password: formData.password,
+                }),
+                withAuth: true,
+            });
+
+            if (result.success) {
+                setTestConnectionNotice({
+                    type: 'success',
+                    message: result.resolved_host
+                        ? `Подключение успешно!`
+                        : 'Подключение успешно',
+                });
+            } else {
+                setTestConnectionNotice({
+                    type: 'error',
+                    message: result.message || 'Не удалось подключиться',
+                });
+            }
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Не удалось проверить подключение';
+            setTestConnectionNotice({
+                type: 'error',
+                message,
+            });
+        } finally {
+            setIsTestingConnection(false);
         }
     };
 
@@ -365,19 +422,43 @@ export function EditConnectionModal({
                             </label>
                         </div>
 
+                        {testConnectionNotice && (
+                            <div
+                                className={clsx(
+                                    styles.modal__notice,
+                                    testConnectionNotice.type === 'success' ? styles.modal__notice_success : styles.modal__notice_error,
+                                )}
+                            >
+                                {testConnectionNotice.message}
+                            </div>
+                        )}
+
                         <div className={clsx(styles.modal__formFooter)}>
                             <button
                                 type="button"
                                 className={clsx(styles.modal__cancelButton)}
                                 onClick={handleClose}
-                                disabled={loading}
+                                disabled={loading || isTestingConnection}
                             >
                                 {t('login.cancel')}
                             </button>
                             <button
+                                type="button"
+                                className={clsx(styles.modal__testButton)}
+                                onClick={handleTestConnection}
+                                disabled={loading || isTestingConnection}
+                            >
+                                {isTestingConnection ? (
+                                    <>
+                                        <FontAwesomeIcon icon={faSpinner} spin/>
+                                        Проверка...
+                                    </>
+                                ) : 'Проверить'}
+                            </button>
+                            <button
                                 type="submit"
                                 className={clsx(styles.modal__submitButton)}
-                                disabled={!isFormChanged() || loading}
+                                disabled={!isFormChanged() || loading || isTestingConnection}
                             >
                                 {loading ? (
                                     <>

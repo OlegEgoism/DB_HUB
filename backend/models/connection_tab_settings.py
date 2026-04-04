@@ -8,9 +8,9 @@ from backend.models.base_mixin import DateTimeMixin
 class ConnectionTabSettings(Base, DateTimeMixin):
     __tablename__ = "connection_tab_settings"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    tabs_visibility = Column(JSON, nullable=False)
+    id = Column(Integer, primary_key=True, index=True, comment="PK настройки вкладок подключения")
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True, comment="ID пользователя-владельца настройки")
+    tabs_visibility = Column(JSON, nullable=False, comment="JSON-настройки видимости вкладок подключения")
 
     user = relationship("User", back_populates="connection_tab_settings")
 

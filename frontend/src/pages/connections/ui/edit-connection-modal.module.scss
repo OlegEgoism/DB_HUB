@@ -177,6 +177,28 @@
     line-height: 1.5;
   }
 
+  &__notice {
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    line-height: 1.4;
+    border: 1px solid transparent;
+
+    &_success {
+      color: #065f46;
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    &_error {
+      color: #b91c1c;
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+  }
+
   &__success {
     padding: 0 32px 32px;
     text-align: center;
@@ -228,6 +250,7 @@
   }
 
   &__cancelButton,
+  &__testButton,
   &__submitButton {
     flex: 1;
     padding: 12px;
@@ -263,6 +286,21 @@
 
     &:hover:not(:disabled) {
       background: var(--color-primary-dark);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &__testButton {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid rgba(99, 102, 241, 0.35);
+
+    &:hover:not(:disabled) {
+      background: #e0e7ff;
     }
 
     &:disabled {

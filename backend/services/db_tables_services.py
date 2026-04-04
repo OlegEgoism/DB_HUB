@@ -397,6 +397,74 @@ class DBTablesService:
                             await conn.execute(f"REVOKE {priv} ON TABLE {quoted_schema}.{quoted_table} FROM {quoted_user};")
             return updated_users
 
+    async def get_table_details(
+        self,
+        connection_id: int,
+        schema_name: str,
+        table_name: str,
+    ) -> dict[str, Any]:
+        connection = await self._get_connection(connection_id)
+        async with external_db_connection(connection) as conn:
+            table_row = await conn.fetchrow(
+                """
+                SELECT
+                    pg_catalog.pg_get_userbyid(c.relowner) AS owner,
+                    pg_catalog.obj_description(c.oid, 'pg_class') AS description
+                FROM pg_catalog.pg_class c
+                JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = $1
+                  AND c.relname = $2
+                  AND c.relkind = 'r'
+                """,
+                schema_name,
+                table_name,
+            )
+            if not table_row:
+                raise ValueError(f"Таблица {schema_name}.{table_name} не найдена")
+
+            column_rows = await conn.fetch(
+                """
+                SELECT
+                    column_name,
+                    data_type,
+                    is_nullable,
+                    column_default,
+                    pg_catalog.col_description(
+                        (quote_ident(table_schema) || '.' || quote_ident(table_name))::regclass::oid,
+                        ordinal_position
+                    ) AS description,
+                    character_maximum_length,
+                    numeric_precision,
+                    numeric_scale
+                FROM information_schema.columns
+                WHERE table_schema = $1
+                  AND table_name = $2
+                ORDER BY ordinal_position
+                """,
+                schema_name,
+                table_name,
+            )
+
+            return {
+                "schema_name": schema_name,
+                "table_name": table_name,
+                "owner": table_row["owner"],
+                "description": table_row["description"],
+                "columns": [
+                    {
+                        "column_name": row["column_name"],
+                        "data_type": row["data_type"],
+                        "is_nullable": row["is_nullable"] == "YES",
+                        "column_default": row["column_default"],
+                        "description": row["description"],
+                        "character_maximum_length": row["character_maximum_length"],
+                        "numeric_precision": row["numeric_precision"],
+                        "numeric_scale": row["numeric_scale"],
+                    }
+                    for row in column_rows
+                ],
+            }
+
     async def get_tables_privileges_for_groups(
         self,
         connection_id: int,

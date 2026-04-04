@@ -11,6 +11,7 @@ from backend.schemas.db_tables_schemas import (
     PaginatedTablePrivilegesGroupsResponse,
     PaginatedTablePrivilegesUsersResponse,
     PaginatedTemporaryTablesResponse,
+    TableDetailsResponse,
     TablePrivilegesGroupsUpdateRequest,
     TablePrivilegesGroupsUpdateResponse,
     TablePrivilegesUpdateRequest,
@@ -209,3 +210,24 @@ async def update_tables_privileges_for_groups(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при обновлении прав групп: {str(e)}") from e
+
+
+@router.get(
+    "/details",
+    response_model=TableDetailsResponse,
+    summary="Получить детальную информацию о таблице",
+    description="Возвращает описание таблицы и список полей с типами данных",
+)
+async def get_table_details(
+    connection_id: int,
+    schema_name: str = Query(..., description="Имя схемы"),
+    table_name: str = Query(..., description="Имя таблицы"),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        service = DBTablesService(db)
+        return await service.get_table_details(connection_id=connection_id, schema_name=schema_name, table_name=table_name)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении деталей таблицы: {str(e)}") from e

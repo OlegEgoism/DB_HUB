@@ -63,7 +63,8 @@ export type TabType =
   | 'functions'
   | 'procedures'
   | 'sql_query'
-  | 'active_sql';
+  | 'active_sql'
+  | 'monitoring';
 
 export type TablesFilterType = 'regular' | 'temporary' | 'all';
 export type ViewsFilterType = 'views' | 'materialized_views';

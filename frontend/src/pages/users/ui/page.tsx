@@ -8,7 +8,6 @@ import {
   faChevronCircleRight,
   faSpinner,
   faExclamationCircle,
-  faPlus,
   faPen,
   faTrash,
   faXmark,
@@ -410,7 +409,6 @@ export default function UsersPage() {
           </form>
 
           <button type="button" className={clsx(styles.users__createButton)} onClick={openCreateModal}>
-            <FontAwesomeIcon icon={faPlus} />
             {t('users.add')}
           </button>
         </div>
