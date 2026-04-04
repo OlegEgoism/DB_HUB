@@ -3251,16 +3251,20 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${table.schema_name}.${table.table_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)}>{table.schema_name}.{table.table_name}</h3>
+                                                                <h3 className={clsx(styles.userItemTitle)} title={`${table.schema_name}.${table.table_name}`}>{table.schema_name}.{table.table_name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('tables.owner')}</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{table.owner}</span>
-                                                                </div>
-                                                                <div className={clsx(styles.userItemInfo)}>
-                                                                    <span className={clsx(styles.userItemInfoLabel)}>{t('tables.groups')}</span>
-                                                                    <span className={clsx(styles.userItemInfoValue)}>{table.group_privileges.length}</span>
+                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.owner')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={table.owner || '—'}>
+                                                                            {table.owner || '—'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.groups')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{table.group_privileges.length}</span>
+                                                                    </div>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
                                                                     <button className={clsx(styles.userActionButton)} onClick={() => openTableEditModal(table)} title={`Изменить права для ${table.table_name}`}>
