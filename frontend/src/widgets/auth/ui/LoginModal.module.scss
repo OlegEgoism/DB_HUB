@@ -222,6 +222,35 @@
     margin-top: 24px;
   }
 
+  &__switchAuth {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+
+  &__switchAuthButton {
+    border: none;
+    background: transparent;
+    color: var(--color-primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover:not(:disabled) {
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
   &__cancelButton,
   &__submitButton {
     flex: 1;
