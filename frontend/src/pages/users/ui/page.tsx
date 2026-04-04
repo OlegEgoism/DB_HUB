@@ -358,9 +358,6 @@ export default function UsersPage() {
         <div className={clsx(styles.users__titleContainer)}>
           <h1 className={clsx(styles.users__title)}>
             {t('users.title')}
-            <span className={clsx(styles.users__countBadge)}>
-              {usersCountBadge}
-            </span>
           </h1>
         </div>
         <div className={clsx(styles.users__actions)}>
@@ -416,7 +413,6 @@ export default function UsersPage() {
           </form>
 
           <button type="button" className={clsx(styles.users__createButton)} onClick={openCreateModal}>
-            <FontAwesomeIcon icon={faPlus} />
             {t('users.add')}
           </button>
         </div>
