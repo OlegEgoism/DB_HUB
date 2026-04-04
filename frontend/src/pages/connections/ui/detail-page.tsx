@@ -88,6 +88,21 @@ type SessionActivityChartPoint = {
     activeTransactions: number;
 };
 
+type TableDetailsColumn = {
+    column_name: string;
+    data_type: string;
+    is_nullable: boolean;
+    column_default?: string | null;
+};
+
+type TableDetailsInfo = {
+    schema_name: string;
+    table_name: string;
+    owner: string;
+    description?: string | null;
+    columns: TableDetailsColumn[];
+};
+
 
 const detectQueryOperation = (query: string | null | undefined): keyof Omit<ActivityChartPoint, 'timestamp' | 'total'> => {
     const normalized = (query || '').trim().toUpperCase();
@@ -217,6 +232,8 @@ export default function ConnectionDetailPage() {
     const [tablesFilterType, setTablesFilterType] = useState<TablesFilterType>('regular');
     const [tablesReloadTrigger, setTablesReloadTrigger] = useState(0);
     const [editingTable, setEditingTable] = useState<TablePrivilegeInfo | null>(null);
+    const [tableDetailsModal, setTableDetailsModal] = useState<TableDetailsInfo | null>(null);
+    const [tableDetailsLoading, setTableDetailsLoading] = useState(false);
     const [tableGroupsForm, setTableGroupsForm] = useState<TableGroupPrivilege[]>([]);
     const [tableGroupSearchQuery, setTableGroupSearchQuery] = useState('');
     const [tableModalLoading, setTableModalLoading] = useState(false);
@@ -1903,6 +1920,39 @@ export default function ConnectionDetailPage() {
         setTableGroupSearchQuery('');
     };
 
+    const openTableDetailsModal = async (table: TablePrivilegeInfo) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+        setTableDetailsLoading(true);
+        try {
+            const params = new URLSearchParams({ schema_name: table.schema_name, table_name: table.table_name });
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/tables/details?${params.toString()}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data?.detail || 'Не удалось получить детали таблицы');
+            }
+            setTableDetailsModal(data as TableDetailsInfo);
+        } catch (err) {
+            console.error('Ошибка загрузки деталей таблицы:', err);
+            setError(err instanceof Error ? err.message : 'Не удалось получить детали таблицы');
+        } finally {
+            setTableDetailsLoading(false);
+        }
+    };
+
+    const closeTableDetailsModal = () => {
+        if (tableDetailsLoading) return;
+        setTableDetailsModal(null);
+    };
+
     const toggleTableGroupPrivilege = (
         groupName: string,
         field: 'select' | 'insert' | 'update' | 'delete' | 'truncate',
@@ -3251,7 +3301,13 @@ export default function ConnectionDetailPage() {
                                                     <div key={`${table.schema_name}.${table.table_name}`} className={clsx(styles.userItem)}>
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
-                                                                <h3 className={clsx(styles.userItemTitle)} title={`${table.schema_name}.${table.table_name}`}>{table.schema_name}.{table.table_name}</h3>
+                                                                <h3
+                                                                    className={clsx(styles.userItemTitle, styles.clickableTableTitle)}
+                                                                    title={`${table.schema_name}.${table.table_name}`}
+                                                                    onClick={() => void openTableDetailsModal(table)}
+                                                                >
+                                                                    {table.schema_name}.{table.table_name}
+                                                                </h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.usersMetaGrid)}>
@@ -3267,6 +3323,9 @@ export default function ConnectionDetailPage() {
                                                                     </div>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
+                                                                    <button className={clsx(styles.userActionButton)} onClick={() => void openTableDetailsModal(table)} title={`Открыть детали ${table.table_name}`}>
+                                                                        <FontAwesomeIcon icon={faEye}/>
+                                                                    </button>
                                                                     <button className={clsx(styles.userActionButton)} onClick={() => openTableEditModal(table)} title={`Изменить права для ${table.table_name}`}>
                                                                         <FontAwesomeIcon icon={faPencilAlt}/>
                                                                     </button>
@@ -5233,6 +5292,47 @@ export default function ConnectionDetailPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {tableDetailsModal !== null && (
+                <div className={clsx(groupModalStyles.modal__overlay)} onClick={closeTableDetailsModal}>
+                    <div className={clsx(groupModalStyles.modal__content, groupModalStyles.modal__content_wide)} onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className={clsx(groupModalStyles.modal__closeButton)}
+                            onClick={closeTableDetailsModal}
+                            disabled={tableDetailsLoading}
+                            aria-label={t('tables.details.close')}
+                        >
+                            <FontAwesomeIcon icon={faTimes}/>
+                        </button>
+                        <div className={clsx(groupModalStyles.modal__header)}>
+                            <h2 className={clsx(groupModalStyles.modal__title)}>{t('tables.details.title')}</h2>
+                            <p className={clsx(groupModalStyles.modal__subtitle)}>{tableDetailsModal.schema_name}.{tableDetailsModal.table_name}</p>
+                        </div>
+                        <div className={clsx(groupModalStyles.modal__form)}>
+                            <div className={clsx(styles.tableDetailsMeta)}>
+                                <span>{t('tables.owner')} {tableDetailsModal.owner}</span>
+                                <span>{t('groups.description_label')} {tableDetailsModal.description || '—'}</span>
+                            </div>
+                            <div className={clsx(styles.tableDetailsGrid)}>
+                                <div className={clsx(styles.tableDetailsHead)}>
+                                    <span>{t('tables.details.column')}</span>
+                                    <span>{t('tables.details.type')}</span>
+                                    <span>{t('tables.details.nullable')}</span>
+                                    <span>{t('tables.details.default')}</span>
+                                </div>
+                                {tableDetailsModal.columns.map((column) => (
+                                    <div key={column.column_name} className={clsx(styles.tableDetailsRow)}>
+                                        <span>{column.column_name}</span>
+                                        <span>{column.data_type}</span>
+                                        <span>{column.is_nullable ? t('yes') : t('no')}</span>
+                                        <span>{column.column_default || '—'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

@@ -132,6 +132,24 @@ class TablePrivilegeGroupInfo(BaseModel):
     group_privileges: list[TableGroupPrivilege]
 
 
+class TableColumnInfo(BaseModel):
+    column_name: str
+    data_type: str
+    is_nullable: bool
+    column_default: str | None = None
+    character_maximum_length: int | None = None
+    numeric_precision: int | None = None
+    numeric_scale: int | None = None
+
+
+class TableDetailsResponse(BaseModel):
+    schema_name: str
+    table_name: str
+    owner: str
+    description: str | None = None
+    columns: list[TableColumnInfo]
+
+
 class PaginatedTablePrivilegesGroupsResponse(BaseModel):
     connection_id: int
     connection_name: str

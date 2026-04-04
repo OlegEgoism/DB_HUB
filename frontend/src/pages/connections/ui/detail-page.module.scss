@@ -1177,6 +1177,15 @@
   min-width: 0;
 }
 
+.clickableTableTitle {
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+}
+
 .userItemContent {
   padding: 20px 24px;
 }
@@ -1861,6 +1870,41 @@
 
 .activityChartBody {
   padding: 20px 24px 24px;
+}
+
+.tableDetailsMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: var(--color-text-main);
+}
+
+.tableDetailsGrid {
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tableDetailsHead,
+.tableDetailsRow {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.7fr 1.4fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.tableDetailsHead {
+  background: #f3f4f6;
+  font-weight: 700;
+  color: #4b5563;
+}
+
+.tableDetailsRow {
+  border-top: 1px solid var(--border-glass);
+  color: var(--color-text-main);
 }
 
 .activityChartMeta {
