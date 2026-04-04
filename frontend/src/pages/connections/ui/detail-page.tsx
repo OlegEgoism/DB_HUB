@@ -1305,6 +1305,7 @@ export default function ConnectionDetailPage() {
                     const currentCount = prev[groupUsersModal.oid] ?? groupUsersModal.userCount;
                     return {...prev, [groupUsersModal.oid]: currentCount + 1};
                 });
+                setGroupsReloadTrigger((prev) => prev + 1);
             }
             setSelectedUserOid('');
         } catch (err) {
@@ -1347,6 +1348,7 @@ export default function ConnectionDetailPage() {
                     const currentCount = prev[groupUsersModal.oid] ?? groupUsersModal.userCount;
                     return {...prev, [groupUsersModal.oid]: Math.max(0, currentCount - 1)};
                 });
+                setGroupsReloadTrigger((prev) => prev + 1);
             }
         } catch (err) {
             console.error('Ошибка при удалении пользователя из группы:', err);
