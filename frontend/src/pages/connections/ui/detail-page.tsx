@@ -4762,12 +4762,12 @@ export default function ConnectionDetailPage() {
                                 {t('users.delete.warning')}
                             </p>
                             <div className={clsx(styles.modalTransferBlock)}>
-                                <label className={clsx(styles.modalTransferLabel)} htmlFor="delete-user-transfer-owner">
+                                <label className={clsx(groupModalStyles.modal__label)} htmlFor="delete-user-transfer-owner">
                                     Передать владение объектами пользователю
                                 </label>
                                 <select
                                     id="delete-user-transfer-owner"
-                                    className={clsx(styles.modalTransferSelect)}
+                                    className={clsx(groupModalStyles.modal__input)}
                                     value={userDeleteTransferTo}
                                     onChange={(event) => setUserDeleteTransferTo(event.target.value)}
                                     disabled={deletingUserOid !== null || userDeleteTransferLoading}

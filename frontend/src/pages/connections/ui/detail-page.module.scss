@@ -686,31 +686,6 @@
 
 .modalTransferBlock {
   margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.modalTransferLabel {
-  font-size: 14px;
-  color: var(--color-text-main);
-  font-weight: 600;
-}
-
-.modalTransferSelect {
-  border: 1px solid var(--border-glass);
-  border-radius: 8px;
-  background: white;
-  color: var(--color-text-main);
-  padding: 0 12px;
-  font-size: 14px;
-  width: 100%;
-
-  &:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba($clr-indigo-500, 0.12);
-  }
 }
 
 .modalFooter {
