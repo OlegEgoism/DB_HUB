@@ -1033,6 +1033,7 @@
 
 .userItemHeaderRight {
   display: flex;
+  align-items: center;
   gap: 16px;
   min-width: 0;
 
@@ -1040,6 +1041,30 @@
     justify-content: space-between;
     flex-wrap: wrap;
   }
+}
+
+.groupMetaTable {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.groupMetaRow {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.groupMetaLabel {
+  width: 120px;
+  text-align: right;
+}
+
+.groupMetaValue {
+  min-width: 0;
 }
 
 .userItemInfo {
@@ -1177,7 +1202,7 @@
 }
 
 .groupDescriptionValue {
-  max-width: min(320px, 40vw);
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
