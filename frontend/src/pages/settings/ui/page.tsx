@@ -184,11 +184,11 @@ export default function SettingsPage() {
               ) : (
                 <div className={clsx(styles.settings__sessionsTable)}>
                   <div className={clsx(styles.settings__sessionHeadRow)}>
-                    <span>{t('settings.sessions.username')}</span>
-                    <span>{t('settings.sessions.role')}</span>
-                    <span>{t('settings.sessions.superuser')}</span>
+                    <span>{t('users.login')}</span>
+                    <span>{t('users.role')}</span>
+                    <span>{t('users.superuser')}</span>
                     <span>{t('settings.sessions.count')}</span>
-                    <span>{t('settings.sessions.actions')}</span>
+                    <span>{t('users.actions')}</span>
                   </div>
                   {activeSessions.map((session) => (
                     <div key={session.user_id} className={clsx(styles.settings__sessionRow)}>
