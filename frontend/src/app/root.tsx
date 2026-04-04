@@ -8,11 +8,13 @@ import {
     Scripts,
     ScrollRestoration,
 } from "react-router";
+import { useEffect } from "react";
 import type { LinksFunction, MetaFunction } from "react-router";
 
 import '@shared/styles/normalize.css';
 import { LanguageProvider } from '@shared/i18n';
 import { DbConnectionAlert } from '@shared/ui';
+import { initDbConnectionMonitoring } from '@shared/api/http';
 
 export const meta: MetaFunction = () => [
     { title: 'DB HUB' },
@@ -41,6 +43,10 @@ export function Layout({children}: { children: React.ReactNode }) {
 };
 
 export default function App() {
+    useEffect(() => {
+        initDbConnectionMonitoring();
+    }, []);
+
     return (
         <LanguageProvider>
             <DbConnectionAlert />

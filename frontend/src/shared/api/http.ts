@@ -5,6 +5,7 @@ const DEFAULT_API_BASE_URL =
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 export const DB_CONNECTION_STATUS_EVENT = 'db-connection-status-change';
+let dbMonitoringInitialized = false;
 
 function emitDbConnectionStatus(hasIssue: boolean, message?: string) {
   if (typeof window === 'undefined') {
@@ -27,12 +28,60 @@ function isDbConnectionProblem(status: number, message: string): boolean {
 
   return (
     normalized.includes('database') ||
-    normalized.includes('db') ||
     normalized.includes('подключ') ||
     normalized.includes('connection') ||
     normalized.includes('timeout') ||
     normalized.includes('refused')
   );
+}
+
+function isDbConnectionsApiRequest(input: RequestInfo | URL): boolean {
+  const rawUrl =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+  return rawUrl.includes('/api/v1/db_connections');
+}
+
+export function initDbConnectionMonitoring() {
+  if (typeof window === 'undefined' || dbMonitoringInitialized) {
+    return;
+  }
+
+  const originalFetch = window.fetch.bind(window);
+
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    let response: Response;
+
+    try {
+      response = await originalFetch(input, init);
+    } catch (error) {
+      if (isDbConnectionsApiRequest(input)) {
+        emitDbConnectionStatus(true);
+      }
+      throw error;
+    }
+
+    if (isDbConnectionsApiRequest(input)) {
+      if (!response.ok) {
+        const errorData = await response.clone().json().catch(() => null);
+        const errorMessage = errorData?.detail || `HTTP error! status: ${response.status}`;
+
+        if (isDbConnectionProblem(response.status, errorMessage)) {
+          emitDbConnectionStatus(true, errorMessage);
+        }
+      } else {
+        emitDbConnectionStatus(false);
+      }
+    }
+
+    return response;
+  };
+
+  dbMonitoringInitialized = true;
 }
 
 export class ApiError extends Error {
