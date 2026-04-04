@@ -11,7 +11,6 @@ import {
 import type { LinksFunction, MetaFunction } from "react-router";
 
 import '@shared/styles/normalize.css';
-import '@app/styles/App.scss';
 import { LanguageProvider } from '@shared/i18n';
 
 export const meta: MetaFunction = () => [
