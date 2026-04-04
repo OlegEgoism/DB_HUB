@@ -1,9 +1,9 @@
 # backend/services/app_users_services.py
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import settings
@@ -138,7 +138,7 @@ class UserService:
 
     async def update_last_login(self, user_id: int) -> None:
         """Обновление времени последнего входа"""
-        await self.db.execute(update(User).where(User.id == user_id).values(last_login=datetime.now(UTC)))
+        await self.db.execute(update(User).where(User.id == user_id).values(last_login=datetime.utcnow()))
 
     async def login_user(
         self,
@@ -158,7 +158,7 @@ class UserService:
             data={"sub": user.username, "user_id": user.id, "role": user.role, "jti": token_jti},
             expires_delta=expires_delta,
         )
-        expires_at = datetime.now(UTC) + expires_delta
+        expires_at = datetime.utcnow() + expires_delta
         self.db.add(
             UserSession(
                 user_id=user.id,
@@ -185,7 +185,7 @@ class UserService:
         }
 
     async def is_session_active(self, token_jti: str) -> bool:
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
         result = await self.db.execute(
             select(UserSession).where(
                 UserSession.token_jti == token_jti,
@@ -207,7 +207,7 @@ class UserService:
         if not session:
             return False
         session.is_active = False
-        session.revoked_at = datetime.now(UTC)
+        session.revoked_at = datetime.utcnow()
         session.revoked_by_user_id = revoked_by_user_id
         await self.db.flush()
         return True
@@ -220,39 +220,84 @@ class UserService:
         if not session:
             return False
         session.is_active = False
-        session.revoked_at = datetime.now(UTC)
+        session.revoked_at = datetime.utcnow()
         session.revoked_by_user_id = revoked_by_user_id
         await self.db.flush()
         return True
 
-    async def list_active_sessions(self) -> list[dict]:
-        now = datetime.now(UTC)
+    async def revoke_user_sessions(self, user_id: int, revoked_by_user_id: int) -> bool:
+        now = datetime.utcnow()
         result = await self.db.execute(
-            select(UserSession, User)
-            .join(User, User.id == UserSession.user_id)
-            .where(
+            select(UserSession).where(
+                UserSession.user_id == user_id,
                 UserSession.is_active.is_(True),
                 UserSession.revoked_at.is_(None),
-                UserSession.expires_at > now,
             )
-            .order_by(UserSession.last_seen_at.desc())
+        )
+        sessions = result.scalars().all()
+        if not sessions:
+            return False
+        for session in sessions:
+            session.is_active = False
+            session.revoked_at = now
+            session.revoked_by_user_id = revoked_by_user_id
+        await self.db.flush()
+        return True
+
+    async def list_active_sessions(self) -> list[dict]:
+        now = datetime.utcnow()
+        result = await self.db.execute(
+            select(
+                User.id,
+                User.username,
+                User.fio,
+                User.role,
+                User.is_active,
+                User.is_superuser,
+                User.last_login,
+                func.max(UserSession.last_seen_at),
+                func.max(UserSession.created_at),
+                func.count(UserSession.id),
+            )
+            .outerjoin(
+                UserSession,
+                (UserSession.user_id == User.id)
+                & UserSession.is_active.is_(True)
+                & UserSession.revoked_at.is_(None)
+                & (UserSession.expires_at > now),
+            )
+            .where(User.last_login.is_not(None))
+            .group_by(User.id, User.username, User.fio, User.role, User.is_active, User.is_superuser, User.last_login)
+            .order_by(func.coalesce(func.max(UserSession.last_seen_at), User.last_login).desc())
         )
         rows = result.all()
         return [
             {
-                "session_id": session.id,
-                "user_id": user.id,
-                "username": user.username,
-                "fio": user.fio,
-                "role": user.role,
-                "is_active": user.is_active,
-                "is_superuser": user.is_superuser,
-                "created_at": session.created_at,
-                "last_seen_at": session.last_seen_at,
-                "ip_address": session.ip_address,
-                "user_agent": session.user_agent,
+                "session_id": None,
+                "user_id": user_id,
+                "username": username,
+                "fio": fio,
+                "role": role,
+                "is_active": is_active,
+                "is_superuser": is_superuser,
+                "created_at": created_at,
+                "last_seen_at": last_seen_at or last_login,
+                "ip_address": None,
+                "user_agent": None,
+                "active_sessions": active_sessions,
             }
-            for session, user in rows
+            for (
+                user_id,
+                username,
+                fio,
+                role,
+                is_active,
+                is_superuser,
+                last_login,
+                last_seen_at,
+                created_at,
+                active_sessions,
+            ) in rows
         ]
 
     async def get_current_user_from_token(self, token: str) -> User | None:

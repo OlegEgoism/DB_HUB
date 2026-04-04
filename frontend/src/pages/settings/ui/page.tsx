@@ -9,7 +9,7 @@ import { useI18n, type Language } from '@shared/i18n';
 import { apiRequest } from '@shared/api/http';
 
 type ActiveSession = {
-  session_id: number;
+  session_id: number | null;
   user_id: number;
   username: string;
   fio: string | null;
@@ -20,6 +20,7 @@ type ActiveSession = {
   last_seen_at: string;
   ip_address: string | null;
   user_agent: string | null;
+  active_sessions: number;
 };
 
 export default function SettingsPage() {
@@ -110,14 +111,16 @@ export default function SettingsPage() {
     }
   };
 
-  const handleRevokeSession = async (sessionId: number) => {
-    setRevokingSessionId(sessionId);
+  const handleRevokeSession = async (userId: number) => {
+    setRevokingSessionId(userId);
     try {
-      await apiRequest('/api/v1/app_auth/sessions/' + sessionId + '/revoke', {
+      await apiRequest('/api/v1/app_auth/sessions/users/' + userId + '/revoke', {
         method: 'POST',
         withAuth: true,
       });
-      setActiveSessions((prev) => prev.filter((session) => session.session_id !== sessionId));
+      setActiveSessions((prev) => prev.map((session) => (
+        session.user_id === userId ? { ...session, active_sessions: 0 } : session
+      )));
     } finally {
       setRevokingSessionId(null);
     }
@@ -181,19 +184,20 @@ export default function SettingsPage() {
               ) : (
                 <div className={clsx(styles.settings__sessionsList)}>
                   {activeSessions.map((session) => (
-                    <div key={session.session_id} className={clsx(styles.settings__sessionItem)}>
+                    <div key={session.user_id} className={clsx(styles.settings__sessionItem)}>
                       <div className={clsx(styles.settings__sessionMain)}>
                         <strong>{session.username}</strong>
                         <span>{session.role}</span>
                         <span>{session.is_superuser ? t('yes') : t('no')}</span>
+                        <span>{t('settings.sessions.count')}: {session.active_sessions}</span>
                       </div>
                       <button
                         type="button"
                         className={clsx(styles.settings__sessionLogoutButton)}
-                        onClick={() => handleRevokeSession(session.session_id)}
-                        disabled={revokingSessionId === session.session_id}
+                        onClick={() => handleRevokeSession(session.user_id)}
+                        disabled={revokingSessionId === session.user_id || session.active_sessions === 0}
                       >
-                        {revokingSessionId === session.session_id ? t('settings.saving') : t('header.logout')}
+                        {revokingSessionId === session.user_id ? t('settings.saving') : t('header.logout')}
                       </button>
                     </div>
                   ))}

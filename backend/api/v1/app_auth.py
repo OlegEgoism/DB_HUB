@@ -164,18 +164,18 @@ async def get_active_sessions(
     return await user_service.list_active_sessions()
 
 
-@router.post("/sessions/{session_id}/revoke")
-async def revoke_active_session(
-    session_id: int,
+@router.post("/sessions/users/{user_id}/revoke")
+async def revoke_user_sessions(
+    user_id: int,
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     _assert_can_manage_sessions(current_user)
     user_service = UserService(db)
-    success = await user_service.revoke_session_by_id(session_id, revoked_by_user_id=current_user.id)
+    success = await user_service.revoke_user_sessions(user_id, revoked_by_user_id=current_user.id)
     if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Сессия не найдена")
-    return {"message": "Сессия завершена"}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Активные сессии пользователя не найдены")
+    return {"message": "Сессии пользователя завершены"}
 
 
 # @router.get("/me", response_model=UserProfile)
