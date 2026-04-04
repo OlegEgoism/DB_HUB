@@ -195,13 +195,19 @@ class DBGroupService:
             group_name = row["rolname"]
             quoted_name = _quote_ident(group_name)
             try:
-                if transfer_owner_to:
-                    if transfer_owner_to == group_name:
+                effective_transfer_owner = transfer_owner_to
+                if not effective_transfer_owner and connection.username and connection.username != group_name:
+                    default_target_exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)", connection.username)
+                    if default_target_exists:
+                        effective_transfer_owner = connection.username
+
+                if effective_transfer_owner:
+                    if effective_transfer_owner == group_name:
                         raise ValueError("Нельзя передать владение удаляемой группе самой себе")
-                    target_exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)", transfer_owner_to)
+                    target_exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM pg_roles WHERE rolname = $1)", effective_transfer_owner)
                     if not target_exists:
-                        raise ValueError(f"Роль-получатель '{transfer_owner_to}' не найдена")
-                    quoted_target_name = _quote_ident(transfer_owner_to)
+                        raise ValueError(f"Роль-получатель '{effective_transfer_owner}' не найдена")
+                    quoted_target_name = _quote_ident(effective_transfer_owner)
                     await conn.execute(f"REASSIGN OWNED BY {quoted_name} TO {quoted_target_name}")
                     await conn.execute(f"DROP OWNED BY {quoted_name}")
                 else:
