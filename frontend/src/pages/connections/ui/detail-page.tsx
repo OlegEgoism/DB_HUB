@@ -364,7 +364,23 @@ export default function ConnectionDetailPage() {
         usersSearchTerm || null,
         usersReloadTrigger
     );
-    const resolvedUsersTotal = totalUsers;
+    const resolvedUsersTotal = useMemo(() => {
+        if (totalUsers > 0) {
+            return totalUsers;
+        }
+
+        if (totalUsersPages > 0) {
+            const safePageSize = Math.max(usersPageSize, 1);
+            const safePages = Math.max(totalUsersPages, 1);
+            const currentOffset = (Math.max(usersPage, 1) - 1) * safePageSize;
+            const fallbackByCurrentPage = currentOffset + users.length;
+            const fallbackByPages = safePages * safePageSize;
+
+            return Math.max(fallbackByCurrentPage, fallbackByPages);
+        }
+
+        return users.length;
+    }, [totalUsers, totalUsersPages, usersPageSize, usersPage, users.length]);
 
 
     const {
