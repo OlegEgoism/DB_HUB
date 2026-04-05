@@ -28,6 +28,7 @@ export default function SettingsPage() {
   const { checkAuth, getUser } = useSession();
   const isInitializedRef = useRef(false);
   const [visibility, setVisibility] = useState<ConnectionTabsVisibility>(DEFAULT_CONNECTION_TABS_VISIBILITY);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('ru');
   const [isSaving, setIsSaving] = useState(false);
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
@@ -64,6 +65,7 @@ export default function SettingsPage() {
     const loadSettings = async () => {
       const nextVisibility = await connectionTabsSettingsModel.fetchVisibility();
       setVisibility(nextVisibility);
+      setSelectedLanguage(language);
       if (canManageSessions) {
         setSessionsLoading(true);
         try {
@@ -77,6 +79,10 @@ export default function SettingsPage() {
 
     void loadSettings();
   }, [canManageSessions, checkAuth, language, navigate]);
+
+  useEffect(() => {
+    setSelectedLanguage(language);
+  }, [language]);
 
   const handleToggle = (tabKey: ConnectionTabKey) => {
     setVisibility((prev) => {
@@ -93,10 +99,15 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
+    const shouldReload = selectedLanguage !== language;
 
     try {
       const savedVisibility = await connectionTabsSettingsModel.saveVisibility(visibility);
       setVisibility(savedVisibility);
+      if (shouldReload) {
+        setLanguage(selectedLanguage);
+        window.location.reload();
+      }
     } finally {
       setIsSaving(false);
     }
@@ -145,8 +156,8 @@ export default function SettingsPage() {
             </label>
             <select
               id="language"
-              value={language}
-              onChange={(event) => setLanguage(event.target.value as Language)}
+              value={selectedLanguage}
+              onChange={(event) => setSelectedLanguage(event.target.value as Language)}
               className={clsx(styles.settings__select)}
             >
               <option value="ru">{t('lang.ru')}</option>
