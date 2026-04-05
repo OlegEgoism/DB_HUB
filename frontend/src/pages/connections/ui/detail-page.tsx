@@ -364,6 +364,7 @@ export default function ConnectionDetailPage() {
         usersSearchTerm || null,
         usersReloadTrigger
     );
+    const resolvedUsersTotal = totalUsers > 0 ? totalUsers : users.length;
 
 
     const {
@@ -381,6 +382,7 @@ export default function ConnectionDetailPage() {
         groupsSearchTerm || null,
         groupsReloadTrigger
     );
+    const resolvedGroupsTotal = totalGroups > 0 ? totalGroups : groups.length;
 
 
     const {
@@ -398,6 +400,7 @@ export default function ConnectionDetailPage() {
         schemasSearchTerm || null,
         schemasReloadTrigger
     );
+    const resolvedSchemasTotal = totalSchemas > 0 ? totalSchemas : schemas.length;
 
     const {
         tables,
@@ -415,6 +418,7 @@ export default function ConnectionDetailPage() {
         tablesFilterType,
         tablesReloadTrigger
     );
+    const resolvedTablesTotal = totalTables > 0 ? totalTables : tables.length;
 
 
     const {
@@ -2862,7 +2866,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.usersSearchTitle)}>
                                                 {t('tabs.users')}
                                                 <span className={clsx(styles.usersCountBadge)}>
-                                                    {totalUsers}
+                                                    {resolvedUsersTotal}
                                                 </span>
                                             </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
@@ -3058,7 +3062,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.usersSearchTitle)}>
                                                 {t('tabs.groups')}
                                                 <span className={clsx(styles.usersCountBadge)}>
-                                                    {totalGroups}
+                                                    {resolvedGroupsTotal}
                                                 </span>
                                             </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
@@ -3233,7 +3237,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.usersSearchTitle)}>
                                                 {t('tabs.schemas')}
                                                 <span className={clsx(styles.usersCountBadge)}>
-                                                    {totalSchemas}
+                                                    {resolvedSchemasTotal}
                                                 </span>
                                             </div>
                                             <div className={clsx(styles.usersSearchWrapper)}>
@@ -3363,7 +3367,7 @@ export default function ConnectionDetailPage() {
                                             <div className={clsx(styles.usersSearchTitle)}>
                                                 {t('tabs.tables')}
                                                 <span className={clsx(styles.usersCountBadge)}>
-                                                    {totalTables}
+                                                    {resolvedTablesTotal}
                                                 </span>
                                             </div>
                                             <select value={tablesFilterType} onChange={handleTablesFilterTypeChange} className={clsx(styles.usersFilterSelect)}>
