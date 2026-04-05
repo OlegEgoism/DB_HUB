@@ -1973,6 +1973,10 @@ export default function ConnectionDetailPage() {
         }
 
         const tableKey = `${table.schema_name}.${table.table_name}`;
+        const formatVacuumError = (reason: string) => {
+            return `${full ? 'Ошибка при выполнении VACUUM FULL' : 'Ошибка при выполнении VACUUM'}: ${reason}`;
+        };
+
         setVacuumingTableKey(tableKey);
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/tables/vacuum`, {
@@ -1990,16 +1994,14 @@ export default function ConnectionDetailPage() {
 
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                if (response.status === 403) {
-                    setVacuumResultModal({
-                        table: tableKey,
-                        full,
-                        isError: true,
-                        message: parseApiErrorDetail((data as { detail?: unknown }).detail ?? data),
-                    });
-                    return;
-                }
-                throw new Error(parseApiErrorDetail((data as { detail?: unknown }).detail ?? data));
+                const reason = parseApiErrorDetail((data as { detail?: unknown }).detail ?? data);
+                setVacuumResultModal({
+                    table: tableKey,
+                    full,
+                    isError: true,
+                    message: formatVacuumError(reason),
+                });
+                return;
             }
 
             setVacuumResultModal({
@@ -2012,7 +2014,12 @@ export default function ConnectionDetailPage() {
             refreshTables();
         } catch (err) {
             console.error('Ошибка VACUUM таблицы:', err);
-            setError(err instanceof Error ? err.message : t('tables.vacuum_error'));
+            setVacuumResultModal({
+                table: tableKey,
+                full,
+                isError: true,
+                message: formatVacuumError(err instanceof Error ? err.message : t('tables.vacuum_error')),
+            });
         } finally {
             setVacuumingTableKey(null);
         }
@@ -5501,8 +5508,16 @@ export default function ConnectionDetailPage() {
                             </p>
                         </div>
                         <div className={clsx(styles.modalFooter)}>
-                            <button className={clsx(styles.modalCancelButton)} onClick={() => setVacuumResultModal(null)}>
-                                {t('tables.vacuum_close')}
+                            <button
+                                className={clsx(styles.modalCancelButton)}
+                                onClick={() => {
+                                    setVacuumResultModal(null);
+                                    if (activeTab !== 'tables') {
+                                        handleTabChange('tables');
+                                    }
+                                }}
+                            >
+                                {vacuumResultModal.isError ? t('tables.back_to_list') : t('tables.vacuum_close')}
                             </button>
                         </div>
                     </div>
