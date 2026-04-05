@@ -161,18 +161,6 @@ const truncateText = (value: string | null | undefined, maxLength: number): stri
     return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 };
 
-const resolveListTotal = (total: number, pages: number, page: number, size: number, currentItems: number): number => {
-    if (total > 0) return total;
-    if (currentItems > 0) {
-        const estimatedByPage = (Math.max(page, 1) - 1) * Math.max(size, 1) + currentItems;
-        return Math.max(currentItems, estimatedByPage);
-    }
-    if (pages > 1) {
-        return pages * Math.max(size, 1);
-    }
-    return 0;
-};
-
 export default function ConnectionDetailPage() {
     const { t } = useI18n();
     const {id} = useParams<{ id: string }>();
@@ -376,7 +364,7 @@ export default function ConnectionDetailPage() {
         usersSearchTerm || null,
         usersReloadTrigger
     );
-    const resolvedUsersTotal = resolveListTotal(totalUsers, totalUsersPages, usersPage, usersPageSize, users.length);
+    const resolvedUsersTotal = totalUsers;
 
 
     const {
@@ -394,7 +382,7 @@ export default function ConnectionDetailPage() {
         groupsSearchTerm || null,
         groupsReloadTrigger
     );
-    const resolvedGroupsTotal = resolveListTotal(totalGroups, totalGroupsPages, groupsPage, groupsPageSize, groups.length);
+    const resolvedGroupsTotal = totalGroups;
 
 
     const {
@@ -412,7 +400,7 @@ export default function ConnectionDetailPage() {
         schemasSearchTerm || null,
         schemasReloadTrigger
     );
-    const resolvedSchemasTotal = resolveListTotal(totalSchemas, totalSchemasPages, schemasPage, schemasPageSize, schemas.length);
+    const resolvedSchemasTotal = totalSchemas;
 
     const {
         tables,
@@ -430,7 +418,7 @@ export default function ConnectionDetailPage() {
         tablesFilterType,
         tablesReloadTrigger
     );
-    const resolvedTablesTotal = resolveListTotal(totalTables, totalTablesPages, tablesPage, tablesPageSize, tables.length);
+    const resolvedTablesTotal = totalTables;
 
 
     const {
@@ -489,15 +477,9 @@ export default function ConnectionDetailPage() {
         viewsReloadTrigger
     );
 
-    const resolvedViewsTotal = resolveListTotal(totalViews, totalViewsPages, viewsPage, viewsPageSize, views.length);
+    const resolvedViewsTotal = totalViews;
     const resolvedViewsPages = totalViewsPages > 0 ? totalViewsPages : 1;
-    const resolvedMaterializedViewsTotal = resolveListTotal(
-        totalMaterializedViews,
-        totalMaterializedViewsPages,
-        materializedViewsPage,
-        materializedViewsPageSize,
-        materializedViews.length,
-    );
+    const resolvedMaterializedViewsTotal = totalMaterializedViews;
     const resolvedMaterializedViewsPages = totalMaterializedViewsPages > 0 ? totalMaterializedViewsPages : 1;
 
     const {
@@ -516,7 +498,7 @@ export default function ConnectionDetailPage() {
         indexesReloadTrigger
     );
 
-    const resolvedIndexesTotal = resolveListTotal(totalIndexes, totalIndexesPages, indexesPage, indexesPageSize, indexes.length);
+    const resolvedIndexesTotal = totalIndexes;
     const resolvedIndexesPages = totalIndexesPages > 0 ? totalIndexesPages : 1;
 
 
@@ -536,7 +518,7 @@ export default function ConnectionDetailPage() {
         functionsReloadTrigger
     );
 
-    const resolvedFunctionsTotal = resolveListTotal(totalFunctions, totalFunctionsPages, functionsPage, functionsPageSize, functions.length);
+    const resolvedFunctionsTotal = totalFunctions;
     const resolvedFunctionsPages = totalFunctionsPages > 0 ? totalFunctionsPages : 1;
 
 
@@ -556,7 +538,7 @@ export default function ConnectionDetailPage() {
         proceduresReloadTrigger
     );
 
-    const resolvedProceduresTotal = resolveListTotal(totalProcedures, totalProceduresPages, proceduresPage, proceduresPageSize, procedures.length);
+    const resolvedProceduresTotal = totalProcedures;
     const resolvedProceduresPages = totalProceduresPages > 0 ? totalProceduresPages : 1;
 
 
