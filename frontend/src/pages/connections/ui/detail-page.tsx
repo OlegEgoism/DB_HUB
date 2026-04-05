@@ -68,6 +68,7 @@ const DEFAULT_API_BASE_URL =
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
 const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring'];
+const USER_DESCRIPTION_PREVIEW_LIMIT = 72;
 
 const isTabType = (value: string | null): value is TabType => value !== null && TAB_TYPE_VALUES.includes(value as TabType);
 
@@ -153,6 +154,11 @@ const formatSqlForDisplay = (query: string | null | undefined): string => {
         .trim();
 
     return normalized;
+};
+
+const truncateText = (value: string | null | undefined, maxLength: number): string => {
+    if (!value) return '—';
+    return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 };
 
 export default function ConnectionDetailPage() {
@@ -2867,7 +2873,7 @@ export default function ConnectionDetailPage() {
                                                                             className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)}
                                                                             title={user.description || '—'}
                                                                         >
-                                                                            {user.description || '—'}
+                                                                            {truncateText(user.description, USER_DESCRIPTION_PREVIEW_LIMIT)}
                                                                         </span>
                                                                     </div>
                                                                     <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
