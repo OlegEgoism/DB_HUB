@@ -68,7 +68,7 @@ const DEFAULT_API_BASE_URL =
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
 const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring'];
-const USER_DESCRIPTION_PREVIEW_LIMIT = 72;
+const USER_DESCRIPTION_PREVIEW_LIMIT = 50;
 
 const isTabType = (value: string | null): value is TabType => value !== null && TAB_TYPE_VALUES.includes(value as TabType);
 
@@ -2882,7 +2882,7 @@ export default function ConnectionDetailPage() {
                                                                             className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaEmailValue)}
                                                                             title={user.email || '—'}
                                                                         >
-                                                                            {user.email || '—'}
+                                                                            {truncateText(user.email, USER_DESCRIPTION_PREVIEW_LIMIT)}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -3070,7 +3070,7 @@ export default function ConnectionDetailPage() {
                                                                             className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)}
                                                                             title={group.description?.trim() || t('groups.description_empty')}
                                                                         >
-                                                                            {group.description?.trim() || t('groups.description_empty')}
+                                                                            {truncateText(group.description?.trim() || t('groups.description_empty'), USER_DESCRIPTION_PREVIEW_LIMIT)}
                                                                         </span>
                                                                     </div>
                                                                 </div>
