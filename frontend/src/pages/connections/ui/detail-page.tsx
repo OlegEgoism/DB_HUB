@@ -248,7 +248,7 @@ export default function ConnectionDetailPage() {
     const [tableGroupSearchQuery, setTableGroupSearchQuery] = useState('');
     const [tableModalLoading, setTableModalLoading] = useState(false);
     const [vacuumingTableKey, setVacuumingTableKey] = useState<string | null>(null);
-    const [vacuumResultModal, setVacuumResultModal] = useState<{ table: string; full: boolean; message: string } | null>(null);
+    const [vacuumResultModal, setVacuumResultModal] = useState<{ table: string; full: boolean; message: string; isError?: boolean } | null>(null);
 
     const [viewsPage, setViewsPage] = useState(1);
     const [viewsPageSize, setViewsPageSize] = useState(8);
@@ -1990,6 +1990,15 @@ export default function ConnectionDetailPage() {
 
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
+                if (response.status === 403) {
+                    setVacuumResultModal({
+                        table: tableKey,
+                        full,
+                        isError: true,
+                        message: parseApiErrorDetail((data as { detail?: unknown }).detail ?? data),
+                    });
+                    return;
+                }
                 throw new Error(parseApiErrorDetail((data as { detail?: unknown }).detail ?? data));
             }
 
@@ -5478,9 +5487,11 @@ export default function ConnectionDetailPage() {
                 <div className={clsx(styles.modalOverlay)} onClick={() => setVacuumResultModal(null)}>
                     <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
                         <div className={clsx(styles.modalHeader)}>
-                            <FontAwesomeIcon icon={faInfoCircle} className={clsx(styles.modalIcon)} />
+                            <FontAwesomeIcon icon={vacuumResultModal.isError ? faExclamationCircle : faInfoCircle} className={clsx(styles.modalIcon)} />
                             <h2 className={clsx(styles.modalTitle)}>
-                                {vacuumResultModal.full ? t('tables.vacuum_full_done') : t('tables.vacuum_done')}
+                                {vacuumResultModal.isError
+                                    ? t('tables.vacuum_forbidden_title')
+                                    : (vacuumResultModal.full ? t('tables.vacuum_full_done') : t('tables.vacuum_done'))}
                             </h2>
                         </div>
                         <div className={clsx(styles.modalBody)}>
