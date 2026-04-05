@@ -248,6 +248,7 @@ export default function ConnectionDetailPage() {
     const [tableGroupSearchQuery, setTableGroupSearchQuery] = useState('');
     const [tableModalLoading, setTableModalLoading] = useState(false);
     const [vacuumingTableKey, setVacuumingTableKey] = useState<string | null>(null);
+    const [vacuumResultModal, setVacuumResultModal] = useState<{ table: string; full: boolean; message: string } | null>(null);
 
     const [viewsPage, setViewsPage] = useState(1);
     const [viewsPageSize, setViewsPageSize] = useState(8);
@@ -1992,6 +1993,13 @@ export default function ConnectionDetailPage() {
                 throw new Error(parseApiErrorDetail((data as { detail?: unknown }).detail ?? data));
             }
 
+            setVacuumResultModal({
+                table: tableKey,
+                full,
+                message: typeof (data as { message?: unknown }).message === 'string'
+                    ? (data as { message: string }).message
+                    : (full ? t('tables.vacuum_full_done') : t('tables.vacuum_done')),
+            });
             refreshTables();
         } catch (err) {
             console.error('Ошибка VACUUM таблицы:', err);
@@ -5462,6 +5470,29 @@ export default function ConnectionDetailPage() {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {vacuumResultModal !== null && (
+                <div className={clsx(styles.modalOverlay)} onClick={() => setVacuumResultModal(null)}>
+                    <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
+                        <div className={clsx(styles.modalHeader)}>
+                            <FontAwesomeIcon icon={faInfoCircle} className={clsx(styles.modalIcon)} />
+                            <h2 className={clsx(styles.modalTitle)}>
+                                {vacuumResultModal.full ? t('tables.vacuum_full_done') : t('tables.vacuum_done')}
+                            </h2>
+                        </div>
+                        <div className={clsx(styles.modalBody)}>
+                            <p className={clsx(styles.modalText)}>{vacuumResultModal.message}</p>
+                            <p className={clsx(styles.modalText)}>
+                                <strong>{vacuumResultModal.table}</strong>
+                            </p>
+                        </div>
+                        <div className={clsx(styles.modalFooter)}>
+                            <button className={clsx(styles.modalCancelButton)} onClick={() => setVacuumResultModal(null)}>
+                                {t('tables.vacuum_close')}
+                            </button>
                         </div>
                     </div>
                 </div>
