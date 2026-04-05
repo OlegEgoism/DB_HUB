@@ -168,3 +168,16 @@ class PaginatedTablePrivilegesGroupsResponse(BaseModel):
     has_prev: bool
     table_privileges: list[TablePrivilegeGroupInfo]
     model_config = ConfigDict(from_attributes=True)
+
+
+class TableVacuumRequest(BaseModel):
+    schema_name: str
+    table_name: str
+    full: bool = False
+
+
+class TableVacuumResponse(BaseModel):
+    message: str
+    schema_name: str
+    table_name: str
+    full: bool

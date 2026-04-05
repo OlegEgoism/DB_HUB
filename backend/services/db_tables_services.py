@@ -650,3 +650,39 @@ class DBTablesService:
                         elif not desired and current:
                             await conn.execute(f"REVOKE {priv} ON TABLE {quoted_schema}.{quoted_table} FROM {quoted_group};")
             return updated_groups
+
+    async def vacuum_table(
+        self,
+        connection_id: int,
+        schema_name: str,
+        table_name: str,
+        full: bool = False,
+    ) -> dict[str, Any]:
+        connection = await self._get_connection(connection_id)
+        async with external_db_connection(connection) as conn:
+            exists = await conn.fetchval(
+                """
+                SELECT 1
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = $1
+                  AND c.relname = $2
+                  AND c.relkind = 'r'
+                """,
+                schema_name,
+                table_name,
+            )
+            if not exists:
+                raise ValueError(f"Таблица '{schema_name}.{table_name}' не найдена")
+
+            quoted_schema = _quote_ident(schema_name)
+            quoted_table = _quote_ident(table_name)
+            vacuum_mode = "FULL " if full else ""
+            await conn.execute(f"VACUUM {vacuum_mode}ANALYZE {quoted_schema}.{quoted_table};")
+
+            return {
+                "message": "VACUUM выполнен успешно" if not full else "VACUUM FULL выполнен успешно",
+                "schema_name": schema_name,
+                "table_name": table_name,
+                "full": full,
+            }

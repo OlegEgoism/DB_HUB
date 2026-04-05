@@ -12,6 +12,8 @@ from backend.schemas.db_tables_schemas import (
     PaginatedTablePrivilegesUsersResponse,
     PaginatedTemporaryTablesResponse,
     TableDetailsResponse,
+    TableVacuumRequest,
+    TableVacuumResponse,
     TablePrivilegesGroupsUpdateRequest,
     TablePrivilegesGroupsUpdateResponse,
     TablePrivilegesUpdateRequest,
@@ -231,3 +233,28 @@ async def get_table_details(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при получении деталей таблицы: {str(e)}") from e
+
+
+@router.post(
+    "/vacuum",
+    response_model=TableVacuumResponse,
+    summary="Выполнить VACUUM для таблицы",
+    description="Запускает VACUUM ANALYZE или VACUUM FULL ANALYZE для выбранной таблицы",
+)
+async def vacuum_table(
+    connection_id: int,
+    request: TableVacuumRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        service = DBTablesService(db)
+        return await service.vacuum_table(
+            connection_id=connection_id,
+            schema_name=request.schema_name,
+            table_name=request.table_name,
+            full=request.full,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ошибка при выполнении VACUUM: {str(e)}") from e

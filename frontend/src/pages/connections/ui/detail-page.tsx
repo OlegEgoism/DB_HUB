@@ -247,6 +247,7 @@ export default function ConnectionDetailPage() {
     const [tableGroupsForm, setTableGroupsForm] = useState<TableGroupPrivilege[]>([]);
     const [tableGroupSearchQuery, setTableGroupSearchQuery] = useState('');
     const [tableModalLoading, setTableModalLoading] = useState(false);
+    const [vacuumingTableKey, setVacuumingTableKey] = useState<string | null>(null);
 
     const [viewsPage, setViewsPage] = useState(1);
     const [viewsPageSize, setViewsPageSize] = useState(8);
@@ -1963,6 +1964,43 @@ export default function ConnectionDetailPage() {
         setTableDetailsModal(null);
     };
 
+    const runTableVacuum = async (table: TablePrivilegeInfo, full: boolean) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        const tableKey = `${table.schema_name}.${table.table_name}`;
+        setVacuumingTableKey(tableKey);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/tables/vacuum`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    schema_name: table.schema_name,
+                    table_name: table.table_name,
+                    full,
+                }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(parseApiErrorDetail((data as { detail?: unknown }).detail ?? data));
+            }
+
+            refreshTables();
+        } catch (err) {
+            console.error('Ошибка VACUUM таблицы:', err);
+            setError(err instanceof Error ? err.message : t('tables.vacuum_error'));
+        } finally {
+            setVacuumingTableKey(null);
+        }
+    };
+
     const toggleTableGroupPrivilege = (
         groupName: string,
         field: 'select' | 'insert' | 'update' | 'delete' | 'truncate',
@@ -3383,6 +3421,22 @@ export default function ConnectionDetailPage() {
                                                                     </button>
                                                                     <button className={clsx(styles.userActionButton)} onClick={() => openTableEditModal(table)} title={`Изменить права для ${table.table_name}`}>
                                                                         <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                    </button>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton)}
+                                                                        onClick={() => void runTableVacuum(table, false)}
+                                                                        title={t('tables.vacuum')}
+                                                                        disabled={vacuumingTableKey === `${table.schema_name}.${table.table_name}`}
+                                                                    >
+                                                                        {vacuumingTableKey === `${table.schema_name}.${table.table_name}` ? <FontAwesomeIcon icon={faSpinner} spin/> : <FontAwesomeIcon icon={faCogs}/>}
+                                                                    </button>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton)}
+                                                                        onClick={() => void runTableVacuum(table, true)}
+                                                                        title={t('tables.vacuum_full')}
+                                                                        disabled={vacuumingTableKey === `${table.schema_name}.${table.table_name}`}
+                                                                    >
+                                                                        {vacuumingTableKey === `${table.schema_name}.${table.table_name}` ? <FontAwesomeIcon icon={faSpinner} spin/> : <span>F</span>}
                                                                     </button>
                                                                 </div>
                                                             </div>
