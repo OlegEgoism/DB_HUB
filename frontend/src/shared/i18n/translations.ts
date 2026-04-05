@@ -419,6 +419,13 @@ export const translations = {
 
     'settings.title': 'Настройки',
     'settings.description': 'Выберите, какие вкладки отображать на странице подключения.',
+    'settings.sessions.title': 'Активные сессии пользователей',
+    'settings.sessions.description': 'Завершайте активные сессии пользователей при необходимости.',
+    'settings.sessions.loading': 'Загрузка активных сессий...',
+    'settings.sessions.empty': 'Активные сессии не найдены.',
+    'settings.sessions.count': 'Активные сессии',
+    'settings.sessions.revoke': 'Завершить все сессии',
+    'settings.sessions.revoking': 'Завершаем...',
     'settings.reset': 'Сбросить по умолчанию',
     'settings.language': 'Язык интерфейса',
     'settings.save': 'Сохранить',
@@ -435,6 +442,7 @@ export const translations = {
     'tabs.functions': 'Функции',
     'tabs.procedures': 'Процедуры',
     'tabs.transactions': 'Транзакции',
+    'tabs.monitoring': 'Мониторинг',
     'tabs.query': 'SQL-запрос',
 
     'login.close': 'Закрыть окно авторизации',
@@ -907,6 +915,13 @@ export const translations = {
 
     'settings.title': 'Settings',
     'settings.description': 'Choose which tabs are shown on the connection page.',
+    'settings.sessions.title': 'Active user sessions',
+    'settings.sessions.description': 'Revoke active user sessions when needed.',
+    'settings.sessions.loading': 'Loading active sessions...',
+    'settings.sessions.empty': 'No active sessions found.',
+    'settings.sessions.count': 'Active sessions',
+    'settings.sessions.revoke': 'Revoke all sessions',
+    'settings.sessions.revoking': 'Revoking...',
     'settings.reset': 'Reset to defaults',
     'settings.language': 'Interface language',
     'settings.save': 'Save',
@@ -923,6 +938,7 @@ export const translations = {
     'tabs.functions': 'Functions',
     'tabs.procedures': 'Procedures',
     'tabs.transactions': 'Transactions',
+    'tabs.monitoring': 'Monitoring',
     'tabs.query': 'SQL Query',
 
     'login.close': 'Close login modal',
