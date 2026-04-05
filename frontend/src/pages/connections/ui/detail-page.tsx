@@ -69,6 +69,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
 const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring'];
 const USER_DESCRIPTION_PREVIEW_LIMIT = 50;
+const TABLE_COMMENT_PREVIEW_LIMIT = 30;
 
 const isTabType = (value: string | null): value is TabType => value !== null && TAB_TYPE_VALUES.includes(value as TabType);
 
@@ -3421,6 +3422,12 @@ export default function ConnectionDetailPage() {
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
                                                                 <div className={clsx(styles.usersMetaGrid, styles.usersMetaGrid_inline)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.details.comment')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={table.description || '—'}>
+                                                                            {truncateText(table.description, TABLE_COMMENT_PREVIEW_LIMIT)}
+                                                                        </span>
+                                                                    </div>
                                                                     <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.owner')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={table.owner || '—'}>

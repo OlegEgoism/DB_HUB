@@ -131,6 +131,7 @@ class TablePrivilegeGroupInfo(BaseModel):
     schema_name: str
     table_name: str
     owner: str
+    description: str | None = None
     size_bytes: int = Field(..., description="Размер таблицы в байтах (pg_total_relation_size)")
     size_pretty: str = Field(..., description="Человекочитаемый размер таблицы")
     group_privileges: list[TableGroupPrivilege]

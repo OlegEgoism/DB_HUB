@@ -248,6 +248,7 @@ class DBTablesService:
             c.relname AS table_name,
             c.oid AS table_oid,
             pg_get_userbyid(c.relowner) AS owner,
+            pg_catalog.obj_description(c.oid, 'pg_class') AS description,
             pg_total_relation_size(c.oid) AS size_bytes
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -261,6 +262,7 @@ class DBTablesService:
                     "schema_name": row["schema_name"],
                     "table_name": row["table_name"],
                     "owner": row["owner"],
+                    "description": row["description"],
                     "size_bytes": row["size_bytes"] or 0,
                     "privileges": {
                         username: {
@@ -303,6 +305,7 @@ class DBTablesService:
                     "schema_name": info["schema_name"],
                     "table_name": info["table_name"],
                     "owner": info["owner"],
+                    "description": info["description"],
                     "size_bytes": info["size_bytes"],
                     "size_pretty": self._human_readable_size(info["size_bytes"]),
                     "user_privileges": [
@@ -502,6 +505,7 @@ class DBTablesService:
             c.relname AS table_name,
             c.oid AS table_oid,
             pg_get_userbyid(c.relowner) AS owner,
+            pg_catalog.obj_description(c.oid, 'pg_class') AS description,
             pg_total_relation_size(c.oid) AS size_bytes
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -514,6 +518,7 @@ class DBTablesService:
                     "schema_name": row["schema_name"],
                     "table_name": row["table_name"],
                     "owner": row["owner"],
+                    "description": row["description"],
                     "size_bytes": row["size_bytes"] or 0,
                     "privileges": {
                         groupname: {
@@ -555,6 +560,7 @@ class DBTablesService:
                     "schema_name": info["schema_name"],
                     "table_name": info["table_name"],
                     "owner": info["owner"],
+                    "description": info["description"],
                     "size_bytes": info["size_bytes"],
                     "size_pretty": self._human_readable_size(info["size_bytes"]),
                     "group_privileges": [
