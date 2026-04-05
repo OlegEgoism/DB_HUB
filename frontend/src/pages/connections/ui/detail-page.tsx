@@ -2866,7 +2866,7 @@ export default function ConnectionDetailPage() {
                                                                 <h3 className={clsx(styles.userItemTitle)}>{user.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.usersMetaGrid, styles.usersMetaGrid_inline)}>
+                                                                <div className={clsx(styles.usersMetaGrid, styles.usersMetaGrid_stable)}>
                                                                     <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Описание:</span>
                                                                         <span
@@ -3059,7 +3059,7 @@ export default function ConnectionDetailPage() {
                                                                 <h3 className={clsx(styles.userItemTitle)} title={group.name}>{group.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.usersMetaGrid, styles.usersMetaGrid_inline)}>
+                                                                <div className={clsx(styles.usersMetaGrid, styles.usersMetaGrid_stable)}>
                                                                     <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('groups.users_count')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
