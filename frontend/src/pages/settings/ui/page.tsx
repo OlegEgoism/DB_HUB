@@ -28,7 +28,6 @@ export default function SettingsPage() {
   const { checkAuth, getUser } = useSession();
   const isInitializedRef = useRef(false);
   const [visibility, setVisibility] = useState<ConnectionTabsVisibility>(DEFAULT_CONNECTION_TABS_VISIBILITY);
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>('ru');
   const [isSaving, setIsSaving] = useState(false);
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
@@ -65,7 +64,6 @@ export default function SettingsPage() {
     const loadSettings = async () => {
       const nextVisibility = await connectionTabsSettingsModel.fetchVisibility();
       setVisibility(nextVisibility);
-      setSelectedLanguage(language);
       if (canManageSessions) {
         setSessionsLoading(true);
         try {
@@ -79,10 +77,6 @@ export default function SettingsPage() {
 
     void loadSettings();
   }, [canManageSessions, checkAuth, language, navigate]);
-
-  useEffect(() => {
-    setSelectedLanguage(language);
-  }, [language]);
 
   const handleToggle = (tabKey: ConnectionTabKey) => {
     setVisibility((prev) => {
@@ -99,7 +93,6 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
-    setLanguage(selectedLanguage);
 
     try {
       const savedVisibility = await connectionTabsSettingsModel.saveVisibility(visibility);
@@ -146,15 +139,14 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          <div key={language} className={clsx(styles.settings__language)}>
+          <div className={clsx(styles.settings__language)}>
             <label htmlFor="language" className={clsx(styles.settings__label)}>
               {t('settings.language')}
             </label>
             <select
-              key={`${language}-${selectedLanguage}`}
               id="language"
-              value={selectedLanguage}
-              onChange={(event) => setSelectedLanguage(event.target.value as Language)}
+              value={language}
+              onChange={(event) => setLanguage(event.target.value as Language)}
               className={clsx(styles.settings__select)}
             >
               <option value="ru">{t('lang.ru')}</option>
