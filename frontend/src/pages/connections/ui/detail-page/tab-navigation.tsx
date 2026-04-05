@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import styles from '../detail-page.module.scss';
 import type { TabType } from '@pages/connections/model/detail-page-types';
 import type { ConnectionTabsVisibility } from '@entities/settings/model';
+import { useI18n } from '@shared/i18n';
 
 interface Props {
   activeTab: TabType;
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export function DetailTabNavigation(props: Props) {
+  const { t } = useI18n();
   const {
     activeTab,
     setActiveTab,
@@ -70,17 +72,17 @@ export function DetailTabNavigation(props: Props) {
 
   return (
     <div className={clsx(styles.tabsContainer)}>
-      {visibleTabs.metrics && <button className={clsx(styles.tabButton, activeTab === 'metrics' && styles.tabButton_active)} onClick={() => setActiveTab('metrics')}>Информация</button>}
-      {visibleTabs.users && <button className={clsx(styles.tabButton, activeTab === 'users' && styles.tabButton_active)} onClick={() => { setActiveTab('users'); setUsersSearchQuery(''); setUsersSearchTerm(''); setUsersPage(1); }}>Пользователи</button>}
-      {visibleTabs.groups && <button className={clsx(styles.tabButton, activeTab === 'groups' && styles.tabButton_active)} onClick={() => { setActiveTab('groups'); setGroupsSearchQuery(''); setGroupsSearchTerm(''); setGroupsPage(1); }}>Группы</button>}
-      {visibleTabs.schemas && <button className={clsx(styles.tabButton, activeTab === 'schemas' && styles.tabButton_active)} onClick={() => { setActiveTab('schemas'); setSchemasSearchQuery(''); setSchemasSearchTerm(''); setSchemasPage(1); }}>Схемы</button>}
-      {visibleTabs.tables && <button className={clsx(styles.tabButton, activeTab === 'tables' && styles.tabButton_active)} onClick={() => { setActiveTab('tables'); setTablesSearchQuery(''); setTablesSearchTerm(''); setTablesPage(1); }}>Таблицы</button>}
-      {visibleTabs.views && <button className={clsx(styles.tabButton, activeTab === 'views' && styles.tabButton_active)} onClick={() => { setActiveTab('views'); setViewsSearchQuery(''); setViewsSearchTerm(''); setViewsPage(1); }}>Представления</button>}
-      {visibleTabs.indexes && <button className={clsx(styles.tabButton, activeTab === 'indexes' && styles.tabButton_active)} onClick={() => { setActiveTab('indexes'); setIndexesSearchQuery(''); setIndexesSearchTerm(''); setIndexesPage(1); }}>Индексы</button>}
-      {visibleTabs.functions && <button className={clsx(styles.tabButton, activeTab === 'functions' && styles.tabButton_active)} onClick={() => { setActiveTab('functions'); setFunctionsSearchQuery(''); setFunctionsSearchTerm(''); setFunctionsPage(1); }}>Функции</button>}
-      {visibleTabs.procedures && <button className={clsx(styles.tabButton, activeTab === 'procedures' && styles.tabButton_active)} onClick={() => { setActiveTab('procedures'); setProceduresSearchQuery(''); setProceduresSearchTerm(''); setProceduresPage(1); }}>Процедуры</button>}
-      {visibleTabs.active_sql && <button className={clsx(styles.tabButton, activeTab === 'active_sql' && styles.tabButton_active)} onClick={() => { setActiveTab('active_sql'); setActiveSqlPage(1); }}>Транзакции</button>}
-      {visibleTabs.monitoring && <button className={clsx(styles.tabButton, activeTab === 'monitoring' && styles.tabButton_active)} onClick={() => setActiveTab('monitoring')}>Мониторинг</button>}
+      {visibleTabs.metrics && <button className={clsx(styles.tabButton, activeTab === 'metrics' && styles.tabButton_active)} onClick={() => setActiveTab('metrics')}>{t('tabs.overview')}</button>}
+      {visibleTabs.users && <button className={clsx(styles.tabButton, activeTab === 'users' && styles.tabButton_active)} onClick={() => { setActiveTab('users'); setUsersSearchQuery(''); setUsersSearchTerm(''); setUsersPage(1); }}>{t('tabs.users')}</button>}
+      {visibleTabs.groups && <button className={clsx(styles.tabButton, activeTab === 'groups' && styles.tabButton_active)} onClick={() => { setActiveTab('groups'); setGroupsSearchQuery(''); setGroupsSearchTerm(''); setGroupsPage(1); }}>{t('tabs.groups')}</button>}
+      {visibleTabs.schemas && <button className={clsx(styles.tabButton, activeTab === 'schemas' && styles.tabButton_active)} onClick={() => { setActiveTab('schemas'); setSchemasSearchQuery(''); setSchemasSearchTerm(''); setSchemasPage(1); }}>{t('tabs.schemas')}</button>}
+      {visibleTabs.tables && <button className={clsx(styles.tabButton, activeTab === 'tables' && styles.tabButton_active)} onClick={() => { setActiveTab('tables'); setTablesSearchQuery(''); setTablesSearchTerm(''); setTablesPage(1); }}>{t('tabs.tables')}</button>}
+      {visibleTabs.views && <button className={clsx(styles.tabButton, activeTab === 'views' && styles.tabButton_active)} onClick={() => { setActiveTab('views'); setViewsSearchQuery(''); setViewsSearchTerm(''); setViewsPage(1); }}>{t('tabs.views')}</button>}
+      {visibleTabs.indexes && <button className={clsx(styles.tabButton, activeTab === 'indexes' && styles.tabButton_active)} onClick={() => { setActiveTab('indexes'); setIndexesSearchQuery(''); setIndexesSearchTerm(''); setIndexesPage(1); }}>{t('tabs.indexes')}</button>}
+      {visibleTabs.functions && <button className={clsx(styles.tabButton, activeTab === 'functions' && styles.tabButton_active)} onClick={() => { setActiveTab('functions'); setFunctionsSearchQuery(''); setFunctionsSearchTerm(''); setFunctionsPage(1); }}>{t('tabs.functions')}</button>}
+      {visibleTabs.procedures && <button className={clsx(styles.tabButton, activeTab === 'procedures' && styles.tabButton_active)} onClick={() => { setActiveTab('procedures'); setProceduresSearchQuery(''); setProceduresSearchTerm(''); setProceduresPage(1); }}>{t('tabs.procedures')}</button>}
+      {visibleTabs.active_sql && <button className={clsx(styles.tabButton, activeTab === 'active_sql' && styles.tabButton_active)} onClick={() => { setActiveTab('active_sql'); setActiveSqlPage(1); }}>{t('tabs.transactions')}</button>}
+      {visibleTabs.monitoring && <button className={clsx(styles.tabButton, activeTab === 'monitoring' && styles.tabButton_active)} onClick={() => setActiveTab('monitoring')}>{t('tabs.monitoring')}</button>}
       {visibleTabs.sql_query && <button className={clsx(styles.tabButton, activeTab === 'sql_query' && styles.tabButton_active)} onClick={() => { setActiveTab('sql_query'); setSqlQueryError(null); }}>SQL</button>}
     </div>
   );
