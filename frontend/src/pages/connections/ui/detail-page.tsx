@@ -68,6 +68,7 @@ const DEFAULT_API_BASE_URL =
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
 const TAB_TYPE_VALUES: TabType[] = ['metrics', 'users', 'groups', 'schemas', 'tables', 'views', 'indexes', 'functions', 'procedures', 'active_sql', 'sql_query', 'monitoring'];
+const USER_DESCRIPTION_PREVIEW_LIMIT = 50;
 
 const isTabType = (value: string | null): value is TabType => value !== null && TAB_TYPE_VALUES.includes(value as TabType);
 
@@ -153,6 +154,11 @@ const formatSqlForDisplay = (query: string | null | undefined): string => {
         .trim();
 
     return normalized;
+};
+
+const truncateText = (value: string | null | undefined, maxLength: number): string => {
+    if (!value) return '—';
+    return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 };
 
 export default function ConnectionDetailPage() {
@@ -241,6 +247,8 @@ export default function ConnectionDetailPage() {
     const [tableGroupsForm, setTableGroupsForm] = useState<TableGroupPrivilege[]>([]);
     const [tableGroupSearchQuery, setTableGroupSearchQuery] = useState('');
     const [tableModalLoading, setTableModalLoading] = useState(false);
+    const [vacuumingTableKey, setVacuumingTableKey] = useState<string | null>(null);
+    const [vacuumResultModal, setVacuumResultModal] = useState<{ table: string; full: boolean; message: string; isError?: boolean } | null>(null);
 
     const [viewsPage, setViewsPage] = useState(1);
     const [viewsPageSize, setViewsPageSize] = useState(8);
@@ -1957,6 +1965,66 @@ export default function ConnectionDetailPage() {
         setTableDetailsModal(null);
     };
 
+    const runTableVacuum = async (table: TablePrivilegeInfo, full: boolean) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+
+        const tableKey = `${table.schema_name}.${table.table_name}`;
+        const formatVacuumError = (reason: string) => {
+            return `${full ? 'Ошибка при выполнении VACUUM FULL' : 'Ошибка при выполнении VACUUM'}: ${reason}`;
+        };
+
+        setVacuumingTableKey(tableKey);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/db_connections/${id}/tables/vacuum`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    schema_name: table.schema_name,
+                    table_name: table.table_name,
+                    full,
+                }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const reason = parseApiErrorDetail((data as { detail?: unknown }).detail ?? data);
+                setVacuumResultModal({
+                    table: tableKey,
+                    full,
+                    isError: true,
+                    message: formatVacuumError(reason),
+                });
+                return;
+            }
+
+            setVacuumResultModal({
+                table: tableKey,
+                full,
+                message: typeof (data as { message?: unknown }).message === 'string'
+                    ? (data as { message: string }).message
+                    : (full ? t('tables.vacuum_full_done') : t('tables.vacuum_done')),
+            });
+            refreshTables();
+        } catch (err) {
+            console.error('Ошибка VACUUM таблицы:', err);
+            setVacuumResultModal({
+                table: tableKey,
+                full,
+                isError: true,
+                message: formatVacuumError(err instanceof Error ? err.message : t('tables.vacuum_error')),
+            });
+        } finally {
+            setVacuumingTableKey(null);
+        }
+    };
+
     const toggleTableGroupPrivilege = (
         groupName: string,
         field: 'select' | 'insert' | 'update' | 'delete' | 'truncate',
@@ -2860,14 +2928,14 @@ export default function ConnectionDetailPage() {
                                                                 <h3 className={clsx(styles.userItemTitle)}>{user.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                <div className={clsx(styles.usersMetaGrid, styles.usersMetaGrid_stable)}>
                                                                     <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>Описание:</span>
                                                                         <span
                                                                             className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)}
                                                                             title={user.description || '—'}
                                                                         >
-                                                                            {user.description || '—'}
+                                                                            {truncateText(user.description, USER_DESCRIPTION_PREVIEW_LIMIT)}
                                                                         </span>
                                                                     </div>
                                                                     <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
@@ -2876,7 +2944,7 @@ export default function ConnectionDetailPage() {
                                                                             className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaEmailValue)}
                                                                             title={user.email || '—'}
                                                                         >
-                                                                            {user.email || '—'}
+                                                                            {truncateText(user.email, USER_DESCRIPTION_PREVIEW_LIMIT)}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -3053,18 +3121,18 @@ export default function ConnectionDetailPage() {
                                                                 <h3 className={clsx(styles.userItemTitle)} title={group.name}>{group.name}</h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                <div className={clsx(styles.usersMetaGrid, styles.usersMetaGrid_stable)}>
                                                                     <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('groups.users_count')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{groupUserCountOverrides[group.oid] ?? group.user_count}</span>
                                                                     </div>
-                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell, styles.groupsDescriptionShift)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('groups.description_label')}</span>
                                                                         <span
                                                                             className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)}
                                                                             title={group.description?.trim() || t('groups.description_empty')}
                                                                         >
-                                                                            {group.description?.trim() || t('groups.description_empty')}
+                                                                            {truncateText(group.description?.trim() || t('groups.description_empty'), USER_DESCRIPTION_PREVIEW_LIMIT)}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -3355,7 +3423,7 @@ export default function ConnectionDetailPage() {
                                                                 </h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.usersMetaGrid)}>
+                                                                <div className={clsx(styles.usersMetaGrid, styles.usersMetaGrid_inline)}>
                                                                     <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.owner')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={table.owner || '—'}>
@@ -3366,6 +3434,10 @@ export default function ConnectionDetailPage() {
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.groups')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{table.group_privileges.length}</span>
                                                                     </div>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.size')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{table.size_pretty || '—'}</span>
+                                                                    </div>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
                                                                     <button className={clsx(styles.userActionButton)} onClick={() => void openTableDetailsModal(table)} title={`Открыть детали ${table.table_name}`}>
@@ -3373,6 +3445,22 @@ export default function ConnectionDetailPage() {
                                                                     </button>
                                                                     <button className={clsx(styles.userActionButton)} onClick={() => openTableEditModal(table)} title={`Изменить права для ${table.table_name}`}>
                                                                         <FontAwesomeIcon icon={faPencilAlt}/>
+                                                                    </button>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton)}
+                                                                        onClick={() => void runTableVacuum(table, false)}
+                                                                        title={t('tables.vacuum')}
+                                                                        disabled={vacuumingTableKey === `${table.schema_name}.${table.table_name}`}
+                                                                    >
+                                                                        {vacuumingTableKey === `${table.schema_name}.${table.table_name}` ? <FontAwesomeIcon icon={faSpinner} spin/> : <FontAwesomeIcon icon={faCogs}/>}
+                                                                    </button>
+                                                                    <button
+                                                                        className={clsx(styles.userActionButton)}
+                                                                        onClick={() => void runTableVacuum(table, true)}
+                                                                        title={t('tables.vacuum_full')}
+                                                                        disabled={vacuumingTableKey === `${table.schema_name}.${table.table_name}`}
+                                                                    >
+                                                                        {vacuumingTableKey === `${table.schema_name}.${table.table_name}` ? <FontAwesomeIcon icon={faSpinner} spin/> : <span>F</span>}
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -4262,45 +4350,45 @@ export default function ConnectionDetailPage() {
                                     <div className={clsx(styles.metricsWideCard)}>
                                         <div className={clsx(styles.metricsCardHeader)}>
                                             <FontAwesomeIcon icon={faChartLine} className={clsx(styles.metricsCardIcon)}/>
-                                            <h3 className={clsx(styles.metricsCardTitle)}>Транзакционная активность</h3>
-                                            <button type="button" className={clsx(styles.metricsInlineRefresh)} onClick={refreshMonitoringSessionActivity} title="Обновить график">
-                                                <FontAwesomeIcon icon={faArrowsRotate}/> Обновить
+                                            <h3 className={clsx(styles.metricsCardTitle)}>{t('monitoring.session_activity.title')}</h3>
+                                            <button type="button" className={clsx(styles.metricsInlineRefresh)} onClick={refreshMonitoringSessionActivity} title={t('monitoring.refresh_chart')}>
+                                                <FontAwesomeIcon icon={faArrowsRotate}/> {t('monitoring.refresh')}
                                             </button>
                                             <label className={clsx(styles.metricsRefreshControl)}>
-                                                Интервал:
+                                                {t('monitoring.interval')}
                                                 <select
                                                     className={clsx(styles.metricsRefreshSelect)}
                                                     value={sessionMonitoringRefreshIntervalMs}
                                                     onChange={(event) => setSessionMonitoringRefreshIntervalMs(Number(event.target.value))}
-                                                    aria-label="Интервал автообновления графика транзакционной активности"
+                                                    aria-label={t('monitoring.session.interval_aria')}
                                                 >
-                                                    <option value={1000}>1 сек</option>
-                                                    <option value={2000}>2 сек</option>
-                                                    <option value={5000}>5 сек</option>
-                                                    <option value={10000}>10 сек</option>
+                                                    <option value={1000}>{t('monitoring.interval.1s')}</option>
+                                                    <option value={2000}>{t('monitoring.interval.2s')}</option>
+                                                    <option value={5000}>{t('monitoring.interval.5s')}</option>
+                                                    <option value={10000}>{t('monitoring.interval.10s')}</option>
                                                 </select>
                                             </label>
                                             <button type="button" className={clsx(styles.metricsCollapseButton)} onClick={() => setIsSessionActivityCollapsed((prev) => !prev)}>
-                                                {isSessionActivityCollapsed ? 'Развернуть' : 'Свернуть'}
+                                                {isSessionActivityCollapsed ? t('monitoring.expand') : t('monitoring.collapse')}
                                             </button>
                                         </div>
                                         {!isSessionActivityCollapsed && (
                                             <div className={clsx(styles.metricsCardContent)}>
                                                 {loadingSessionActivity && sessionActivityPoints.length === 0 ? (
-                                                    <div className={clsx(styles.metricsSmallMuted)}>Загрузка данных активности...</div>
+                                                    <div className={clsx(styles.metricsSmallMuted)}>{t('monitoring.loading')}</div>
                                                 ) : sessionActivityError ? (
                                                     <div className={clsx(styles.errorMessage)}>{sessionActivityError}</div>
                                                 ) : (
                                                     <>
                                                         <div className={clsx(styles.metricsChartLegend)}>
                                                             <button type="button" className={clsx(styles.legendToggle, !sessionSeriesVisibility.totalSessions && styles.legendToggle_inactive)} onClick={() => setSessionSeriesVisibility((prev) => ({ ...prev, totalSessions: !prev.totalSessions }))}>
-                                                                <i className={clsx(styles.legendDot, styles.legendDotTotal)}/>Все сессии: {sessionActivitySnapshot?.sessions_total ?? 0}
+                                                                <i className={clsx(styles.legendDot, styles.legendDotTotal)}/>{t('monitoring.legend.total_sessions')} {sessionActivitySnapshot?.sessions_total ?? 0}
                                                             </button>
                                                             <button type="button" className={clsx(styles.legendToggle, !sessionSeriesVisibility.activeSessions && styles.legendToggle_inactive)} onClick={() => setSessionSeriesVisibility((prev) => ({ ...prev, activeSessions: !prev.activeSessions }))}>
-                                                                <i className={clsx(styles.legendDot, styles.legendDotActive)}/>Активные сессии: {sessionActivitySnapshot?.active_sessions ?? 0}
+                                                                <i className={clsx(styles.legendDot, styles.legendDotActive)}/>{t('monitoring.legend.active_sessions')} {sessionActivitySnapshot?.active_sessions ?? 0}
                                                             </button>
                                                             <button type="button" className={clsx(styles.legendToggle, !sessionSeriesVisibility.activeTransactions && styles.legendToggle_inactive)} onClick={() => setSessionSeriesVisibility((prev) => ({ ...prev, activeTransactions: !prev.activeTransactions }))}>
-                                                                <i className={clsx(styles.legendDot, styles.legendDotTx)}/>Активные транзакции: {sessionActivitySnapshot?.users.reduce((sum, user) => sum + user.active_transactions, 0) ?? 0}
+                                                                <i className={clsx(styles.legendDot, styles.legendDotTx)}/>{t('monitoring.legend.active_transactions')} {sessionActivitySnapshot?.users.reduce((sum, user) => sum + user.active_transactions, 0) ?? 0}
                                                             </button>
                                                         </div>
                                                         <div className={clsx(styles.metricsLineChartWrap)}>
@@ -4308,7 +4396,7 @@ export default function ConnectionDetailPage() {
                                                                 viewBox={`0 0 ${sessionActivityChartModel.width} ${sessionActivityChartModel.height}`}
                                                                 className={clsx(styles.metricsLineChart)}
                                                                 role="img"
-                                                                aria-label="График активности сессий и транзакций"
+                                                                aria-label={t('chart.aria')}
                                                                 onMouseLeave={() => setSessionChartHoverIndex(null)}
                                                                 onMouseMove={(event) => {
                                                                     if (visibleSessionActivityPoints.length === 0) return;
@@ -4360,24 +4448,24 @@ export default function ConnectionDetailPage() {
                                                             {hoveredSessionPoint && (
                                                                 <div className={clsx(styles.metricsChartTooltip)} role="status" aria-live="polite">
                                                                     <div className={clsx(styles.metricsChartTooltipTitle)}>{hoveredSessionPoint.timestamp}</div>
-                                                                    <div>Все сессии: <b>{hoveredSessionPoint.totalSessions}</b></div>
-                                                                    <div>Активные сессии: <b>{hoveredSessionPoint.activeSessions}</b></div>
-                                                                    <div>Активные транзакции: <b>{hoveredSessionPoint.activeTransactions}</b></div>
+                                                                    <div>{t('monitoring.legend.total_sessions')} <b>{hoveredSessionPoint.totalSessions}</b></div>
+                                                                    <div>{t('monitoring.legend.active_sessions')} <b>{hoveredSessionPoint.activeSessions}</b></div>
+                                                                    <div>{t('monitoring.legend.active_transactions')} <b>{hoveredSessionPoint.activeTransactions}</b></div>
                                                                 </div>
                                                             )}
                                                         </div>
                                                         <div className={clsx(styles.metricsTimelineScale)}>
                                                         <div className={clsx(styles.metricsTimelineScaleHeader)}>
-                                                            <span>Временная линия масштаба</span>
+                                                            <span>{t('monitoring.scale.timeline')}</span>
                                                             <div className={clsx(styles.metricsTimelineActions)}>
                                                                 <span>
-                                                                    Диапазон: {sessionChartWindowBoundaries.startIndex + 1}–{sessionChartWindowBoundaries.endIndex + 1}
-                                                                    {' '}из {Math.max(sessionActivityPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
+                                                                    {t('monitoring.range')}: {sessionChartWindowBoundaries.startIndex + 1}–{sessionChartWindowBoundaries.endIndex + 1}
+                                                                    {' '}{t('monitoring.range.of')} {Math.max(sessionActivityPoints.length, 1)} {t('monitoring.range.points')} · {t('monitoring.range.wheel')}
                                                                 </span>
                                                                 <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSessionChartWindow(true)}>+</button>
                                                                 <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSessionChartWindow(false)}>−</button>
                                                                 <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showLiveSessionChartWindow}>Live</button>
-                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showAllSessionChartWindow}>Весь период</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showAllSessionChartWindow}>{t('monitoring.scale.full_period')}</button>
                                                             </div>
                                                         </div>
                                                             <div
@@ -4405,7 +4493,7 @@ export default function ConnectionDetailPage() {
                                                                         applySessionChartWindow(nextStart, sessionChartWindowEndPercent);
                                                                     }}
                                                                     className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeStart)}
-                                                                    aria-label="Начало временного диапазона графика"
+                                                                    aria-label={t('monitoring.scale.range_start')}
                                                                 />
                                                                 <input
                                                                     type="range"
@@ -4418,23 +4506,23 @@ export default function ConnectionDetailPage() {
                                                                         applySessionChartWindow(sessionChartWindowStartPercent, nextEnd);
                                                                     }}
                                                                     className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeEnd)}
-                                                                    aria-label="Конец временного диапазона графика"
+                                                                    aria-label={t('monitoring.scale.range_end')}
                                                                 />
                                                             </div>
                                                             <div className={clsx(styles.metricsTimelineTicks)}>
-                                                                {['История', '25%', '50%', '75%', 'Live'].map((tick) => (
+                                                                {[t('monitoring.scale.tick.history'), '25%', '50%', '75%', t('monitoring.scale.tick.live')].map((tick) => (
                                                                     <span key={`timeline-tick-${tick}`}>{tick}</span>
                                                                 ))}
                                                             </div>
                                                         </div>
 
                                                         <div className={clsx(styles.metricsUsersTable)}>
-                                                            <div className={clsx(styles.metricsUsersHeader)}>Top пользователей по транзакциям</div>
+                                                            <div className={clsx(styles.metricsUsersHeader)}>{t('monitoring.top_users.title')}</div>
                                                             {(sessionActivitySnapshot?.users ?? []).map((item) => (
                                                                 <div key={item.username} className={clsx(styles.metricsUsersRow)}>
                                                                     <span className={clsx(styles.metricsUsersName)}>{item.username}</span>
-                                                                    <span>Сессий: {item.sessions_total}</span>
-                                                                    <span>Активных: {item.active_sessions}</span>
+                                                                    <span>{t('monitoring.top_users.sessions')} {item.sessions_total}</span>
+                                                                    <span>{t('monitoring.top_users.active')} {item.active_sessions}</span>
                                                                     <span>Tx: {item.active_transactions}</span>
                                                                 </div>
                                                             ))}
@@ -4448,33 +4536,33 @@ export default function ConnectionDetailPage() {
                                     <div className={clsx(styles.metricsWideCard)}>
                                         <div className={clsx(styles.metricsCardHeader)}>
                                             <FontAwesomeIcon icon={faChartLine} className={clsx(styles.metricsCardIcon)}/>
-                                            <h3 className={clsx(styles.metricsCardTitle)}>График активности</h3>
-                                            <button type="button" className={clsx(styles.metricsInlineRefresh)} onClick={refreshMonitoringSqlActivity} title="Обновить график">
-                                                <FontAwesomeIcon icon={faArrowsRotate}/> Обновить
+                                            <h3 className={clsx(styles.metricsCardTitle)}>{t('monitoring.sql_activity.title')}</h3>
+                                            <button type="button" className={clsx(styles.metricsInlineRefresh)} onClick={refreshMonitoringSqlActivity} title={t('monitoring.refresh_chart')}>
+                                                <FontAwesomeIcon icon={faArrowsRotate}/> {t('monitoring.refresh')}
                                             </button>
                                             <label className={clsx(styles.metricsRefreshControl)}>
-                                                Интервал:
+                                                {t('monitoring.interval')}
                                                 <select
                                                     className={clsx(styles.metricsRefreshSelect)}
                                                     value={activityChartRefreshIntervalMs}
                                                     onChange={(event) => setActivityChartRefreshIntervalMs(Number(event.target.value))}
-                                                    aria-label="Интервал автообновления графика SQL-активности"
+                                                    aria-label={t('monitoring.sql.interval_aria')}
                                                 >
-                                                    <option value={1000}>1 сек</option>
-                                                    <option value={2000}>2 сек</option>
-                                                    <option value={5000}>5 сек</option>
-                                                    <option value={10000}>10 сек</option>
+                                                    <option value={1000}>{t('monitoring.interval.1s')}</option>
+                                                    <option value={2000}>{t('monitoring.interval.2s')}</option>
+                                                    <option value={5000}>{t('monitoring.interval.5s')}</option>
+                                                    <option value={10000}>{t('monitoring.interval.10s')}</option>
                                                 </select>
                                             </label>
                                             <button type="button" className={clsx(styles.metricsCollapseButton)} onClick={() => setIsSqlActivityCollapsed((prev) => !prev)}>
-                                                {isSqlActivityCollapsed ? 'Развернуть' : 'Свернуть'}
+                                                {isSqlActivityCollapsed ? t('monitoring.expand') : t('monitoring.collapse')}
                                             </button>
                                         </div>
                                         {!isSqlActivityCollapsed && (
                                             <div className={clsx(styles.metricsCardContent)}>
                                                 <div className={clsx(styles.metricsChartLegend)}>
                                                     <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.total && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, total: !prev.total }))}>
-                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlTotal)}/>Всего: {activityChartPoints[activityChartPoints.length - 1]?.total ?? 0}
+                                                        <i className={clsx(styles.legendDot, styles.legendDotSqlTotal)}/>{t('monitoring.tooltip.total')} {activityChartPoints[activityChartPoints.length - 1]?.total ?? 0}
                                                     </button>
                                                     <button type="button" className={clsx(styles.legendToggle, !sqlSeriesVisibility.select && styles.legendToggle_inactive)} onClick={() => setSqlSeriesVisibility((prev) => ({ ...prev, select: !prev.select }))}>
                                                         <i className={clsx(styles.legendDot, styles.legendDotSqlSelect)}/>SELECT: {activityChartPoints[activityChartPoints.length - 1]?.select ?? 0}
@@ -4559,7 +4647,7 @@ export default function ConnectionDetailPage() {
                                                             {hoveredSqlPoint && (
                                                                 <div className={clsx(styles.metricsChartTooltip)} role="status" aria-live="polite">
                                                                     <div className={clsx(styles.metricsChartTooltipTitle)}>{hoveredSqlPoint.timestamp}</div>
-                                                                    <div>Всего: <b>{hoveredSqlPoint.total}</b></div>
+                                                                    <div>{t('monitoring.tooltip.total')} <b>{hoveredSqlPoint.total}</b></div>
                                                                     <div>SELECT: <b>{hoveredSqlPoint.select}</b></div>
                                                                     <div>INSERT: <b>{hoveredSqlPoint.insert}</b></div>
                                                                     <div>UPDATE: <b>{hoveredSqlPoint.update}</b></div>
@@ -4570,16 +4658,16 @@ export default function ConnectionDetailPage() {
                                                         </div>
                                                         <div className={clsx(styles.metricsTimelineScale)}>
                                                         <div className={clsx(styles.metricsTimelineScaleHeader)}>
-                                                            <span>Временная линия масштаба</span>
+                                                            <span>{t('monitoring.scale.timeline')}</span>
                                                             <div className={clsx(styles.metricsTimelineActions)}>
                                                                 <span>
-                                                                    Диапазон: {sqlChartWindowBoundaries.startIndex + 1}–{sqlChartWindowBoundaries.endIndex + 1}
-                                                                    {' '}из {Math.max(activityChartPoints.length, 1)} точек · колесо — прокрутка, Shift+колесо — масштаб
+                                                                    {t('monitoring.range')}: {sqlChartWindowBoundaries.startIndex + 1}–{sqlChartWindowBoundaries.endIndex + 1}
+                                                                    {' '}{t('monitoring.range.of')} {Math.max(activityChartPoints.length, 1)} {t('monitoring.range.points')} · {t('monitoring.range.wheel')}
                                                                 </span>
                                                                 <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSqlChartWindow(true)}>+</button>
                                                                 <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={() => zoomSqlChartWindow(false)}>−</button>
                                                                 <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showLiveSqlChartWindow}>Live</button>
-                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showAllSqlChartWindow}>Весь период</button>
+                                                                <button type="button" className={clsx(styles.metricsTimelineActionButton)} onClick={showAllSqlChartWindow}>{t('monitoring.scale.full_period')}</button>
                                                             </div>
                                                         </div>
                                                             <div
@@ -4607,7 +4695,7 @@ export default function ConnectionDetailPage() {
                                                                         applySqlChartWindow(nextStart, sqlChartWindowEndPercent);
                                                                     }}
                                                                     className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeStart)}
-                                                                    aria-label="Начало временного диапазона графика SQL-активности"
+                                                                    aria-label={t('monitoring.scale.sql_range_start')}
                                                                 />
                                                                 <input
                                                                     type="range"
@@ -4620,11 +4708,11 @@ export default function ConnectionDetailPage() {
                                                                         applySqlChartWindow(sqlChartWindowStartPercent, nextEnd);
                                                                     }}
                                                                     className={clsx(styles.metricsTimelineRange, styles.metricsTimelineRangeEnd)}
-                                                                    aria-label="Конец временного диапазона графика SQL-активности"
+                                                                    aria-label={t('monitoring.scale.sql_range_end')}
                                                                 />
                                                             </div>
                                                             <div className={clsx(styles.metricsTimelineTicks)}>
-                                                                {['История', '25%', '50%', '75%', 'Live'].map((tick) => (
+                                                                {[t('monitoring.scale.tick.history'), '25%', '50%', '75%', t('monitoring.scale.tick.live')].map((tick) => (
                                                                     <span key={`sql-timeline-tick-${tick}`}>{tick}</span>
                                                                 ))}
                                                             </div>
@@ -5398,6 +5486,39 @@ export default function ConnectionDetailPage() {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {vacuumResultModal !== null && (
+                <div className={clsx(styles.modalOverlay)} onClick={() => setVacuumResultModal(null)}>
+                    <div className={clsx(styles.modalContent)} onClick={(e) => e.stopPropagation()}>
+                        <div className={clsx(styles.modalHeader)}>
+                            <FontAwesomeIcon icon={vacuumResultModal.isError ? faExclamationCircle : faInfoCircle} className={clsx(styles.modalIcon)} />
+                            <h2 className={clsx(styles.modalTitle)}>
+                                {vacuumResultModal.isError
+                                    ? t('tables.vacuum_forbidden_title')
+                                    : (vacuumResultModal.full ? t('tables.vacuum_full_done') : t('tables.vacuum_done'))}
+                            </h2>
+                        </div>
+                        <div className={clsx(styles.modalBody)}>
+                            <p className={clsx(styles.modalText)}>{vacuumResultModal.message}</p>
+                            <p className={clsx(styles.modalText)}>
+                                <strong>{vacuumResultModal.table}</strong>
+                            </p>
+                        </div>
+                        <div className={clsx(styles.modalFooter)}>
+                            <button
+                                className={clsx(styles.modalCancelButton)}
+                                onClick={() => {
+                                    setVacuumResultModal(null);
+                                    if (activeTab !== 'tables') {
+                                        handleTabChange('tables');
+                                    }
+                                }}
+                            >
+                                {vacuumResultModal.isError ? t('tables.back_to_list') : t('tables.vacuum_close')}
+                            </button>
                         </div>
                     </div>
                 </div>

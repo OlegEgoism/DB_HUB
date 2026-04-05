@@ -247,7 +247,8 @@ class DBTablesService:
             n.nspname AS schema_name,
             c.relname AS table_name,
             c.oid AS table_oid,
-            pg_get_userbyid(c.relowner) AS owner
+            pg_get_userbyid(c.relowner) AS owner,
+            pg_total_relation_size(c.oid) AS size_bytes
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE c.relkind = 'r'
@@ -260,6 +261,7 @@ class DBTablesService:
                     "schema_name": row["schema_name"],
                     "table_name": row["table_name"],
                     "owner": row["owner"],
+                    "size_bytes": row["size_bytes"] or 0,
                     "privileges": {
                         username: {
                             "SELECT": False,
@@ -301,6 +303,8 @@ class DBTablesService:
                     "schema_name": info["schema_name"],
                     "table_name": info["table_name"],
                     "owner": info["owner"],
+                    "size_bytes": info["size_bytes"],
+                    "size_pretty": self._human_readable_size(info["size_bytes"]),
                     "user_privileges": [
                         {
                             "user": user,
@@ -497,7 +501,8 @@ class DBTablesService:
             n.nspname AS schema_name,
             c.relname AS table_name,
             c.oid AS table_oid,
-            pg_get_userbyid(c.relowner) AS owner
+            pg_get_userbyid(c.relowner) AS owner,
+            pg_total_relation_size(c.oid) AS size_bytes
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE c.relkind = 'r'
@@ -509,6 +514,7 @@ class DBTablesService:
                     "schema_name": row["schema_name"],
                     "table_name": row["table_name"],
                     "owner": row["owner"],
+                    "size_bytes": row["size_bytes"] or 0,
                     "privileges": {
                         groupname: {
                             "SELECT": False,
@@ -549,6 +555,8 @@ class DBTablesService:
                     "schema_name": info["schema_name"],
                     "table_name": info["table_name"],
                     "owner": info["owner"],
+                    "size_bytes": info["size_bytes"],
+                    "size_pretty": self._human_readable_size(info["size_bytes"]),
                     "group_privileges": [
                         {
                             "group": group,
@@ -642,3 +650,39 @@ class DBTablesService:
                         elif not desired and current:
                             await conn.execute(f"REVOKE {priv} ON TABLE {quoted_schema}.{quoted_table} FROM {quoted_group};")
             return updated_groups
+
+    async def vacuum_table(
+        self,
+        connection_id: int,
+        schema_name: str,
+        table_name: str,
+        full: bool = False,
+    ) -> dict[str, Any]:
+        connection = await self._get_connection(connection_id)
+        async with external_db_connection(connection) as conn:
+            exists = await conn.fetchval(
+                """
+                SELECT 1
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = $1
+                  AND c.relname = $2
+                  AND c.relkind = 'r'
+                """,
+                schema_name,
+                table_name,
+            )
+            if not exists:
+                raise ValueError(f"Таблица '{schema_name}.{table_name}' не найдена")
+
+            quoted_schema = _quote_ident(schema_name)
+            quoted_table = _quote_ident(table_name)
+            vacuum_mode = "FULL " if full else ""
+            await conn.execute(f"VACUUM {vacuum_mode}ANALYZE {quoted_schema}.{quoted_table};")
+
+            return {
+                "message": "VACUUM выполнен успешно" if not full else "VACUUM FULL выполнен успешно",
+                "schema_name": schema_name,
+                "table_name": table_name,
+                "full": full,
+            }

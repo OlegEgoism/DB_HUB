@@ -1,19 +1,20 @@
 import { apiRequest } from '@shared/api/http';
+import type { TranslationKey } from '@shared/i18n';
 
 export const CONNECTION_TAB_OPTIONS = [
-  { key: 'metrics', label: 'Информация' },
-  { key: 'users', label: 'Пользователи' },
-  { key: 'groups', label: 'Группы' },
-  { key: 'schemas', label: 'Схемы' },
-  { key: 'tables', label: 'Таблицы' },
-  { key: 'views', label: 'Представления' },
-  { key: 'indexes', label: 'Индексы' },
-  { key: 'functions', label: 'Функции' },
-  { key: 'procedures', label: 'Процедуры' },
-  { key: 'active_sql', label: 'Транзакции' },
-  { key: 'monitoring', label: 'Мониторинг' },
-  { key: 'sql_query', label: 'SQL' },
-] as const;
+  { key: 'metrics', labelKey: 'tabs.overview' },
+  { key: 'users', labelKey: 'tabs.users' },
+  { key: 'groups', labelKey: 'tabs.groups' },
+  { key: 'schemas', labelKey: 'tabs.schemas' },
+  { key: 'tables', labelKey: 'tabs.tables' },
+  { key: 'views', labelKey: 'tabs.views' },
+  { key: 'indexes', labelKey: 'tabs.indexes' },
+  { key: 'functions', labelKey: 'tabs.functions' },
+  { key: 'procedures', labelKey: 'tabs.procedures' },
+  { key: 'active_sql', labelKey: 'tabs.transactions' },
+  { key: 'monitoring', labelKey: 'tabs.monitoring' },
+  { key: 'sql_query', labelKey: 'tabs.query' },
+] as const satisfies ReadonlyArray<{ key: string; labelKey: TranslationKey }>;
 
 export type ConnectionTabKey = (typeof CONNECTION_TAB_OPTIONS)[number]['key'];
 export type ConnectionTabsVisibility = Record<ConnectionTabKey, boolean>;

@@ -59,6 +59,8 @@ class TablePrivilegeInfo(BaseModel):
     schema_name: str
     table_name: str
     owner: str
+    size_bytes: int = Field(..., description="Размер таблицы в байтах (pg_total_relation_size)")
+    size_pretty: str = Field(..., description="Человекочитаемый размер таблицы")
     user_privileges: list[TableUserPrivilege]
 
 
@@ -129,6 +131,8 @@ class TablePrivilegeGroupInfo(BaseModel):
     schema_name: str
     table_name: str
     owner: str
+    size_bytes: int = Field(..., description="Размер таблицы в байтах (pg_total_relation_size)")
+    size_pretty: str = Field(..., description="Человекочитаемый размер таблицы")
     group_privileges: list[TableGroupPrivilege]
 
 
@@ -164,3 +168,16 @@ class PaginatedTablePrivilegesGroupsResponse(BaseModel):
     has_prev: bool
     table_privileges: list[TablePrivilegeGroupInfo]
     model_config = ConfigDict(from_attributes=True)
+
+
+class TableVacuumRequest(BaseModel):
+    schema_name: str
+    table_name: str
+    full: bool = False
+
+
+class TableVacuumResponse(BaseModel):
+    message: str
+    schema_name: str
+    table_name: str
+    full: bool

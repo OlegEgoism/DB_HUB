@@ -876,13 +876,9 @@
   padding: 0 16px;
   border: 1px solid $clr-gray-300;
   border-radius: 8px;
-  font-size: 14px;
   color: var(--color-text-main);
   background: white;
   cursor: pointer;
-  min-height: 48px;
-  min-width: 340px;
-  //width: 100%;
   flex: 0 0 220px;
 
   &:focus {
@@ -1805,7 +1801,7 @@
   padding: 12px 14px;
   border: 1px solid $clr-gray-300;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 12px;
   color: var(--color-text-main);
   transition: all 0.2s ease;
 
@@ -1837,6 +1833,37 @@
   min-width: 0;
 }
 
+.usersMetaGrid_inline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: nowrap;
+
+  .usersMetaCell {
+    flex: 0 1 auto;
+  }
+
+  @media (max-width: 1200px) {
+    flex-wrap: wrap;
+  }
+}
+
+.usersMetaGrid_stable {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  width: min(760px, 100%);
+
+  .usersMetaCell {
+    min-width: 0;
+  }
+
+  @media (max-width: 1200px) {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(420px, 100%);
+  }
+}
+
 .usersMetaTableLabel {
   text-align: right;
 }
@@ -1845,6 +1872,14 @@
   max-width: 100%;
   min-width: 0;
   text-align: left;
+}
+
+.groupsDescriptionShift {
+  margin-left: -300px;
+
+  @media (max-width: 1200px) {
+    margin-left: 0;
+  }
 }
 
 .usersMetaDescriptionValue,
