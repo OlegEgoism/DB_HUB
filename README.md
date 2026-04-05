@@ -122,9 +122,13 @@ docker compose -f docker-compose.hostnet.yml up --build -d
 Пример публикации (подставьте свой namespace):
 
 ```bash
-docker login -u <user>
-docker build -f Dockerfile.fullstack.prod -t <user>/db-hub:latest .
-docker push <user>/db-hub:latest
+docker login -u olegegoism
+docker build -f Dockerfile.fullstack -t olegegoism/db-hub:latest .
+docker push olegegoism/db-hub:latest
 ```
 
 `VITE_API_BASE_URL` задаётся на этапе **build** образа (`ARG` в `Dockerfile.fullstack.prod` / `docker-compose.hub.yml`).
+
+
+docker exec -it db-hub getent hosts host.docker.internal
+docker exec -it db-hub sh -c "nc -zv host.docker.internal 5432"
