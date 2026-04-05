@@ -3421,7 +3421,7 @@ export default function ConnectionDetailPage() {
                                                                 </h3>
                                                             </div>
                                                             <div className={clsx(styles.userItemHeaderRight)}>
-                                                                <div className={clsx(styles.usersMetaGrid, styles.usersMetaGrid_stable)}>
+                                                                <div className={clsx(styles.usersMetaGrid, styles.tablesMetaGridOneRow)}>
                                                                     <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.details.comment')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue, styles.usersMetaDescriptionValue)} title={table.description || '—'}>
