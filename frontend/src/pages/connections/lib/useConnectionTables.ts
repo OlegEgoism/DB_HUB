@@ -15,6 +15,8 @@ export interface TablePrivilegeInfo {
   schema_name: string;
   table_name: string;
   owner: string;
+  size_bytes: number;
+  size_pretty: string;
   group_privileges: TableGroupPrivilege[];
 }
 

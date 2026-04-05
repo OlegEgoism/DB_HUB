@@ -3366,6 +3366,10 @@ export default function ConnectionDetailPage() {
                                                                         <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.groups')}</span>
                                                                         <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{table.group_privileges.length}</span>
                                                                     </div>
+                                                                    <div className={clsx(styles.userItemInfo, styles.usersMetaCell)}>
+                                                                        <span className={clsx(styles.userItemInfoLabel, styles.userItemInfoLabel_aligned, styles.usersMetaTableLabel)}>{t('tables.size')}</span>
+                                                                        <span className={clsx(styles.userItemInfoValue, styles.usersMetaTableValue)}>{table.size_pretty || '—'}</span>
+                                                                    </div>
                                                                 </div>
                                                                 <div className={clsx(styles.userActions)}>
                                                                     <button className={clsx(styles.userActionButton)} onClick={() => void openTableDetailsModal(table)} title={`Открыть детали ${table.table_name}`}>

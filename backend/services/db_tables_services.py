@@ -247,7 +247,8 @@ class DBTablesService:
             n.nspname AS schema_name,
             c.relname AS table_name,
             c.oid AS table_oid,
-            pg_get_userbyid(c.relowner) AS owner
+            pg_get_userbyid(c.relowner) AS owner,
+            pg_total_relation_size(c.oid) AS size_bytes
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE c.relkind = 'r'
@@ -260,6 +261,7 @@ class DBTablesService:
                     "schema_name": row["schema_name"],
                     "table_name": row["table_name"],
                     "owner": row["owner"],
+                    "size_bytes": row["size_bytes"] or 0,
                     "privileges": {
                         username: {
                             "SELECT": False,
@@ -301,6 +303,8 @@ class DBTablesService:
                     "schema_name": info["schema_name"],
                     "table_name": info["table_name"],
                     "owner": info["owner"],
+                    "size_bytes": info["size_bytes"],
+                    "size_pretty": self._human_readable_size(info["size_bytes"]),
                     "user_privileges": [
                         {
                             "user": user,
@@ -497,7 +501,8 @@ class DBTablesService:
             n.nspname AS schema_name,
             c.relname AS table_name,
             c.oid AS table_oid,
-            pg_get_userbyid(c.relowner) AS owner
+            pg_get_userbyid(c.relowner) AS owner,
+            pg_total_relation_size(c.oid) AS size_bytes
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE c.relkind = 'r'
@@ -509,6 +514,7 @@ class DBTablesService:
                     "schema_name": row["schema_name"],
                     "table_name": row["table_name"],
                     "owner": row["owner"],
+                    "size_bytes": row["size_bytes"] or 0,
                     "privileges": {
                         groupname: {
                             "SELECT": False,
@@ -549,6 +555,8 @@ class DBTablesService:
                     "schema_name": info["schema_name"],
                     "table_name": info["table_name"],
                     "owner": info["owner"],
+                    "size_bytes": info["size_bytes"],
+                    "size_pretty": self._human_readable_size(info["size_bytes"]),
                     "group_privileges": [
                         {
                             "group": group,
