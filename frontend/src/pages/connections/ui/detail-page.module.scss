@@ -1878,6 +1878,14 @@
   text-align: left;
 }
 
+.groupsDescriptionShift {
+  margin-left: -300px;
+
+  @media (max-width: 1200px) {
+    margin-left: 0;
+  }
+}
+
 .usersMetaDescriptionValue,
 .usersMetaEmailValue {
   overflow: hidden;
