@@ -99,11 +99,15 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
-    setLanguage(selectedLanguage);
+    const shouldReload = selectedLanguage !== language;
 
     try {
       const savedVisibility = await connectionTabsSettingsModel.saveVisibility(visibility);
       setVisibility(savedVisibility);
+      if (shouldReload) {
+        setLanguage(selectedLanguage);
+        window.location.reload();
+      }
     } finally {
       setIsSaving(false);
     }
@@ -146,12 +150,11 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          <div key={language} className={clsx(styles.settings__language)}>
+          <div className={clsx(styles.settings__language)}>
             <label htmlFor="language" className={clsx(styles.settings__label)}>
               {t('settings.language')}
             </label>
             <select
-              key={`${language}-${selectedLanguage}`}
               id="language"
               value={selectedLanguage}
               onChange={(event) => setSelectedLanguage(event.target.value as Language)}
