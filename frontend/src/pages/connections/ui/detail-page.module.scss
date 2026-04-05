@@ -1183,15 +1183,6 @@
   min-width: 0;
 }
 
-.clickableTableTitle {
-  cursor: pointer;
-
-  &:hover {
-    color: var(--color-primary);
-    text-decoration: underline;
-  }
-}
-
 .userItemContent {
   padding: 20px 24px;
 }

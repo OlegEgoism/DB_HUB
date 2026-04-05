@@ -3413,9 +3413,8 @@ export default function ConnectionDetailPage() {
                                                         <div className={clsx(styles.userItemHeader)}>
                                                             <div className={clsx(styles.userItemHeaderLeft)}>
                                                                 <h3
-                                                                    className={clsx(styles.userItemTitle, styles.clickableTableTitle)}
+                                                                    className={clsx(styles.userItemTitle)}
                                                                     title={`${table.schema_name}.${table.table_name}`}
-                                                                    onClick={() => void openTableDetailsModal(table)}
                                                                 >
                                                                     {table.schema_name}.{table.table_name}
                                                                 </h3>
