@@ -161,6 +161,18 @@ const truncateText = (value: string | null | undefined, maxLength: number): stri
     return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 };
 
+const resolveListTotal = (total: number, pages: number, page: number, size: number, currentItems: number): number => {
+    if (total > 0) return total;
+    if (currentItems > 0) {
+        const estimatedByPage = (Math.max(page, 1) - 1) * Math.max(size, 1) + currentItems;
+        return Math.max(currentItems, estimatedByPage);
+    }
+    if (pages > 1) {
+        return pages * Math.max(size, 1);
+    }
+    return 0;
+};
+
 export default function ConnectionDetailPage() {
     const { t } = useI18n();
     const {id} = useParams<{ id: string }>();
@@ -364,7 +376,7 @@ export default function ConnectionDetailPage() {
         usersSearchTerm || null,
         usersReloadTrigger
     );
-    const resolvedUsersTotal = totalUsers > 0 ? totalUsers : users.length;
+    const resolvedUsersTotal = resolveListTotal(totalUsers, totalUsersPages, usersPage, usersPageSize, users.length);
 
 
     const {
@@ -382,7 +394,7 @@ export default function ConnectionDetailPage() {
         groupsSearchTerm || null,
         groupsReloadTrigger
     );
-    const resolvedGroupsTotal = totalGroups > 0 ? totalGroups : groups.length;
+    const resolvedGroupsTotal = resolveListTotal(totalGroups, totalGroupsPages, groupsPage, groupsPageSize, groups.length);
 
 
     const {
@@ -400,7 +412,7 @@ export default function ConnectionDetailPage() {
         schemasSearchTerm || null,
         schemasReloadTrigger
     );
-    const resolvedSchemasTotal = totalSchemas > 0 ? totalSchemas : schemas.length;
+    const resolvedSchemasTotal = resolveListTotal(totalSchemas, totalSchemasPages, schemasPage, schemasPageSize, schemas.length);
 
     const {
         tables,
@@ -418,7 +430,7 @@ export default function ConnectionDetailPage() {
         tablesFilterType,
         tablesReloadTrigger
     );
-    const resolvedTablesTotal = totalTables > 0 ? totalTables : tables.length;
+    const resolvedTablesTotal = resolveListTotal(totalTables, totalTablesPages, tablesPage, tablesPageSize, tables.length);
 
 
     const {
@@ -477,9 +489,15 @@ export default function ConnectionDetailPage() {
         viewsReloadTrigger
     );
 
-    const resolvedViewsTotal = totalViews > 0 ? totalViews : views.length;
+    const resolvedViewsTotal = resolveListTotal(totalViews, totalViewsPages, viewsPage, viewsPageSize, views.length);
     const resolvedViewsPages = totalViewsPages > 0 ? totalViewsPages : 1;
-    const resolvedMaterializedViewsTotal = totalMaterializedViews > 0 ? totalMaterializedViews : materializedViews.length;
+    const resolvedMaterializedViewsTotal = resolveListTotal(
+        totalMaterializedViews,
+        totalMaterializedViewsPages,
+        materializedViewsPage,
+        materializedViewsPageSize,
+        materializedViews.length,
+    );
     const resolvedMaterializedViewsPages = totalMaterializedViewsPages > 0 ? totalMaterializedViewsPages : 1;
 
     const {
@@ -498,7 +516,7 @@ export default function ConnectionDetailPage() {
         indexesReloadTrigger
     );
 
-    const resolvedIndexesTotal = totalIndexes > 0 ? totalIndexes : indexes.length;
+    const resolvedIndexesTotal = resolveListTotal(totalIndexes, totalIndexesPages, indexesPage, indexesPageSize, indexes.length);
     const resolvedIndexesPages = totalIndexesPages > 0 ? totalIndexesPages : 1;
 
 
@@ -518,7 +536,7 @@ export default function ConnectionDetailPage() {
         functionsReloadTrigger
     );
 
-    const resolvedFunctionsTotal = totalFunctions > 0 ? totalFunctions : functions.length;
+    const resolvedFunctionsTotal = resolveListTotal(totalFunctions, totalFunctionsPages, functionsPage, functionsPageSize, functions.length);
     const resolvedFunctionsPages = totalFunctionsPages > 0 ? totalFunctionsPages : 1;
 
 
@@ -538,7 +556,7 @@ export default function ConnectionDetailPage() {
         proceduresReloadTrigger
     );
 
-    const resolvedProceduresTotal = totalProcedures > 0 ? totalProcedures : procedures.length;
+    const resolvedProceduresTotal = resolveListTotal(totalProcedures, totalProceduresPages, proceduresPage, proceduresPageSize, procedures.length);
     const resolvedProceduresPages = totalProceduresPages > 0 ? totalProceduresPages : 1;
 
 
@@ -2985,12 +3003,12 @@ export default function ConnectionDetailPage() {
 
 
                                             {/* Пагинация */}
-                                            {totalUsers > 0 && (
+                                            {resolvedUsersTotal > 0 && (
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 {t('users.shown')} <span className={clsx(styles.paginationHighlight)}>{((usersPage - 1) * usersPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(usersPage * usersPageSize, totalUsers)}</span> {t('users.of')} <span className={clsx(styles.paginationHighlight)}>{totalUsers}</span> {t('users.users')}
+<span className={clsx(styles.paginationHighlight)}>{Math.min(usersPage * usersPageSize, resolvedUsersTotal)}</span> {t('users.of')} <span className={clsx(styles.paginationHighlight)}>{resolvedUsersTotal}</span> {t('users.users')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
@@ -3178,12 +3196,12 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 ))}
                                             </div>
-                                            {totalGroups > 0 && (
+                                            {resolvedGroupsTotal > 0 && (
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 {t('groups.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((groupsPage - 1) * groupsPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(groupsPage * groupsPageSize, totalGroups)}</span> {t('groups.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalGroups}</span> {t('groups.pagination.groups')}
+<span className={clsx(styles.paginationHighlight)}>{Math.min(groupsPage * groupsPageSize, resolvedGroupsTotal)}</span> {t('groups.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{resolvedGroupsTotal}</span> {t('groups.pagination.groups')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
@@ -3308,12 +3326,12 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 ))}
                                             </div>
-                                            {totalSchemas > 0 && (
+                                            {resolvedSchemasTotal > 0 && (
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 {t('schemas.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((schemasPage - 1) * schemasPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(schemasPage * schemasPageSize, totalSchemas)}</span> {t('schemas.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalSchemas}</span> {t('schemas.pagination.schemas')}
+<span className={clsx(styles.paginationHighlight)}>{Math.min(schemasPage * schemasPageSize, resolvedSchemasTotal)}</span> {t('schemas.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{resolvedSchemasTotal}</span> {t('schemas.pagination.schemas')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
@@ -3472,12 +3490,12 @@ export default function ConnectionDetailPage() {
                                                     </div>
                                                 ))}
                                             </div>
-                                            {totalTables > 0 && (
+                                            {resolvedTablesTotal > 0 && (
                                                 <div className={clsx(styles.pagination)}>
                                                     <div className={clsx(styles.paginationInfo)}>
 <span className={clsx(styles.paginationText)}>
 {t('tables.pagination.shown')} <span className={clsx(styles.paginationHighlight)}>{((tablesPage - 1) * tablesPageSize) + 1}</span>–
-<span className={clsx(styles.paginationHighlight)}>{Math.min(tablesPage * tablesPageSize, totalTables)}</span> {t('tables.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{totalTables}</span> {t('tables.pagination.tables')}
+<span className={clsx(styles.paginationHighlight)}>{Math.min(tablesPage * tablesPageSize, resolvedTablesTotal)}</span> {t('tables.pagination.of')} <span className={clsx(styles.paginationHighlight)}>{resolvedTablesTotal}</span> {t('tables.pagination.tables')}
 </span>
                                                     </div>
                                                     <div className={clsx(styles.paginationControls)}>
