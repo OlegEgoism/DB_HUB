@@ -2007,9 +2007,7 @@ export default function ConnectionDetailPage() {
             setVacuumResultModal({
                 table: tableKey,
                 full,
-                message: typeof (data as { message?: unknown }).message === 'string'
-                    ? (data as { message: string }).message
-                    : (full ? t('tables.vacuum_full_done') : t('tables.vacuum_done')),
+                message: full ? t('tables.vacuum_full_done') : t('tables.vacuum_done'),
             });
             refreshTables();
         } catch (err) {
