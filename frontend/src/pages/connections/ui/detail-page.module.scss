@@ -1857,9 +1857,15 @@
 
 .tablesMetaGridOneRow {
   display: grid;
-  grid-template-columns: minmax(240px, 1.4fr) repeat(3, minmax(120px, auto));
+  grid-template-columns: 320px 180px 120px 140px;
   gap: 10px 16px;
   align-items: center;
+  width: 808px;
+  max-width: 100%;
+
+  .usersMetaCell {
+    min-width: 0;
+  }
 }
 
 .usersMetaTableLabel {
