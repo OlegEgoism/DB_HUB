@@ -92,6 +92,9 @@ export default function ConnectionsPage() {
 
             setConnections(data.items);
             setTotalItems(data.total);
+            if (activeTab === 'Все' && !searchTerm.trim()) {
+                setBadgeTotalItems(data.total);
+            }
             setTotalPages(data.pages);
             setHasNext(data.has_next);
             setHasPrev(data.has_prev);
@@ -112,23 +115,8 @@ export default function ConnectionsPage() {
 
 
 
-    const refreshBadgeTotal = async () => {
-        try {
-            const totalData = await fetchConnections({
-                page: 1,
-                size: 1,
-                search: '',
-                activeTab: 'Все',
-            });
-            setBadgeTotalItems(totalData.total);
-        } catch (err) {
-            console.error('Ошибка обновления счетчика подключений:', err);
-        }
-    };
-
     useEffect(() => {
         loadConnections();
-        refreshBadgeTotal();
     }, [currentPage, pageSize, searchTerm, activeTab]);
 
     // ✅ Обработчик обновления страницы
@@ -206,9 +194,6 @@ export default function ConnectionsPage() {
             setBadgeTotalItems((prev) => Math.max(0, prev - 1));
             await loadConnections();
             closeDeleteConfirm();
-            window.setTimeout(() => {
-                refreshBadgeTotal();
-            }, 1500);
         } catch (err) {
             if (err instanceof Error && err.message.includes('не авторизован')) {
                 navigate('/login');
@@ -296,9 +281,6 @@ export default function ConnectionsPage() {
         setBadgeTotalItems((prev) => prev + 1);
         await loadConnections();
         closeCreateModal();
-        window.setTimeout(() => {
-            refreshBadgeTotal();
-        }, 1500);
     };
 
     const getEnvironmentBadge = (env: string) => {
