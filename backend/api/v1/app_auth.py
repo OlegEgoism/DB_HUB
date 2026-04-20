@@ -7,7 +7,7 @@ from fastapi import (
     Request,
     status,
 )
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.limiter import limiter
@@ -22,7 +22,7 @@ from backend.schemas.app_users_schemas import (
 from backend.services.app_users_services import UserService
 
 router = APIRouter(prefix="/app_auth", tags=["APP AUTHENTICATION"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/app_auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/app_auth/login-form")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
@@ -95,21 +95,6 @@ async def _login_and_build_response(
     return UserLoginResponse(
         user=result["user"],
         token=Token(access_token=result["access_token"], token_type=result["token_type"]),
-    )
-
-
-@router.post("/login", response_model=UserLoginResponse)
-@limiter.limit("5/minute")
-async def login(
-    request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),
-):
-    return await _login_and_build_response(
-        request=request,
-        username=form_data.username,
-        password=form_data.password,
-        db=db,
     )
 
 
