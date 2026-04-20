@@ -287,16 +287,3 @@ class UserService:
                 active_sessions,
             ) in rows
         ]
-
-    async def get_current_user_from_token(self, token: str) -> User | None:
-        """Получение текущего пользователя из токена"""
-        from backend.core.security import decode_access_token
-
-        payload = decode_access_token(token)
-        if not payload:
-            return None
-        username = payload.get("sub")
-        if not username:
-            return None
-        user = await self.get_user_by_username(username)
-        return user

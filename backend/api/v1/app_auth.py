@@ -41,7 +41,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
             detail="Сессия недействительна",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user = await user_service.get_current_user_from_token(token)
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверные учетные данные",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = await user_service.get_user_by_username(username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -53,15 +60,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     return user
 
 
-@router.post("/login", response_model=UserLoginResponse)
-@limiter.limit("5/minute")
-async def login(
+async def _login_and_build_response(
     request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),
-):
+    username: str,
+    password: str,
+    db: AsyncSession,
+) -> UserLoginResponse:
     user_service = UserService(db)
-    user = await user_service.get_user_by_username(form_data.username)
+    user = await user_service.get_user_by_username(username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -75,8 +81,8 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     result = await user_service.login_user(
-        form_data.username,
-        form_data.password,
+        username,
+        password,
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
@@ -89,6 +95,21 @@ async def login(
     return UserLoginResponse(
         user=result["user"],
         token=Token(access_token=result["access_token"], token_type=result["token_type"]),
+    )
+
+
+@router.post("/login", response_model=UserLoginResponse)
+@limiter.limit("5/minute")
+async def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _login_and_build_response(
+        request=request,
+        username=form_data.username,
+        password=form_data.password,
+        db=db,
     )
 
 
@@ -99,35 +120,11 @@ async def login_form(
     login_data: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    user_service = UserService(db)
-    user = await user_service.get_user_by_username(login_data.username)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный логин или пароль",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Учетная запись не активирована. Обратитесь к администратору.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    result = await user_service.login_user(
-        login_data.username,
-        login_data.password,
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-    )
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный логин или пароль",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return UserLoginResponse(
-        user=result["user"],
-        token=Token(access_token=result["access_token"], token_type=result["token_type"]),
+    return await _login_and_build_response(
+        request=request,
+        username=login_data.username,
+        password=login_data.password,
+        db=db,
     )
 
 
