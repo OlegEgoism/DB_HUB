@@ -46,6 +46,7 @@ export default function ConnectionsPage() {
     const [pageSize, setPageSize] = useState(8);
     const [activeTab, setActiveTab] = useState<ConnectionsTab>('Все');
     const [totalItems, setTotalItems] = useState(0);
+    const [badgeTotalItems, setBadgeTotalItems] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [hasNext, setHasNext] = useState(false);
     const [hasPrev, setHasPrev] = useState(false);
@@ -109,8 +110,25 @@ export default function ConnectionsPage() {
         }
     };
 
+
+
+    const refreshBadgeTotal = async () => {
+        try {
+            const totalData = await fetchConnections({
+                page: 1,
+                size: 1,
+                search: '',
+                activeTab: 'Все',
+            });
+            setBadgeTotalItems(totalData.total);
+        } catch (err) {
+            console.error('Ошибка обновления счетчика подключений:', err);
+        }
+    };
+
     useEffect(() => {
         loadConnections();
+        refreshBadgeTotal();
     }, [currentPage, pageSize, searchTerm, activeTab]);
 
     // ✅ Обработчик обновления страницы
@@ -185,7 +203,7 @@ export default function ConnectionsPage() {
 
         try {
             await removeConnection(confirmDeleteId);
-            loadConnections();
+            await Promise.all([loadConnections(), refreshBadgeTotal()]);
             closeDeleteConfirm();
         } catch (err) {
             if (err instanceof Error && err.message.includes('не авторизован')) {
@@ -271,7 +289,7 @@ export default function ConnectionsPage() {
 
     // Обработчик успешного создания
     const handleCreateSuccess = async () => {
-        await loadConnections();
+        await Promise.all([loadConnections(), refreshBadgeTotal()]);
         closeCreateModal();
     };
 
@@ -371,7 +389,7 @@ export default function ConnectionsPage() {
                             <h1 className={clsx(styles.connections__title)}>
                                 Подключения
                                 <span className={clsx(styles.profile__usernameBadge)}>
-                  {totalItems}
+                  {badgeTotalItems}
                 </span>
                             </h1>
                         </div>
