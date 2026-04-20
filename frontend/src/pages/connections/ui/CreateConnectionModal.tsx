@@ -18,7 +18,7 @@ export function CreateConnectionModal({
                                           onSuccess,
 }: {
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: () => Promise<void> | void;
 }) {
     const [formData, setFormData] = useState({
         name: '',
@@ -59,7 +59,7 @@ export function CreateConnectionModal({
         };
 
         await createConnection(createData);
-        onSuccess();
+        await onSuccess();
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

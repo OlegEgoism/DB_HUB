@@ -270,9 +270,9 @@ export default function ConnectionsPage() {
     };
 
     // Обработчик успешного создания
-    const handleCreateSuccess = () => {
+    const handleCreateSuccess = async () => {
+        await loadConnections();
         closeCreateModal();
-        loadConnections();
     };
 
     const getEnvironmentBadge = (env: string) => {
