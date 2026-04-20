@@ -260,16 +260,38 @@
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 16px;
+  }
+
+  &__sessionsPaginationSelect {
+    padding: 8px 12px;
+    border: 1px solid $clr-gray-300;
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--color-text-main);
+    background: white;
+    cursor: pointer;
+    min-width: 140px;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+  }
+
+  &__sessionsPaginationButtons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   &__sessionsPageButton {
-    border: 1px solid var(--gray-200);
+    background: white;
+    border: 1px solid $clr-gray-300;
     border-radius: 6px;
-    background: #fff;
     color: var(--color-text-main);
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
     width: 36px;
     height: 36px;
     padding: 8px 12px;
@@ -289,11 +311,19 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+
+    &_first,
+    &_last {
+      width: 40px;
+      height: 36px;
+    }
   }
 
   &__sessionsPageInfo {
     font-size: 14px;
-    color: var(--color-text-muted);
-    white-space: nowrap;
+    color: var(--color-text-main);
+    font-weight: 500;
+    min-width: 120px;
+    text-align: center;
   }
 }
