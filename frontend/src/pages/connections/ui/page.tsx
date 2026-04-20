@@ -203,6 +203,7 @@ export default function ConnectionsPage() {
 
         try {
             await removeConnection(confirmDeleteId);
+            setBadgeTotalItems((prev) => Math.max(0, prev - 1));
             await Promise.all([loadConnections(), refreshBadgeTotal()]);
             closeDeleteConfirm();
         } catch (err) {
@@ -289,6 +290,7 @@ export default function ConnectionsPage() {
 
     // Обработчик успешного создания
     const handleCreateSuccess = async () => {
+        setBadgeTotalItems((prev) => prev + 1);
         await Promise.all([loadConnections(), refreshBadgeTotal()]);
         closeCreateModal();
     };
