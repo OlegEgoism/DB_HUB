@@ -103,6 +103,9 @@ export default function SettingsPage() {
     return activeSessions.slice(startIndex, startIndex + SESSIONS_PAGE_SIZE);
   }, [activeSessions, sessionsPage]);
 
+  const sessionsShownFrom = activeSessions.length === 0 ? 0 : (sessionsPage - 1) * SESSIONS_PAGE_SIZE + 1;
+  const sessionsShownTo = Math.min(sessionsPage * SESSIONS_PAGE_SIZE, activeSessions.length);
+
   const handleToggle = (tabKey: ConnectionTabKey) => {
     setVisibility((prev) => {
       return {
@@ -230,42 +233,61 @@ export default function SettingsPage() {
               )}
               {!sessionsLoading && activeSessions.length > 0 && (
                 <div className={clsx(styles.settings__sessionsPagination)}>
-                  <span className={clsx(styles.settings__sessionsPaginationInfo)}>
-                    {t('users.page.label')} {sessionsPage} / {sessionsTotalPages}
-                  </span>
-                  <div className={clsx(styles.settings__sessionsPaginationActions)}>
+                  <div className={clsx(styles.settings__sessionsPaginationInfo)}>
+                    <span className={clsx(styles.settings__sessionsPaginationText)}>
+                      {t('users.shown')}{' '}
+                      <span className={clsx(styles.settings__sessionsPaginationHighlight)}>
+                        {sessionsShownFrom}-{sessionsShownTo}
+                      </span>{' '}
+                      {t('users.of')}{' '}
+                      <span className={clsx(styles.settings__sessionsPaginationHighlight)}>
+                        {activeSessions.length}
+                      </span>
+                    </span>
+                  </div>
+                  <div className={clsx(styles.settings__sessionsPaginationControls)}>
                     <button
                       type="button"
                       className={clsx(styles.settings__sessionsPageButton)}
                       onClick={() => setSessionsPage(1)}
                       disabled={sessionsPage === 1}
+                      aria-label={t('users.page.first')}
                     >
-                      {t('users.page.first')}
+                      «
                     </button>
                     <button
                       type="button"
                       className={clsx(styles.settings__sessionsPageButton)}
                       onClick={() => setSessionsPage((prev) => Math.max(1, prev - 1))}
                       disabled={sessionsPage === 1}
+                      aria-label={t('users.page.prev')}
                     >
-                      {t('users.page.prev')}
+                      ‹
                     </button>
                     <button
                       type="button"
                       className={clsx(styles.settings__sessionsPageButton)}
                       onClick={() => setSessionsPage((prev) => Math.min(sessionsTotalPages, prev + 1))}
                       disabled={sessionsPage === sessionsTotalPages}
+                      aria-label={t('users.page.next')}
                     >
-                      {t('users.page.next')}
+                      ›
                     </button>
                     <button
                       type="button"
                       className={clsx(styles.settings__sessionsPageButton)}
                       onClick={() => setSessionsPage(sessionsTotalPages)}
                       disabled={sessionsPage === sessionsTotalPages}
+                      aria-label={t('users.page.last')}
                     >
-                      {t('users.page.last')}
+                      »
                     </button>
+                    <span className={clsx(styles.settings__sessionsPageInfo)}>
+                      {t('users.page.label')}{' '}
+                      <span className={clsx(styles.settings__sessionsPaginationHighlight)}>{sessionsPage}</span>{' '}
+                      {t('users.of')}{' '}
+                      <span className={clsx(styles.settings__sessionsPaginationHighlight)}>{sessionsTotalPages}</span>
+                    </span>
                   </div>
                 </div>
               )}
