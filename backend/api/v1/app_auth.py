@@ -7,11 +7,11 @@ from fastapi import (
     Request,
     status,
 )
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.core.security import decode_access_token
 from backend.core.limiter import limiter
+from backend.core.security import decode_access_token
 from backend.database.session import get_db
 from backend.schemas.app_users_schemas import (
     ActiveSessionResponse,
@@ -22,7 +22,7 @@ from backend.schemas.app_users_schemas import (
 from backend.services.app_users_services import UserService
 
 router = APIRouter(prefix="/app_auth", tags=["APP AUTHENTICATION"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/app_auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/app_auth/login-form")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
@@ -41,7 +41,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
             detail="Сессия недействительна",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user = await user_service.get_current_user_from_token(token)
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверные учетные данные",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = await user_service.get_user_by_username(username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -53,15 +60,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     return user
 
 
-@router.post("/login", response_model=UserLoginResponse)
-@limiter.limit("5/minute")
-async def login(
+async def _login_and_build_response(
     request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),
-):
+    username: str,
+    password: str,
+    db: AsyncSession,
+) -> UserLoginResponse:
     user_service = UserService(db)
-    user = await user_service.get_user_by_username(form_data.username)
+    user = await user_service.get_user_by_username(username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -75,8 +81,8 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     result = await user_service.login_user(
-        form_data.username,
-        form_data.password,
+        username,
+        password,
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
     )
@@ -99,35 +105,11 @@ async def login_form(
     login_data: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    user_service = UserService(db)
-    user = await user_service.get_user_by_username(login_data.username)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный логин или пароль",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Учетная запись не активирована. Обратитесь к администратору.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    result = await user_service.login_user(
-        login_data.username,
-        login_data.password,
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-    )
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный логин или пароль",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return UserLoginResponse(
-        user=result["user"],
-        token=Token(access_token=result["access_token"], token_type=result["token_type"]),
+    return await _login_and_build_response(
+        request=request,
+        username=login_data.username,
+        password=login_data.password,
+        db=db,
     )
 
 
@@ -176,12 +158,6 @@ async def revoke_user_sessions(
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Активные сессии пользователя не найдены")
     return {"message": "Сессии пользователя завершены"}
-
-
-# @router.get("/me", response_model=UserProfile)
-# async def get_current_user_profile(current_user=Depends(get_current_user)):
-#     return current_user
-
 
 @router.post("/validate-token")
 async def validate_token(current_user=Depends(get_current_user)):
