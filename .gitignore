@@ -1,8 +1,9 @@
 # .gitignore
 __pycache__/
-.venv/
+backend/venv/
 .idea/
 .env
 db_hub.sqlite3
 frontend/build/
 frontend/.vite/
+node_modules/

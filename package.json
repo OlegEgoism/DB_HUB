@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@react-router/dev": "^7.14.1"
+  },
+  "dependencies": {
+    "@react-router/node": "^7.14.1",
+    "react-router": "^7.14.1"
+  }
+}
