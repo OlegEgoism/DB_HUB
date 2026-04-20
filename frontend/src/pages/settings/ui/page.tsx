@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import clsx from 'clsx';
 import styles from './styles.module.scss';
@@ -23,6 +23,8 @@ type ActiveSession = {
   active_sessions: number;
 };
 
+const SESSIONS_PAGE_SIZE = 6;
+
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { checkAuth, getUser } = useSession();
@@ -33,6 +35,7 @@ export default function SettingsPage() {
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [revokingSessionId, setRevokingSessionId] = useState<number | null>(null);
+  const [sessionsPage, setSessionsPage] = useState(1);
   const { language, setLanguage, t } = useI18n();
   const currentUser = getUser();
   const canManageSessions = currentUser?.role === 'Администратор БД' && currentUser?.is_active && currentUser?.is_superuser;
@@ -71,6 +74,7 @@ export default function SettingsPage() {
         try {
           const sessions = await apiRequest<ActiveSession[]>('/api/v1/app_auth/sessions/active', { withAuth: true });
           setActiveSessions(sessions);
+          setSessionsPage(1);
         } finally {
           setSessionsLoading(false);
         }
@@ -83,6 +87,21 @@ export default function SettingsPage() {
   useEffect(() => {
     setSelectedLanguage(language);
   }, [language]);
+
+  const sessionsTotalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(activeSessions.length / SESSIONS_PAGE_SIZE));
+  }, [activeSessions.length]);
+
+  useEffect(() => {
+    if (sessionsPage > sessionsTotalPages) {
+      setSessionsPage(sessionsTotalPages);
+    }
+  }, [sessionsPage, sessionsTotalPages]);
+
+  const paginatedSessions = useMemo(() => {
+    const startIndex = (sessionsPage - 1) * SESSIONS_PAGE_SIZE;
+    return activeSessions.slice(startIndex, startIndex + SESSIONS_PAGE_SIZE);
+  }, [activeSessions, sessionsPage]);
 
   const handleToggle = (tabKey: ConnectionTabKey) => {
     setVisibility((prev) => {
@@ -191,7 +210,7 @@ export default function SettingsPage() {
                     <span>{t('settings.sessions.count')}</span>
                     <span>{t('users.actions')}</span>
                   </div>
-                  {activeSessions.map((session) => (
+                  {paginatedSessions.map((session) => (
                     <div key={session.user_id} className={clsx(styles.settings__sessionRow)}>
                       <span className={clsx(styles.settings__sessionValueStrong)}>{session.username}</span>
                       <span>{formatRoleLabel(session.role)}</span>
@@ -207,6 +226,47 @@ export default function SettingsPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+              {!sessionsLoading && activeSessions.length > 0 && (
+                <div className={clsx(styles.settings__sessionsPagination)}>
+                  <span className={clsx(styles.settings__sessionsPaginationInfo)}>
+                    {t('users.page.label')} {sessionsPage} / {sessionsTotalPages}
+                  </span>
+                  <div className={clsx(styles.settings__sessionsPaginationActions)}>
+                    <button
+                      type="button"
+                      className={clsx(styles.settings__sessionsPageButton)}
+                      onClick={() => setSessionsPage(1)}
+                      disabled={sessionsPage === 1}
+                    >
+                      {t('users.page.first')}
+                    </button>
+                    <button
+                      type="button"
+                      className={clsx(styles.settings__sessionsPageButton)}
+                      onClick={() => setSessionsPage((prev) => Math.max(1, prev - 1))}
+                      disabled={sessionsPage === 1}
+                    >
+                      {t('users.page.prev')}
+                    </button>
+                    <button
+                      type="button"
+                      className={clsx(styles.settings__sessionsPageButton)}
+                      onClick={() => setSessionsPage((prev) => Math.min(sessionsTotalPages, prev + 1))}
+                      disabled={sessionsPage === sessionsTotalPages}
+                    >
+                      {t('users.page.next')}
+                    </button>
+                    <button
+                      type="button"
+                      className={clsx(styles.settings__sessionsPageButton)}
+                      onClick={() => setSessionsPage(sessionsTotalPages)}
+                      disabled={sessionsPage === sessionsTotalPages}
+                    >
+                      {t('users.page.last')}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -226,4 +226,47 @@
       transform: none;
     }
   }
+
+  &__sessionsPagination {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  &__sessionsPaginationInfo {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  &__sessionsPaginationActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__sessionsPageButton {
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--color-text-main);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
 }
