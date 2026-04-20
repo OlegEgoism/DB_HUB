@@ -212,19 +212,6 @@ class UserService:
         await self.db.flush()
         return True
 
-    async def revoke_session_by_id(self, session_id: int, revoked_by_user_id: int) -> bool:
-        result = await self.db.execute(
-            select(UserSession).where(UserSession.id == session_id, UserSession.is_active.is_(True))
-        )
-        session = result.scalar_one_or_none()
-        if not session:
-            return False
-        session.is_active = False
-        session.revoked_at = datetime.utcnow()
-        session.revoked_by_user_id = revoked_by_user_id
-        await self.db.flush()
-        return True
-
     async def revoke_user_sessions(self, user_id: int, revoked_by_user_id: int) -> bool:
         now = datetime.utcnow()
         result = await self.db.execute(

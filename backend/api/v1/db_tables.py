@@ -12,12 +12,12 @@ from backend.schemas.db_tables_schemas import (
     PaginatedTablePrivilegesUsersResponse,
     PaginatedTemporaryTablesResponse,
     TableDetailsResponse,
-    TableVacuumRequest,
-    TableVacuumResponse,
     TablePrivilegesGroupsUpdateRequest,
     TablePrivilegesGroupsUpdateResponse,
     TablePrivilegesUpdateRequest,
     TablePrivilegesUpdateResponse,
+    TableVacuumRequest,
+    TableVacuumResponse,
 )
 from backend.services.db_tables_services import DBTablesService
 

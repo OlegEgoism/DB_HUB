@@ -10,8 +10,8 @@ from fastapi import (
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.core.security import decode_access_token
 from backend.core.limiter import limiter
+from backend.core.security import decode_access_token
 from backend.database.session import get_db
 from backend.schemas.app_users_schemas import (
     ActiveSessionResponse,
@@ -176,12 +176,6 @@ async def revoke_user_sessions(
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Активные сессии пользователя не найдены")
     return {"message": "Сессии пользователя завершены"}
-
-
-# @router.get("/me", response_model=UserProfile)
-# async def get_current_user_profile(current_user=Depends(get_current_user)):
-#     return current_user
-
 
 @router.post("/validate-token")
 async def validate_token(current_user=Depends(get_current_user)):
