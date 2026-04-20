@@ -204,8 +204,11 @@ export default function ConnectionsPage() {
         try {
             await removeConnection(confirmDeleteId);
             setBadgeTotalItems((prev) => Math.max(0, prev - 1));
-            await Promise.all([loadConnections(), refreshBadgeTotal()]);
+            await loadConnections();
             closeDeleteConfirm();
+            window.setTimeout(() => {
+                refreshBadgeTotal();
+            }, 1500);
         } catch (err) {
             if (err instanceof Error && err.message.includes('не авторизован')) {
                 navigate('/login');
@@ -291,8 +294,11 @@ export default function ConnectionsPage() {
     // Обработчик успешного создания
     const handleCreateSuccess = async () => {
         setBadgeTotalItems((prev) => prev + 1);
-        await Promise.all([loadConnections(), refreshBadgeTotal()]);
+        await loadConnections();
         closeCreateModal();
+        window.setTimeout(() => {
+            refreshBadgeTotal();
+        }, 1500);
     };
 
     const getEnvironmentBadge = (env: string) => {
