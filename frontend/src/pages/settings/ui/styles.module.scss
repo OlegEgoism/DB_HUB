@@ -122,4 +122,108 @@
       cursor: not-allowed;
     }
   }
+
+  &__sessions {
+    margin-top: 28px;
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px solid var(--gray-200);
+    background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+    box-shadow: 0 8px 24px rgba(18, 38, 63, 0.08);
+  }
+
+  &__subtitle {
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--color-text-main);
+  }
+
+  &__sessionsDescription {
+    margin: 10px 0 16px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(47, 128, 237, 0.08);
+    border: 1px solid rgba(47, 128, 237, 0.2);
+    color: var(--color-text-main);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  &__empty {
+    margin: 0;
+    padding: 14px;
+    border-radius: 10px;
+    text-align: center;
+    color: var(--color-text-muted);
+    background: var(--color-surface-glass);
+    border: 1px dashed var(--border-glass);
+  }
+
+  &__sessionsTable {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    background: #fff;
+  }
+
+  &__sessionHeadRow,
+  &__sessionRow {
+    display: grid;
+    grid-template-columns: 1.3fr 1.1fr 0.8fr 0.8fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  &__sessionHeadRow {
+    background: #eef4ff;
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  &__sessionRow {
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--color-text-main);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__sessionValueStrong {
+    font-weight: 700;
+    color: var(--color-primary-dark);
+  }
+
+  &__sessionLogoutButton {
+    justify-self: end;
+    min-width: 120px;
+    border: none;
+    border-radius: 8px;
+    background: var(--color-status-danger);
+    color: white;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+
+    &:hover:not(:disabled) {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
 }

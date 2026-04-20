@@ -177,7 +177,7 @@ export default function SettingsPage() {
           {canManageSessions && (
             <div className={clsx(styles.settings__sessions)}>
               <h2 className={clsx(styles.settings__subtitle)}>{t('settings.sessions.title')}</h2>
-              <p className={clsx(styles.settings__description)}>{t('settings.sessions.description')}</p>
+              <p className={clsx(styles.settings__sessionsDescription)}>{t('settings.sessions.description')}</p>
               {sessionsLoading ? (
                 <p className={clsx(styles.settings__empty)}>{t('settings.sessions.loading')}</p>
               ) : activeSessions.length === 0 ? (
