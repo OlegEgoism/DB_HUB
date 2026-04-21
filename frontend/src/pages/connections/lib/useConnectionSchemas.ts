@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
-import { apiRequest } from '@shared/api/http';
-import { toQueryString } from '@shared/lib/query';
+import { usePaginatedConnectionResource } from './usePaginatedConnectionResource';
 
 export interface SchemaRolePrivilege {
   role: string;
@@ -17,13 +15,14 @@ export interface SchemaPrivilegeInfo {
 interface SchemasResponse {
   total_schemas?: number;
   total_filtered_schemas?: number;
-  page: number;
-  size: number;
   pages?: number;
   has_next?: boolean;
   has_prev?: boolean;
   schema_privileges: SchemaPrivilegeInfo[];
 }
+
+const selectSchemaItems = (response: SchemasResponse) => response.schema_privileges || [];
+const selectSchemaTotal = (response: SchemasResponse) => response.total_filtered_schemas ?? response.total_schemas ?? 0;
 
 export function useConnectionSchemas(
   connectionId: number,
@@ -32,40 +31,20 @@ export function useConnectionSchemas(
   search: string | null = null,
   reloadTrigger: number = 0,
 ) {
-  const [schemas, setSchemas] = useState<SchemaPrivilegeInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
-  const [hasPrev, setHasPrev] = useState(false);
-
-  useEffect(() => {
-    const fetchSchemas = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const query = toQueryString({ page, size, search: search?.trim() });
-        const data = await apiRequest<SchemasResponse>(
-          `/api/v1/db_connections/${connectionId}/schemas/privileges_groups?${query}`,
-          { withAuth: true },
-        );
-
-        setSchemas(data.schema_privileges || []);
-        setTotal(data.total_filtered_schemas ?? data.total_schemas ?? 0);
-        setPages(data.pages ?? 0);
-        setHasNext(Boolean(data.has_next));
-        setHasPrev(Boolean(data.has_prev));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Не удалось загрузить схемы');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSchemas();
-  }, [connectionId, page, size, search, reloadTrigger]);
+  const { items: schemas, loading, error, total, pages, hasNext, hasPrev } = usePaginatedConnectionResource<
+    SchemasResponse,
+    SchemaPrivilegeInfo
+  >({
+    connectionId,
+    page,
+    size,
+    search,
+    reloadTrigger,
+    endpoint: 'schemas/privileges_groups',
+    selectItems: selectSchemaItems,
+    selectTotal: selectSchemaTotal,
+    errorMessage: 'Не удалось загрузить схемы',
+  });
 
   return { schemas, loading, error, total, pages, hasNext, hasPrev };
 }

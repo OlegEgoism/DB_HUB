@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { apiRequest } from '@shared/api/http';
-import { toQueryString } from '@shared/lib/query';
+import { useCallback } from 'react';
+import { usePaginatedConnectionResource } from './usePaginatedConnectionResource';
 
 export interface ViewGroupPrivilege {
   role: string;
@@ -30,8 +29,6 @@ interface ViewsResponse {
   total_filtered_views?: number;
   total_materialized_views?: number;
   total_filtered_materialized_views?: number;
-  page: number;
-  size: number;
   pages?: number;
   has_next?: boolean;
   has_prev?: boolean;
@@ -44,8 +41,6 @@ interface ViewsPrivilegesResponse {
   total_filtered_views?: number;
   total_materialized_views?: number;
   total_filtered_materialized_views?: number;
-  page: number;
-  size: number;
   pages?: number;
   has_next?: boolean;
   has_prev?: boolean;
@@ -60,45 +55,33 @@ function useBaseConnectionViews(
   reloadTrigger: number,
   endpoint: 'views' | 'views/materialized',
 ) {
-  const [views, setViews] = useState<DBViewInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
-  const [hasPrev, setHasPrev] = useState(false);
+  const selectItems = useCallback(
+    (response: ViewsResponse) => (endpoint === 'views/materialized' ? response.materialized_views || [] : response.views || []),
+    [endpoint],
+  );
 
-  useEffect(() => {
-    const fetchViews = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const selectTotal = useCallback(
+    (response: ViewsResponse, items: DBViewInfo[]) =>
+      endpoint === 'views/materialized'
+        ? response.total_filtered_materialized_views ?? response.total_materialized_views ?? response.total ?? items.length
+        : response.total_filtered_views ?? response.total_views ?? response.total ?? items.length,
+    [endpoint],
+  );
 
-        const query = toQueryString({ page, size, search: search?.trim() });
-        const data = await apiRequest<ViewsResponse>(`/api/v1/db_connections/${connectionId}/${endpoint}?${query}`, {
-          withAuth: true,
-        });
-
-        const resolvedViews = endpoint === 'views/materialized' ? data.materialized_views || [] : data.views || [];
-        const resolvedTotal =
-          endpoint === 'views/materialized'
-            ? data.total_filtered_materialized_views ?? data.total_materialized_views ?? data.total ?? resolvedViews.length
-            : data.total_filtered_views ?? data.total_views ?? data.total ?? resolvedViews.length;
-
-        setViews(resolvedViews);
-        setTotal(resolvedTotal);
-        setPages(data.pages ?? 0);
-        setHasNext(Boolean(data.has_next));
-        setHasPrev(Boolean(data.has_prev));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Не удалось загрузить представления');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchViews();
-  }, [connectionId, page, size, search, reloadTrigger, endpoint]);
+  const { items: views, loading, error, total, pages, hasNext, hasPrev } = usePaginatedConnectionResource<
+    ViewsResponse,
+    DBViewInfo
+  >({
+    connectionId,
+    page,
+    size,
+    search,
+    reloadTrigger,
+    endpoint,
+    selectItems,
+    selectTotal,
+    errorMessage: 'Не удалось загрузить представления',
+  });
 
   return { views, loading, error, total, pages, hasNext, hasPrev };
 }
@@ -111,47 +94,30 @@ function useBaseConnectionViewsPrivileges(
   reloadTrigger: number,
   endpoint: 'views/privileges_groups' | 'views/materialized/privileges_groups',
 ) {
-  const [viewPrivileges, setViewPrivileges] = useState<ViewPrivilegeInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
-  const [hasPrev, setHasPrev] = useState(false);
+  const selectItems = useCallback((response: ViewsPrivilegesResponse) => response.view_privileges || [], []);
 
-  useEffect(() => {
-    const fetchViewPrivileges = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const selectTotal = useCallback(
+    (response: ViewsPrivilegesResponse, items: ViewPrivilegeInfo[]) =>
+      endpoint === 'views/materialized/privileges_groups'
+        ? response.total_filtered_materialized_views ?? response.total_materialized_views ?? items.length
+        : response.total_filtered_views ?? response.total_views ?? items.length,
+    [endpoint],
+  );
 
-        const query = toQueryString({ page, size, search: search?.trim() });
-        const data = await apiRequest<ViewsPrivilegesResponse>(
-          `/api/v1/db_connections/${connectionId}/${endpoint}?${query}`,
-          {
-            withAuth: true,
-          },
-        );
-
-        const resolvedTotal =
-          endpoint === 'views/materialized/privileges_groups'
-            ? data.total_filtered_materialized_views ?? data.total_materialized_views ?? data.view_privileges?.length ?? 0
-            : data.total_filtered_views ?? data.total_views ?? data.view_privileges?.length ?? 0;
-
-        setViewPrivileges(data.view_privileges || []);
-        setTotal(resolvedTotal);
-        setPages(data.pages ?? 0);
-        setHasNext(Boolean(data.has_next));
-        setHasPrev(Boolean(data.has_prev));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Не удалось загрузить права представлений');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchViewPrivileges();
-  }, [connectionId, page, size, search, reloadTrigger, endpoint]);
+  const { items: viewPrivileges, loading, error, total, pages, hasNext, hasPrev } = usePaginatedConnectionResource<
+    ViewsPrivilegesResponse,
+    ViewPrivilegeInfo
+  >({
+    connectionId,
+    page,
+    size,
+    search,
+    reloadTrigger,
+    endpoint,
+    selectItems,
+    selectTotal,
+    errorMessage: 'Не удалось загрузить права представлений',
+  });
 
   return { viewPrivileges, loading, error, total, pages, hasNext, hasPrev };
 }
