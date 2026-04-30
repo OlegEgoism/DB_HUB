@@ -1,29 +1,14 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import type { RegisterUserPayload } from '@entities/user/model';
 import { registerUser } from '@entities/user/api/user-api';
+import { useAsyncAction } from '@shared/lib/useAsyncAction';
 
 export function useSignUp() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const signUpAction = useCallback((userData: RegisterUserPayload) => registerUser(userData), []);
 
-  const register = async (userData: RegisterUserPayload) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(false);
+  const { execute, loading, error, success } = useAsyncAction(signUpAction, {
+    defaultErrorMessage: 'Failed to register user',
+  });
 
-      const user = await registerUser(userData);
-      setSuccess(true);
-
-      return user;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to register user');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return { register, loading, error, success };
+  return { register: execute, loading, error, success };
 }

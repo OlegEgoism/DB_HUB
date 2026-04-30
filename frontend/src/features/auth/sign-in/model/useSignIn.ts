@@ -1,35 +1,23 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import type { LoginCredentials, LoginResponse } from '@entities/session/model/types';
 import { sessionStorageModel } from '@entities/session/model/storage';
 import { apiRequest } from '@shared/api/http';
+import { useAsyncAction } from '@shared/lib/useAsyncAction';
 
 export function useSignIn() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const signInAction = useCallback(async (credentials: LoginCredentials) => {
+    const data = await apiRequest<LoginResponse>('/api/v1/app_auth/login-form', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
 
-  const login = async (credentials: LoginCredentials) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(false);
+    sessionStorageModel.setSession(data.token.access_token, data.user);
+    return data;
+  }, []);
 
-      const data = await apiRequest<LoginResponse>('/api/v1/app_auth/login-form', {
-        method: 'POST',
-        body: JSON.stringify(credentials),
-      });
+  const { execute, loading, error, success } = useAsyncAction(signInAction, {
+    defaultErrorMessage: 'Failed to login',
+  });
 
-      sessionStorageModel.setSession(data.token.access_token, data.user);
-      setSuccess(true);
-
-      return data;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to login');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return { login, loading, error, success };
+  return { login: execute, loading, error, success };
 }
