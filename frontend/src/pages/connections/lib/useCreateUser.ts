@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { apiRequest } from '@shared/api/http';
+import { useAsyncAction } from '@shared/lib/useAsyncAction';
 
 export interface CreateUserData {
   username: string;
@@ -9,31 +10,19 @@ export interface CreateUserData {
 }
 
 export function useCreateUser(connectionId: number) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  const createUser = async (data: CreateUserData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(false);
-
-      const newUser = await apiRequest(`/api/v1/db_connections/${connectionId}/users`, {
+  const createUserAction = useCallback(
+    (data: CreateUserData) =>
+      apiRequest(`/api/v1/db_connections/${connectionId}/users`, {
         method: 'POST',
         body: JSON.stringify(data),
         withAuth: true,
-      });
+      }),
+    [connectionId],
+  );
 
-      setSuccess(true);
-      return newUser;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create user');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { execute, loading, error, success } = useAsyncAction(createUserAction, {
+    defaultErrorMessage: 'Failed to create user',
+  });
 
-  return { createUser, loading, error, success };
+  return { createUser: execute, loading, error, success };
 }

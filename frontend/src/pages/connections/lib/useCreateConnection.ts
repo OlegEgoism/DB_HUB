@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { apiRequest } from '@shared/api/http';
+import { useAsyncAction } from '@shared/lib/useAsyncAction';
 
 export interface CreateConnectionData {
   name: string;
@@ -16,31 +17,19 @@ export interface CreateConnectionData {
 }
 
 export function useCreateConnection() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  const createConnection = async (data: CreateConnectionData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(false);
-
-      const newConnection = await apiRequest('/api/v1/db_connections', {
+  const createConnectionAction = useCallback(
+    (data: CreateConnectionData) =>
+      apiRequest('/api/v1/db_connections', {
         method: 'POST',
         body: JSON.stringify(data),
         withAuth: true,
-      });
+      }),
+    [],
+  );
 
-      setSuccess(true);
-      return newConnection;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create connection');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { execute, loading, error, success } = useAsyncAction(createConnectionAction, {
+    defaultErrorMessage: 'Failed to create connection',
+  });
 
-  return { createConnection, loading, error, success };
+  return { createConnection: execute, loading, error, success };
 }

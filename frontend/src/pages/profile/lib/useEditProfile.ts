@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import type { User } from '@shared/types/user';
 import { apiRequest } from '@shared/api/http';
+import { useAsyncAction } from '@shared/lib/useAsyncAction';
 
 export interface EditProfileData {
   email: string;
@@ -8,31 +9,19 @@ export interface EditProfileData {
 }
 
 export function useEditProfile(userId: number) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  const updateProfile = async (data: EditProfileData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(false);
-
-      const updatedUser = await apiRequest<User>(`/api/v1/app_users/${userId}`, {
+  const updateProfileAction = useCallback(
+    (data: EditProfileData) =>
+      apiRequest<User>(`/api/v1/app_users/${userId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
         withAuth: true,
-      });
+      }),
+    [userId],
+  );
 
-      setSuccess(true);
-      return updatedUser;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update profile');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { execute, loading, error, success } = useAsyncAction(updateProfileAction, {
+    defaultErrorMessage: 'Failed to update profile',
+  });
 
-  return { updateProfile, loading, error, success };
+  return { updateProfile: execute, loading, error, success };
 }
