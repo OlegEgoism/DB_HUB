@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 interface UseAsyncActionOptions {
   defaultErrorMessage: string;
@@ -37,8 +37,11 @@ export function useAsyncAction<TPayload, TResult>(
     [action, options.defaultErrorMessage],
   );
 
-  return {
-    execute,
-    ...state,
-  };
+  return useMemo(
+    () => ({
+      execute,
+      ...state,
+    }),
+    [execute, state],
+  );
 }
