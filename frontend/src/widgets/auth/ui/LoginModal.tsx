@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLogin } from '@pages/auth/lib/useLogin';
 import clsx from 'clsx';
 import styles from './LoginModal.module.scss';
@@ -28,7 +28,7 @@ export function LoginModal({
     const { login, loading, error, success } = useLogin();
     const { t } = useI18n();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.username.trim() || !formData.password.trim()) {
             alert(t('login.alert.fill'));
@@ -38,32 +38,32 @@ export function LoginModal({
         if (onLoginSuccess) {
             onLoginSuccess();
         }
-    };
+    }, [formData, login, onLoginSuccess, t]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
-    };
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    }, []);
 
-    const togglePasswordVisibility = () => {
-        setShowPassword(!showPassword);
-    };
+    const togglePasswordVisibility = useCallback(() => {
+        setShowPassword((prev) => !prev);
+    }, []);
 
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         if (!loading) {
             onClose();
         }
-    };
+    }, [loading, onClose]);
 
-    const handleOpenRegister = () => {
+    const handleOpenRegister = useCallback(() => {
         if (loading || !onOpenRegister) return;
         onOpenRegister();
-    };
+    }, [loading, onOpenRegister]);
 
-    // Функция для форматирования сообщения об ошибке
-    const getErrorMessage = () => {
+    const errorMessage = useMemo(() => {
         if (!error) return null;
 
         // Обработка ошибки неактивного пользователя
@@ -107,7 +107,7 @@ export function LoginModal({
 
         // По умолчанию возвращаем оригинальное сообщение
         return error;
-    };
+    }, [error, t]);
 
     return (
         <div className={clsx(styles.modal__overlay)}>
@@ -150,7 +150,7 @@ export function LoginModal({
                     <form onSubmit={handleSubmit} className={clsx(styles.modal__form)}>
                         {error && (
                             <div className={clsx(styles.modal__error)}>
-                                {getErrorMessage()}
+                                {errorMessage}
                             </div>
                         )}
 

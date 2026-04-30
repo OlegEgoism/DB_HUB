@@ -1,53 +1,51 @@
-// frontend/src/pages/auth/ui/login-page.tsx
-import {useEffect} from 'react';
-import {useNavigate} from 'react-router';
-import {LoginModal} from '@widgets/auth/ui/LoginModal';
-import {RegisterModal} from '@widgets/auth/ui/RegisterModal';
-import {useLogin} from '@pages/auth/lib/useLogin';
-import {useState} from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { LoginModal } from '@widgets/auth/ui/LoginModal';
+import { RegisterModal } from '@widgets/auth/ui/RegisterModal';
+import { useLogin } from '@pages/auth/lib/useLogin';
 import '@app/styles/App.scss';
 
 export default function LoginPage() {
-    const navigate = useNavigate();
-    const {checkAuth} = useLogin();
-    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const navigate = useNavigate();
+  const { checkAuth } = useLogin();
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
-    // Если пользователь уже авторизован, перенаправляем на главную
-    useEffect(() => {
-        if (checkAuth()) {
-            navigate('/');
-        }
-    }, [checkAuth, navigate]);
+  useEffect(() => {
+    if (checkAuth()) {
+      navigate('/');
+    }
+  }, [checkAuth, navigate]);
 
-    const handleClose = () => {
-        navigate('/');
-    };
+  const containerStyle = useMemo(
+    () => ({
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--bg-main-gradient)',
+    }),
+    [],
+  );
 
-    const handleLoginSuccess = () => {
-        navigate('/');
-    };
+  const handleClose = useCallback(() => {
+    navigate('/');
+  }, [navigate]);
 
-    return (
-        <div style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'var(--bg-main-gradient)'
-        }}>
-            {isRegisterModalOpen ? (
-                <RegisterModal
-                    onClose={() => {
-                        setIsRegisterModalOpen(false);
-                    }}
-                />
-            ) : (
-                <LoginModal
-                    onClose={handleClose}
-                    onLoginSuccess={handleLoginSuccess}
-                    onOpenRegister={() => setIsRegisterModalOpen(true)}
-                />
-            )}
-        </div>
-    );
+  const handleOpenRegister = useCallback(() => {
+    setIsRegisterModalOpen(true);
+  }, []);
+
+  const handleCloseRegister = useCallback(() => {
+    setIsRegisterModalOpen(false);
+  }, []);
+
+  return (
+    <div style={containerStyle}>
+      {isRegisterModalOpen ? (
+        <RegisterModal onClose={handleCloseRegister} />
+      ) : (
+        <LoginModal onClose={handleClose} onLoginSuccess={handleClose} onOpenRegister={handleOpenRegister} />
+      )}
+    </div>
+  );
 }
