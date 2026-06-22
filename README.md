@@ -2,6 +2,8 @@
 
 Веб-приложение: управление подключениями к **PostgreSQL / Greenplum**, просмотр объектов БД, метрики, работа с пользователями и группами на сервере БД, выполнение запросов.
 
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=FW9ddYKGFeY)
+
 **Документация:**
 
 - [Архитектура и состав API](docs/PROJECT.md)
